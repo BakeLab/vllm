@@ -22,15 +22,7 @@ endif()
 FetchContent_MakeAvailable(flashkda)
 message(STATUS "FlashKDA is available at ${flashkda_SOURCE_DIR}")
 
-set(FLASH_KDA_SUPPORT_ARCHS)
-if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.0)
-  list(APPEND FLASH_KDA_SUPPORT_ARCHS "9.0a")
-endif()
-if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
-  list(APPEND FLASH_KDA_SUPPORT_ARCHS "10.0f" "12.0f")
-elseif(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.9)
-  list(APPEND FLASH_KDA_SUPPORT_ARCHS "10.0a" "10.3a" "12.0a")
-endif()
+set(FLASH_KDA_SUPPORT_ARCHS "9.0a" "10.0f" "12.0f")
 
 cuda_archs_loose_intersection(
   FLASH_KDA_ARCHS "${FLASH_KDA_SUPPORT_ARCHS}" "${CUDA_ARCHS}")
@@ -74,7 +66,7 @@ if(FLASH_KDA_ARCHS)
     $<$<COMPILE_LANGUAGE:CXX>:-UPy_LIMITED_API>)
 else()
   message(STATUS
-    "FlashKDA will not compile: CUDA >=12.0 and a supported architecture "
-    "(SM90, SM10x, or SM12x) are required")
+    "FlashKDA will not compile: a supported architecture "
+    "(SM90, SM10x, or SM12x) is required")
   add_custom_target(_flashkda_C)
 endif()

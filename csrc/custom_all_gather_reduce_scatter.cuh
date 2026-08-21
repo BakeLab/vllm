@@ -240,9 +240,8 @@ __host__ __device__ constexpr int mnnvl_lamport_next_stage(int current_stage) {
 template <typename P>
 DINLINE void store_multimem_lamport_payload(P* ptr, P packed) {
   static_assert(sizeof(P) == 16);
-  // multimem was introduced in PTX 8.1 (CUDA 12.1) for SM90 and newer.
-#if !defined(USE_ROCM) && CUDA_VERSION >= 12010 && defined(__CUDA_ARCH__) && \
-    (__CUDA_ARCH__ >= 900)
+  // multimem was introduced in PTX 8.1 for SM90 and newer.
+#if !defined(USE_ROCM) && defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 900)
   LamportPack<P> value{.packed = packed};
   // The local alias remains sentinel until the multicast payload becomes
   // observable; readers reject prior or partial values and retry.
@@ -347,8 +346,7 @@ __global__ void __launch_bounds__(kMnnvlLamportAgThreads, 1)
                              uint32_t* __restrict__ epochs, int rank,
                              int size_per_rank, int stage_size) {
   using P = typename packed_t<T>::P;
-#if !defined(USE_ROCM) && CUDA_VERSION >= 12000 && defined(__CUDA_ARCH__) && \
-    (__CUDA_ARCH__ >= 900)
+#if !defined(USE_ROCM) && defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 900)
   cudaGridDependencySynchronize();
 #endif
   auto dp = *_dp;
@@ -378,8 +376,7 @@ __global__ void __launch_bounds__(kMnnvlLamportAgThreads, 1)
         current_multicast + rank * size_per_rank + tid,
         sanitize_lamport_payload(local_value));
   }
-#if !defined(USE_ROCM) && CUDA_VERSION >= 12000 && defined(__CUDA_ARCH__) && \
-    (__CUDA_ARCH__ >= 900)
+#if !defined(USE_ROCM) && defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 900)
   cudaTriggerProgrammaticLaunchCompletion();
 #endif
 
@@ -417,8 +414,7 @@ __global__ void __launch_bounds__(kMnnvlLamportRsThreads, 1)
                                         int size_per_rank, int stage_size) {
   using P = typename packed_t<T>::P;
   using A = typename packed_t<T>::A;
-#if !defined(USE_ROCM) && CUDA_VERSION >= 12000 && defined(__CUDA_ARCH__) && \
-    (__CUDA_ARCH__ >= 900)
+#if !defined(USE_ROCM) && defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 900)
   cudaGridDependencySynchronize();
 #endif
   auto dp = *_dp;
@@ -444,8 +440,7 @@ __global__ void __launch_bounds__(kMnnvlLamportRsThreads, 1)
     auto src = packed_input + dst_rank * size_per_rank;
     dst[idx] = sanitize_lamport_payload(src[idx]);
   }
-#if !defined(USE_ROCM) && CUDA_VERSION >= 12000 && defined(__CUDA_ARCH__) && \
-    (__CUDA_ARCH__ >= 900)
+#if !defined(USE_ROCM) && defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 900)
   cudaTriggerProgrammaticLaunchCompletion();
 #endif
 
