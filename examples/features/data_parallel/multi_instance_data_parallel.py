@@ -4,9 +4,9 @@ import asyncio
 import threading
 
 from vllm.engine.arg_utils import AsyncEngineArgs
-from vllm.engine.async_llm_engine import AsyncLLMEngine
 from vllm.outputs import RequestOutput
 from vllm.sampling_params import SamplingParams
+from vllm.v1.engine.async_llm import AsyncLLM as AsyncLLMEngine
 from vllm.v1.metrics.loggers import AggregatedLoggingStatLogger
 
 """
