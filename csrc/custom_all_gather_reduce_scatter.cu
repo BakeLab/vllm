@@ -58,7 +58,7 @@ void CustomAllreduce::mnnvl_lamport_allgather(cudaStream_t stream, T* input,
   int blocks =
       (size_per_rank + kMnnvlLamportAgThreads - 1) / kMnnvlLamportAgThreads;
 
-#if !defined(USE_ROCM) && CUDA_VERSION >= 12000
+#if !defined(USE_ROCM)
   cudaLaunchAttribute attributes[1]{};
   attributes[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
   attributes[0].val.programmaticStreamSerializationAllowed = 1;
@@ -73,12 +73,6 @@ void CustomAllreduce::mnnvl_lamport_allgather(cudaStream_t stream, T* input,
                                  ptrs, input, output,                          \
                                  reinterpret_cast<T*>(multicast_buffer),       \
                                  epochs, rank_, size_per_rank, stage_size))
-#else
-  #define MNNVL_LAMPORT_AG_LAUNCH(ngpus)                                 \
-    mnnvl_lamport_all_gather<T, ngpus>                                   \
-        <<<blocks, kMnnvlLamportAgThreads, 0, stream>>>(                 \
-            ptrs, input, output, reinterpret_cast<T*>(multicast_buffer), \
-            epochs, rank_, size_per_rank, stage_size)
 #endif
 
 #define MNNVL_LAMPORT_AG_CASE(ngpus) \
@@ -150,7 +144,7 @@ void CustomAllreduce::mnnvl_lamport_reduce_scatter(cudaStream_t stream,
       (size_per_rank + kMnnvlLamportRsThreads - 1) / kMnnvlLamportRsThreads;
   int blocks = blocks_per_rank * world_size_;
 
-#if !defined(USE_ROCM) && CUDA_VERSION >= 12000
+#if !defined(USE_ROCM)
   cudaLaunchAttribute attributes[1]{};
   attributes[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
   attributes[0].val.programmaticStreamSerializationAllowed = 1;
@@ -164,11 +158,6 @@ void CustomAllreduce::mnnvl_lamport_reduce_scatter(cudaStream_t stream,
     CUDACHECK(cudaLaunchKernelEx(                                             \
         &config, &mnnvl_lamport_reduce_scatter_kernel<T, ngpus>, ptrs, input, \
         output, epochs, rank_, size_per_rank, stage_size))
-#else
-  #define MNNVL_LAMPORT_RS_LAUNCH(ngpus)                 \
-    mnnvl_lamport_reduce_scatter_kernel<T, ngpus>        \
-        <<<blocks, kMnnvlLamportRsThreads, 0, stream>>>( \
-            ptrs, input, output, epochs, rank_, size_per_rank, stage_size)
 #endif
 
 #define MNNVL_LAMPORT_RS_CASE(ngpus) \

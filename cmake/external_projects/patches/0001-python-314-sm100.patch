@@ -1,0 +1,37 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index a7dd915..4de3bbd 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -22 +22 @@ set(ignoreMe "${VLLM_PYTHON_PATH}")
+-set(PYTHON_SUPPORTED_VERSIONS "3.9" "3.10" "3.11" "3.12" "3.13")
++set(PYTHON_SUPPORTED_VERSIONS "3.14")
+@@ -25,6 +25 @@ set(PYTHON_SUPPORTED_VERSIONS "3.9" "3.10" "3.11" "3.12" "3.13")
+-set(CUDA_SUPPORTED_ARCHS "8.0;8.6;8.9;9.0")
+-if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
+-    list(APPEND CUDA_SUPPORTED_ARCHS "10.0" "11.0" "12.0")
+-elseif(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8)
+-    list(APPEND CUDA_SUPPORTED_ARCHS "10.0" "10.1" "12.0")
+-endif()
++set(CUDA_SUPPORTED_ARCHS "10.0;11.0;12.0")
+@@ -140 +135 @@ if (FA2_ENABLED)
+-        cuda_archs_loose_intersection(FA2_ARCHS "8.0+PTX" "${CUDA_ARCHS}")
++        cuda_archs_loose_intersection(FA2_ARCHS "10.0+PTX" "${CUDA_ARCHS}")
+diff --git a/cmake/utils.cmake b/cmake/utils.cmake
+index ed41ab4..d8815eb 100644
+--- a/cmake/utils.cmake
++++ b/cmake/utils.cmake
+@@ -6 +6 @@
+-# Attempt to find the python package and verifies that it is one of the `SUPPORTED_VERSIONS`.
++# Attempt to find the Python package and verifies that it meets the minimum version.
+@@ -8 +8 @@
+-macro (find_python_constrained_versions SUPPORTED_VERSIONS)
++macro (find_python_constrained_versions MINIMUM_VERSION)
+@@ -18,2 +18 @@ macro (find_python_constrained_versions SUPPORTED_VERSIONS)
+-  set(_SUPPORTED_VERSIONS_LIST ${SUPPORTED_VERSIONS} ${ARGN})
+-  if (NOT _VER IN_LIST _SUPPORTED_VERSIONS_LIST)
++  if (Python_VERSION VERSION_LESS "${MINIMUM_VERSION}")
+@@ -21,2 +20,2 @@ macro (find_python_constrained_versions SUPPORTED_VERSIONS)
+-      "Python version (${_VER}) is not one of the supported versions: "
+-      "${_SUPPORTED_VERSIONS_LIST}.")
++      "Python version (${_VER}) is below the minimum supported version "
++      "(${MINIMUM_VERSION}).")
