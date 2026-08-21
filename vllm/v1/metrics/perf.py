@@ -52,9 +52,7 @@ class InvalidComponent(Exception):
 _QUANT_WEIGHT_BYTE_SIZE: dict[str, float] = {
     # FP8 methods (1 byte per weight)
     "fp8": 1,
-    "fbgemm_fp8": 1,
     "ptpc_fp8": 1,
-    "fp_quant": 1,
     "modelopt": 1,
     "modelopt_mxfp8": 1,
     # FP4 / INT4 methods (0.5 bytes per weight)
