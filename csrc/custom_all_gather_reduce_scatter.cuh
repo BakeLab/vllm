@@ -222,8 +222,7 @@ __global__ void __launch_bounds__(kMnnvlLamportAgThreads, 1)
                              uint32_t* __restrict__ epochs, int rank,
                              int size_per_rank, int stage_size) {
   using P = typename packed_t<T>::P;
-#if !defined(USE_ROCM) && CUDA_VERSION >= 12000 && defined(__CUDA_ARCH__) && \
-    (__CUDA_ARCH__ >= 900)
+#if !defined(USE_ROCM) && defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 900)
   cudaGridDependencySynchronize();
 #endif
   auto dp = *_dp;
@@ -253,8 +252,7 @@ __global__ void __launch_bounds__(kMnnvlLamportAgThreads, 1)
         current_multicast + rank * size_per_rank + tid,
         sanitize_lamport_payload(local_value));
   }
-#if !defined(USE_ROCM) && CUDA_VERSION >= 12000 && defined(__CUDA_ARCH__) && \
-    (__CUDA_ARCH__ >= 900)
+#if !defined(USE_ROCM) && defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 900)
   cudaTriggerProgrammaticLaunchCompletion();
 #endif
 
@@ -292,8 +290,7 @@ __global__ void __launch_bounds__(kMnnvlLamportRsThreads, 1)
                                         int size_per_rank, int stage_size) {
   using P = typename packed_t<T>::P;
   using A = typename packed_t<T>::A;
-#if !defined(USE_ROCM) && CUDA_VERSION >= 12000 && defined(__CUDA_ARCH__) && \
-    (__CUDA_ARCH__ >= 900)
+#if !defined(USE_ROCM) && defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 900)
   cudaGridDependencySynchronize();
 #endif
   auto dp = *_dp;
@@ -319,8 +316,7 @@ __global__ void __launch_bounds__(kMnnvlLamportRsThreads, 1)
     auto src = packed_input + dst_rank * size_per_rank;
     dst[idx] = sanitize_lamport_payload(src[idx]);
   }
-#if !defined(USE_ROCM) && CUDA_VERSION >= 12000 && defined(__CUDA_ARCH__) && \
-    (__CUDA_ARCH__ >= 900)
+#if !defined(USE_ROCM) && defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 900)
   cudaTriggerProgrammaticLaunchCompletion();
 #endif
 

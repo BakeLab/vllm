@@ -47,8 +47,6 @@ struct _typeConvert<float> {
   }
 };
 
-#if defined(USE_ROCM) || (defined(CUDA_VERSION) && (CUDA_VERSION >= 12000))
-// CUDA < 12.0 runs into issues with packed type conversion
 template <>
 struct _typeConvert<torch::headeronly::Half> {
   static constexpr bool exists = true;
@@ -93,8 +91,6 @@ struct _typeConvert<torch::headeronly::BFloat16> {
 };
   #endif  // (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800) ||
           // defined(USE_ROCM)
-#endif    // defined(USE_ROCM) || (defined(CUDA_VERSION) && (CUDA_VERSION >=
-          // 12000))
 
 /* Vector POD struct to generate vectorized and packed FP16/BF16 ops
    for appropriate specializations of fused_add_rms_norm_kernel.

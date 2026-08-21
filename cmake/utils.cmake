@@ -517,11 +517,7 @@ endfunction()
 
 
 function(cuda_archs_sm90plus OUT_CUDA_ARCHS TGT_CUDA_ARCHS)
-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
-    cuda_archs_loose_intersection(_archs "9.0a;10.0f;10.7f;11.0f;12.0f" "${TGT_CUDA_ARCHS}")
-  else()
-    cuda_archs_loose_intersection(_archs "9.0a;10.0a;10.1a;10.3a;12.0a;12.1a" "${TGT_CUDA_ARCHS}")
-  endif()
+  cuda_archs_loose_intersection(_archs "9.0a;10.0f;10.7f;11.0f;12.0f" "${TGT_CUDA_ARCHS}")
   set(${OUT_CUDA_ARCHS} ${_archs} PARENT_SCOPE)
 endfunction()
 

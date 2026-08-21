@@ -3,9 +3,6 @@
 
 #include "libtorch_stable/moe/permute_unpermute_kernels/moe_permute_unpermute_kernel.h"
 
-// moe_permute kernels require at least CUDA 12.0
-#if defined(CUDA_VERSION) && (CUDA_VERSION >= 12000)
-
 // CubKeyValueSorter definition begin
 CubKeyValueSorter::CubKeyValueSorter()
     : num_experts_(0), num_bits_(sizeof(int) * 8) {}
@@ -171,5 +168,3 @@ void preprocessTopkIdLauncher(int* topk_id_ptr, int size,
   preprocessTopkIdKernel<<<grid, block, smem_size, stream>>>(
       topk_id_ptr, size, expert_map_ptr, num_experts);
 }
-
-#endif

@@ -12,9 +12,6 @@
 
 #include <torch/csrc/stable/library.h>
 
-// moe_permute kernels require at least CUDA 12.0
-#if defined(CUDA_VERSION) && (CUDA_VERSION >= 12000)
-
 namespace {
 
 int64_t product_integers(torch::headeronly::IntHeaderOnlyArrayRef sizes) {
@@ -271,58 +268,8 @@ void shuffle_rows(const torch::stable::Tensor& input_tensor,
   });
 }
 
-#else
-
-int64_t moe_permute_sort_workspace_size(int64_t num_expanded_rows,
-                                        int64_t n_expert) {
-  STD_TORCH_CHECK(
-      false, "moe_permute_sort_workspace_size is not supported on CUDA < 12.0");
-}
-
-void moe_permute(const torch::stable::Tensor& input,
-                 const torch::stable::Tensor& topk_ids,
-                 const torch::stable::Tensor& token_expert_indices,
-                 const std::optional<torch::stable::Tensor>& expert_map,
-                 int64_t n_expert, int64_t n_local_expert, int64_t topk,
-                 torch::stable::Tensor& permuted_input,
-                 torch::stable::Tensor& expert_first_token_offset,
-                 torch::stable::Tensor& inv_permuted_idx,
-                 torch::stable::Tensor& permuted_idx) {
-  STD_TORCH_CHECK(false, "moe_permute is not supported on CUDA < 12.0");
-}
-
-void moe_permute_with_scratch(
-    const torch::stable::Tensor& input, const torch::stable::Tensor& topk_ids,
-    const torch::stable::Tensor& token_expert_indices,
-    const std::optional<torch::stable::Tensor>& expert_map, int64_t n_expert,
-    int64_t n_local_expert, int64_t topk, torch::stable::Tensor& permuted_input,
-    torch::stable::Tensor& expert_first_token_offset,
-    torch::stable::Tensor& inv_permuted_idx,
-    torch::stable::Tensor& permuted_idx, torch::stable::Tensor& sort_workspace,
-    torch::stable::Tensor& permuted_experts_id,
-    torch::stable::Tensor& sorted_row_idx,
-    torch::stable::Tensor& topk_ids_for_sort) {
-  STD_TORCH_CHECK(false,
-                  "moe_permute_with_scratch is not supported on CUDA < 12.0");
-}
-
-void moe_unpermute(
-    const torch::stable::Tensor& permuted_hidden_states,
-    const torch::stable::Tensor& topk_weights,
-    const torch::stable::Tensor& inv_permuted_idx,
-    const std::optional<torch::stable::Tensor>& expert_first_token_offset,
-    int64_t topk, torch::stable::Tensor& hidden_states) {
-  STD_TORCH_CHECK(false, "moe_unpermute is not supported on CUDA < 12.0");
-}
-
-#endif
-
 bool moe_permute_unpermute_supported() {
-#if defined(CUDA_VERSION) && (CUDA_VERSION >= 12000)
   return true;
-#else
-  return false;
-#endif
 }
 
 STABLE_TORCH_LIBRARY_IMPL(_moe_C, CUDA, m) {

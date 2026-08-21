@@ -149,9 +149,9 @@ bool cutlass_scaled_mm_supports_fp8(int64_t cuda_device_capability) {
 
 #if defined CUDA_VERSION
   if (cuda_device_capability >= 90) {
-    return CUDA_VERSION >= 12000;
+    return true;
   } else if (cuda_device_capability >= 89) {
-    return CUDA_VERSION >= 12040;
+    return true;
   }
 #endif
 
@@ -164,9 +164,9 @@ bool cutlass_scaled_mm_supports_block_fp8(int64_t cuda_device_capability) {
 
 #if defined CUDA_VERSION
   if (cuda_device_capability >= 100) {
-    return CUDA_VERSION >= 12080;
+    return true;
   } else if (cuda_device_capability >= 90) {
-    return CUDA_VERSION >= 12000;
+    return true;
   }
 #endif
 
@@ -181,12 +181,12 @@ bool cutlass_group_gemm_supported(int64_t cuda_device_capability) {
 #if defined CUDA_VERSION
   #if defined ENABLE_CUTLASS_MOE_SM100 && ENABLE_CUTLASS_MOE_SM100
   if (cuda_device_capability >= 100 && cuda_device_capability < 120) {
-    return CUDA_VERSION >= 12080;
+    return true;
   }
   #endif
   #if defined ENABLE_CUTLASS_MOE_SM90 && ENABLE_CUTLASS_MOE_SM90
   if (cuda_device_capability >= 90 && cuda_device_capability < 100) {
-    return CUDA_VERSION >= 12030;
+    return true;
   }
   #endif
 #endif

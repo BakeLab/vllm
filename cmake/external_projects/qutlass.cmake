@@ -60,9 +60,6 @@ if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
   else()
     cuda_archs_loose_intersection(QUTLASS_SM100_ARCHS "10.0f" "${CUDA_ARCHS}")
   endif()
-else()
-  cuda_archs_loose_intersection(QUTLASS_SM120_ARCHS "12.0a;12.1a" "${CUDA_ARCHS}")
-  cuda_archs_loose_intersection(QUTLASS_SM100_ARCHS "10.0a;10.3a" "${CUDA_ARCHS}")
 endif()
 
 # QUTLASS uses TARGET_CUDA_ARCH as a single preprocessor selector for all its
@@ -152,13 +149,8 @@ if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND QUTLASS_ARCHS)
   )
 
 else()
-  if("${CMAKE_CUDA_COMPILER_VERSION}" VERSION_LESS "12.8")
-    message(STATUS
-      "[QUTLASS] Skipping build: CUDA 12.8 or newer is required (found ${CMAKE_CUDA_COMPILER_VERSION}).")
-  else()
-    message(STATUS
-      "[QUTLASS] Skipping build: no supported arch (12.0f / 10.0f) found in "
-      "CUDA_ARCHS='${CUDA_ARCHS}'.")
-  endif()
+  message(STATUS
+    "[QUTLASS] Skipping build: no supported arch (12.0f / 10.0f) found in "
+    "CUDA_ARCHS='${CUDA_ARCHS}'.")
   add_custom_target(_qutlass_C)
 endif()
