@@ -88,7 +88,6 @@ based on assigned priority, with FCFS as a tie-breaker), configurable via the
 | **NVIDIA**    | <nobr>🟢</nobr> |
 | **AMD**       | <nobr>🟢</nobr> |
 | **INTEL GPU** | <nobr>🟢</nobr> |
-| **TPU**       | <nobr>🟢</nobr> |
 | **CPU**       | <nobr>🟢</nobr> |
 
 !!! note

@@ -23,7 +23,7 @@ cd vllm
 # git checkout <your-branch>
 ```
 
-1. **Install Environment**: Install or update the correct running environment. For TPU usage, activate your `conda` environment and install the corresponding `torch` and `torch_xla` versions.
+1. **Install Environment**: Install or update the correct running environment.
 
 2. **Model Configuration**: If you are using a customized model, ensure its configuration files are correctly placed and accessible.
 
@@ -34,14 +34,14 @@ You must set the following variables at the top of the script before execution.
    Note: You can also override the default values below via environment variables when running the script.
 
 ```bash
-MODEL=meta-llama/Llama-3.3-70B-Instruct SYSTEM=TPU TP=8 DOWNLOAD_DIR='' INPUT_LEN=128 OUTPUT_LEN=2048 MAX_MODEL_LEN=2300 MIN_CACHE_HIT_PCT=0 MAX_LATENCY_ALLOWED_MS=100000000000 NUM_SEQS_LIST="128 256" NUM_BATCHED_TOKENS_LIST="1024 2048 4096" VLLM_LOGGING_LEVEL=DEBUG bash auto_tune.sh
+MODEL=meta-llama/Llama-3.3-70B-Instruct SYSTEM=GPU TP=8 DOWNLOAD_DIR='' INPUT_LEN=128 OUTPUT_LEN=2048 MAX_MODEL_LEN=2300 MIN_CACHE_HIT_PCT=0 MAX_LATENCY_ALLOWED_MS=100000000000 NUM_SEQS_LIST="128 256" NUM_BATCHED_TOKENS_LIST="1024 2048 4096" VLLM_LOGGING_LEVEL=DEBUG bash auto_tune.sh
 ```
 
 | Variable | Description | Example Value |
 | --- | --- | --- |
 | `BASE` | **Required.** The absolute path to the parent directory of your vLLM repository directory. | `"$HOME"` |
 | `MODEL` | **Required.** The Hugging Face model identifier to be served by vllm. | `"meta-llama/Llama-3.1-8B-Instruct"` |
-| `SYSTEM` | **Required.** The hardware you are running on. Choices: `TPU` or `GPU`. (For other systems, it might not support saving profiles) | `"TPU"` |
+| `SYSTEM` | **Required.** The hardware you are running on. Choices: `GPU`. (For other systems, it might not support saving profiles) | `"GPU"` |
 | `TP` | **Required.** The tensor-parallelism size. | `1` |
 | `DOWNLOAD_DIR` | **Required.** Directory to download and load model weights from. | `""` (default download path) |
 | `INPUT_LEN` | **Required.** Request input length. | `4000` |
@@ -130,7 +130,7 @@ best_max_num_seqs: 256, best_num_batched_tokens: 2048, best_throughput: 12.5, pr
 
   If it cannot find the best parameters, the final row will be `best_max_num_seqs: 0, best_num_batched_tokens: 0, best_throughput: 0`. This can be due to either the server not starting properly, or the latency requirement being too strict.
 
-- **Profiler Trace**: A directory named `profile` is created inside the log directory. It contains the profiler trace file (e.g., `.xplane.pb` for TPU or a `.json` trace for GPU) from the single best-performing run.
+- **Profiler Trace**: A directory named `profile` is created inside the log directory. It contains the profiler trace file (a `.json` trace for GPU) from the single best-performing run.
 
 ## How It Works
 
@@ -183,7 +183,7 @@ Here is an example `runs_config.json` with two benchmark configurations:
   {
     "base": "/home/user",
     "model": "meta-llama/Llama-3.1-8B-Instruct",
-    "system": "TPU", # OR GPU
+    "system": "GPU",
     "tp": 8,
     "input_len": 128,
     "output_len": 2048,
@@ -194,7 +194,7 @@ Here is an example `runs_config.json` with two benchmark configurations:
   {
     "base": "/home/user",
     "model": "meta-llama/Llama-3.1-70B-Instruct",
-    "system": "TPU", # OR GPU
+    "system": "GPU",
     "tp": 8,
     "input_len": 4000,
     "output_len": 16,

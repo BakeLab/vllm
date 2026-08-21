@@ -74,17 +74,6 @@ This guide will help you quickly get started with vLLM to perform:
     !!! tip
         For more detailed instructions, including building from source and Docker image setup, please refer to the [GPU installation guide](installation/gpu.md) and select the "Intel XPU" tab.
 
-=== "Google TPU"
-
-    To run vLLM on Google TPUs, you need to install the `vllm-tpu` package.
-    
-    ```bash
-    uv pip install vllm-tpu
-    ```
-
-    !!! note
-        For more detailed instructions, including Docker, installing from source, and troubleshooting, please refer to the [vLLM on TPU documentation](https://docs.vllm.ai/projects/tpu/en/latest/).
-
 === "Ascend NPU"
 
     If you are using Ascend NPUs, you can run vLLM through [vLLM Ascend](https://github.com/vllm-project/vllm-ascend), a community-maintained hardware plugin.
