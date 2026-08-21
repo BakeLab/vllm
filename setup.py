@@ -229,25 +229,20 @@ class cmake_build_ext(build_ext):
 
         nvcc_threads = None
         if _is_cuda() and CUDA_HOME is not None:
-            try:
-                nvcc_version = get_nvcc_cuda_version()
-                if nvcc_version >= Version("11.2"):
-                    # `nvcc_threads` is either the value of the NVCC_THREADS
-                    # environment variable (if defined) or 1.
-                    # when it is set, we reduce `num_jobs` to avoid
-                    # overloading the system.
-                    nvcc_threads = envs.NVCC_THREADS
-                    if nvcc_threads is not None:
-                        nvcc_threads = int(nvcc_threads)
-                        logger.info(
-                            "Using NVCC_THREADS=%d as the number of nvcc threads.",
-                            nvcc_threads,
-                        )
-                    else:
-                        nvcc_threads = 1
-                    num_jobs = max(1, num_jobs // nvcc_threads)
-            except Exception as e:
-                logger.warning("Failed to get NVCC version: %s", e)
+            # `nvcc_threads` is either the value of the NVCC_THREADS
+            # environment variable (if defined) or 1.
+            # when it is set, we reduce `num_jobs` to avoid
+            # overloading the system.
+            nvcc_threads = envs.NVCC_THREADS
+            if nvcc_threads is not None:
+                nvcc_threads = int(nvcc_threads)
+                logger.info(
+                    "Using NVCC_THREADS=%d as the number of nvcc threads.",
+                    nvcc_threads,
+                )
+            else:
+                nvcc_threads = 1
+            num_jobs = max(1, num_jobs // nvcc_threads)
 
         return num_jobs, nvcc_threads
 
@@ -315,7 +310,10 @@ class cmake_build_ext(build_ext):
         if nvcc_threads:
             cmake_args += [f"-DNVCC_THREADS={nvcc_threads}"]
 
-        if is_ninja_available():
+        cmake_generator = os.environ.get("CMAKE_GENERATOR")
+        if cmake_generator:
+            build_tool = ["-G", cmake_generator]
+        elif is_ninja_available():
             build_tool = ["-G", "Ninja"]
             cmake_args += [
                 "-DCMAKE_JOB_POOL_COMPILE:STRING=compile",
@@ -604,9 +602,6 @@ class precompiled_wheel_utils:
     @staticmethod
     def detect_system_cuda_variant() -> str:
         """Auto-detect CUDA variant from torch, nvidia-smi, or env default."""
-        # Map CUDA major version to hosted wheel variants on wheels.vllm.ai
-        supported = {12: "cu129", 13: "cu130"}
-
         # Respect explicitly set VLLM_MAIN_CUDA_VERSION
         if envs.is_set("VLLM_MAIN_CUDA_VERSION"):
             v = envs.VLLM_MAIN_CUDA_VERSION
@@ -633,13 +628,20 @@ class precompiled_wheel_utils:
             except Exception:
                 pass
 
-        # Fall back to default
-        if not cuda_version:
+        if cuda_version:
+            major, minor = (int(x) for x in cuda_version.split(".")[:2])
+            if (major, minor) < (13, 4):
+                msg = (
+                    f"CUDA {cuda_version} detected; this tree only supports "
+                    "CUDA >= 13.4."
+                )
+                raise RuntimeError(msg)
+        else:
             cuda_version = envs.VLLM_MAIN_CUDA_VERSION
 
-        # Map to supported variant
-        major = int(cuda_version.split(".")[0])
-        variant = supported.get(major, supported[max(supported)])
+        # cu130 is the published wheel flavor; CUDA 13 minor versions are
+        # binary compatible, so it covers every supported toolkit.
+        variant = "cu130"
         print(f"Detected CUDA {cuda_version}, using variant {variant}")
         return variant
 
@@ -1489,23 +1491,13 @@ def get_requirements() -> list[str]:
         requirements = _read_requirements("common.txt")
     elif _is_cuda():
         requirements = _read_requirements("cuda.txt")
-        cuda_major, cuda_minor = torch.version.cuda.split(".")
         modified_requirements = []
         for req in requirements:
-            if "vllm-flash-attn" in req and cuda_major != "12":
-                # vllm-flash-attn is built only for CUDA 12.x.
-                # Skip for other versions.
-                continue
             if "flashinfer-cubin" in req or "flashinfer-jit-cache" in req:
-                # Not on PyPI (only https://flashinfer.ai/whl), so they
-                # cannot be wheel dependencies; flashinfer handles the
-                # absence of pre-compiled cubins/jit-cache at runtime.
+                # These packages are not on PyPI (only https://flashinfer.ai/whl)
+                # and cannot be wheel dependencies; flashinfer handles their
+                # absence at runtime.
                 continue
-            if "nvidia-cutlass-dsl[cu13]" in req and cuda_major == "12":
-                # [cu13] extra is the default; strip it on CUDA 12 builds.
-                req = req.replace("nvidia-cutlass-dsl[cu13]", "nvidia-cutlass-dsl")
-            if "humming-kernels[cu13]" in req and cuda_major == "12":
-                req = req.replace("humming-kernels[cu13]", "humming-kernels[cu12]")
             modified_requirements.append(req)
         requirements = modified_requirements
     elif _is_hip():
@@ -1540,20 +1532,14 @@ if _is_hip():
 
 if _is_cuda():
     ext_modules.append(CMakeExtension(name="vllm.vllm_flash_attn._vllm_fa2_C"))
-    if USE_PRECOMPILED_EXTENSIONS or (
-        CUDA_HOME and get_nvcc_cuda_version() >= Version("12.3")
-    ):
-        # FA3 requires CUDA 12.3 or later
+    if USE_PRECOMPILED_EXTENSIONS or CUDA_HOME:
         ext_modules.append(CMakeExtension(name="vllm.vllm_flash_attn._vllm_fa3_C"))
     # FA4 CuteDSL - Python-only component for FA4's cute DSL support
     # Optional since this doesn't produce a .so file, just copies Python files
     ext_modules.append(
         CMakeExtension(name="vllm.vllm_flash_attn._vllm_fa4_cutedsl_C", optional=True)
     )
-    if USE_PRECOMPILED_EXTENSIONS or (
-        CUDA_HOME and get_nvcc_cuda_version() >= Version("12.9")
-    ):
-        # FlashMLA requires CUDA 12.9 or later
+    if USE_PRECOMPILED_EXTENSIONS or CUDA_HOME:
         # Optional since this doesn't get built (produce an .so file) when
         # not targeting a hopper system
         ext_modules.append(CMakeExtension(name="vllm._flashmla_C", optional=True))
@@ -1563,14 +1549,9 @@ if _is_cuda():
         # DeepSelect requires CUDA 12.9 or later (SM100a/SM103a only)
         # Optional since it won't build on unsupported architectures
         ext_modules.append(CMakeExtension(name="vllm._deepselect_C", optional=True))
-    if USE_PRECOMPILED_EXTENSIONS or (
-        CUDA_HOME and get_nvcc_cuda_version() >= Version("12.0")
-    ):
+    if USE_PRECOMPILED_EXTENSIONS or CUDA_HOME:
         ext_modules.append(CMakeExtension(name="vllm._flashkda_C", optional=True))
-    if envs.VLLM_USE_PRECOMPILED or (
-        CUDA_HOME and get_nvcc_cuda_version() >= Version("12.3")
-    ):
-        # DeepGEMM requires CUDA 12.3+ (SM90/SM100)
+    if envs.VLLM_USE_PRECOMPILED or CUDA_HOME:
         # Optional since it won't build on unsupported architectures
         ext_modules.append(CMakeExtension(name="vllm._deep_gemm_C", optional=True))
         ext_modules.append(CMakeExtension(name="vllm._qutlass_C", optional=True))

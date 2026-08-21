@@ -29,8 +29,7 @@ ARG INSTALL_RUBIN_PRERELEASE=false
 ARG TRITON_INSTALL_FROM_SOURCE_REPO=
 ARG TRITON_INSTALL_FROM_SOURCE_REVISION=
 # DeepEPv2 requires NCCL >= 2.30.4 (GIN backend).
-# This version is used for CUDA 12+ builds to keep the DeepEP build and
-# runtime NCCL versions compatible.
+# Pinned to keep the DeepEP build and runtime NCCL versions compatible.
 ARG NCCL_VERSION=2.30.7
 
 # By parameterizing the base images, we allow third-party to use their own
@@ -220,10 +219,6 @@ RUN --mount=type=cache,target=/opt/uv/cache \
         [ ! -f /tmp/vllm-requirements/rubin-prerelease.txt ]; then \
         echo "INSTALL_RUBIN_PRERELEASE=true requires requirements/rubin-prerelease.txt" >&2; \
         exit 1; \
-    fi \
-    && if [ "$(echo $CUDA_VERSION | cut -d. -f1)" = "12" ]; then \
-        sed -i 's/^nvidia-cutlass-dsl\[cu13\]/nvidia-cutlass-dsl/' requirements/cuda.txt; \
-        sed -i 's/^humming-kernels\[cu13\]/humming-kernels[cu12]/' requirements/cuda.txt; \
     fi \
     && if [ "$(uname -m)" = "aarch64" ]; then \
         # The manylinux 2_28 (glibc 2.28) aarch64 builder cannot use
@@ -914,10 +909,6 @@ RUN --mount=type=cache,target=/opt/uv/cache \
         [ ! -f /tmp/vllm-requirements/rubin-prerelease.txt ]; then \
         echo "INSTALL_RUBIN_PRERELEASE=true requires requirements/rubin-prerelease.txt" >&2; \
         exit 1; \
-    fi && \
-    if [ "$(echo $CUDA_VERSION | cut -d. -f1)" = "12" ]; then \
-        sed -i 's/^nvidia-cutlass-dsl\[cu13\]/nvidia-cutlass-dsl/' /tmp/requirements-cuda.txt; \
-        sed -i 's/^humming-kernels\[cu13\]/humming-kernels[cu12]/' /tmp/requirements-cuda.txt; \
     fi && \
     if [ "${INSTALL_RUBIN_PRERELEASE}" = "true" ]; then \
         uv pip install --system \

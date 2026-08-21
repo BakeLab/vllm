@@ -53,8 +53,55 @@ install(CODE "set(CMAKE_INSTALL_LOCAL_ONLY FALSE)" ALL_COMPONENTS)
 install(CODE "set(OLD_CMAKE_INSTALL_PREFIX \"\${CMAKE_INSTALL_PREFIX}\")" ALL_COMPONENTS)
 install(CODE "set(CMAKE_INSTALL_PREFIX \"\${CMAKE_INSTALL_PREFIX}/vllm/\")" ALL_COMPONENTS)
 
-# Fetch the vllm-flash-attn library
-FetchContent_MakeAvailable(vllm-flash-attn)
+# Fetch the vllm-flash-attn source before adding it so the compatibility patch
+# is applied before its CMakeLists.txt is evaluated.
+FetchContent_GetProperties(vllm-flash-attn)
+if(NOT vllm-flash-attn_POPULATED)
+  # CMP0169 deprecates this form of FetchContent_Populate, but it is needed
+  # here to patch the source before add_subdirectory configures it.
+  if(POLICY CMP0169)
+    cmake_policy(PUSH)
+    cmake_policy(SET CMP0169 OLD)
+  endif()
+  FetchContent_Populate(vllm-flash-attn)
+  if(POLICY CMP0169)
+    cmake_policy(POP)
+  endif()
+endif()
+
+set(_VLLM_FLASH_ATTN_PATCH
+    "${CMAKE_CURRENT_LIST_DIR}/patches/0001-python-314-sm100.patch")
+execute_process(
+  COMMAND git apply --unidiff-zero --reverse --check "${_VLLM_FLASH_ATTN_PATCH}"
+  WORKING_DIRECTORY "${vllm-flash-attn_SOURCE_DIR}"
+  RESULT_VARIABLE _VLLM_FLASH_ATTN_PATCHED
+  ERROR_QUIET)
+if(NOT _VLLM_FLASH_ATTN_PATCHED EQUAL 0)
+  execute_process(
+    COMMAND git apply --unidiff-zero --check "${_VLLM_FLASH_ATTN_PATCH}"
+    WORKING_DIRECTORY "${vllm-flash-attn_SOURCE_DIR}"
+    RESULT_VARIABLE _VLLM_FLASH_ATTN_PATCH_APPLIES
+    ERROR_VARIABLE _VLLM_FLASH_ATTN_PATCH_ERROR)
+  if(NOT _VLLM_FLASH_ATTN_PATCH_APPLIES EQUAL 0)
+    message(FATAL_ERROR
+      "Could not apply the vLLM FlashAttention compatibility patch: "
+      "${_VLLM_FLASH_ATTN_PATCH_ERROR}")
+  endif()
+  execute_process(
+    COMMAND git apply --unidiff-zero "${_VLLM_FLASH_ATTN_PATCH}"
+    WORKING_DIRECTORY "${vllm-flash-attn_SOURCE_DIR}"
+    RESULT_VARIABLE _VLLM_FLASH_ATTN_PATCH_RESULT
+    ERROR_VARIABLE _VLLM_FLASH_ATTN_PATCH_ERROR)
+  if(NOT _VLLM_FLASH_ATTN_PATCH_RESULT EQUAL 0)
+    message(FATAL_ERROR
+      "Failed to apply the vLLM FlashAttention compatibility patch: "
+      "${_VLLM_FLASH_ATTN_PATCH_ERROR}")
+  endif()
+endif()
+
+add_subdirectory(
+  "${vllm-flash-attn_SOURCE_DIR}"
+  "${vllm-flash-attn_BINARY_DIR}")
 message(STATUS "vllm-flash-attn is available at ${vllm-flash-attn_SOURCE_DIR}")
 
 # Restore the install prefix after FA's install rules
