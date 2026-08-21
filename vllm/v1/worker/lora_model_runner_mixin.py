@@ -17,7 +17,6 @@ from vllm.lora.layers import LoRAMapping, LoRAMappingType
 from vllm.lora.request import LoRARequest
 from vllm.lora.worker_manager import LRUCacheWorkerLoRAManager
 from vllm.model_executor.models import supports_lora
-from vllm.platforms import current_platform
 from vllm.v1.worker.gpu_input_batch import InputBatch
 
 logger = init_logger(__name__)

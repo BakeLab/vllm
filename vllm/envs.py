@@ -57,13 +57,10 @@ if TYPE_CHECKING:
     VLLM_CPU_ATTN_SPLIT_KV: bool = True
     VLLM_ZENTORCH_WEIGHT_PREPACK: bool = True
     VLLM_CPU_INT4_W4A8: bool = True
-    VLLM_XLA_CACHE_PATH: str = os.path.join(VLLM_CACHE_ROOT, "xla_cache")
-    VLLM_XLA_CHECK_RECOMPILATION: bool = False
     VLLM_SPARSE_INDEXER_MAX_LOGITS_MB: int = 512
     VLLM_ADAPTIVE_VERIFICATION_PROFILE_CONTEXT_LEN: int = 8192
     VLLM_XPU_PP_MICROBATCH: bool = True
     VLLM_DISTRIBUTED_USE_SPLIT_GROUP: bool = False
-    VLLM_XLA_USE_SPMD: bool = False
     VLLM_WORKER_MULTIPROC_METHOD: Literal["fork", "spawn"] = "fork"
     VLLM_ASSETS_CACHE: str = os.path.join(VLLM_CACHE_ROOT, "assets")
     VLLM_ASSETS_CACHE_MODEL_CLEAN: bool = False
@@ -195,7 +192,6 @@ if TYPE_CHECKING:
     VLLM_B12X_MOE_FP4_FORCE_A16: bool = False
     VLLM_DEEPEPLL_NVFP4_DISPATCH: bool = False
     VLLM_V1_USE_OUTLINES_CACHE: bool = False
-    VLLM_TPU_USING_PATHWAYS: bool = False
     VLLM_USE_DEEP_GEMM: bool = True
     VLLM_MOE_USE_DEEP_GEMM: bool = True
     VLLM_USE_DEEP_GEMM_E8M0: bool = True
@@ -1074,20 +1070,17 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # imported at runtime.
     # If a non-existing backend is used, an AssertionError will be thrown.
     "VLLM_MEDIA_CONNECTOR": lambda: os.getenv("VLLM_MEDIA_CONNECTOR", "http"),
-    # Path to the XLA persistent cache directory.
-    # Only used for XLA devices such as TPUs.
-    "VLLM_XLA_CACHE_PATH": lambda: os.path.expanduser(
-        os.getenv(
-            "VLLM_XLA_CACHE_PATH",
-            os.path.join(get_default_cache_root(), "vllm", "xla_cache"),
-        )
+    # Hash algorithm for multimodal content hashing.
+    # - "blake3": Default, fast cryptographic hash (not FIPS 140-3 compliant)
+    # - "sha256": FIPS 140-3 compliant, widely supported
+    # - "sha512": FIPS 140-3 compliant, faster on 64-bit systems
+    # Use sha256 or sha512 for FIPS compliance in government/enterprise deployments
+    "VLLM_MM_HASHER_ALGORITHM": env_with_choices(
+        "VLLM_MM_HASHER_ALGORITHM",
+        "blake3",
+        ["blake3", "sha256", "sha512"],
+        case_sensitive=False,
     ),
-    # If set, assert on XLA recompilation after each execution step.
-    "VLLM_XLA_CHECK_RECOMPILATION": lambda: bool(
-        int(os.getenv("VLLM_XLA_CHECK_RECOMPILATION", "0"))
-    ),
-    # Enable SPMD mode for TPU backend.
-    "VLLM_XLA_USE_SPMD": lambda: bool(int(os.getenv("VLLM_XLA_USE_SPMD", "0"))),
     # Maximum size (in MB) for logits tensor in sparse MLA indexer prefill chunks.
     # Bounds the [M, N] float32 logits tensor to prevent CUDA OOM.
     # Default: 512 MB
@@ -1589,10 +1582,6 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # an environment with potentially malicious users.
     "VLLM_V1_USE_OUTLINES_CACHE": lambda: (
         os.environ.get("VLLM_V1_USE_OUTLINES_CACHE", "0") == "1"
-    ),
-    # Whether using Pathways
-    "VLLM_TPU_USING_PATHWAYS": lambda: bool(
-        "proxy" in os.getenv("JAX_PLATFORMS", "").lower()
     ),
     # Allow use of DeepGemm kernels for fused moe ops.
     "VLLM_USE_DEEP_GEMM": lambda: bool(int(os.getenv("VLLM_USE_DEEP_GEMM", "1"))),
@@ -2369,7 +2358,6 @@ def compile_factors() -> dict[str, object]:
         # HOME or the XDG roots silently invalidates every compile cache
         # (VLLM_CACHE_ROOT above and VLLM_FLASHINFER_AUTOTUNE_CACHE_DIR below
         # are already ignored for the same reason).
-        "VLLM_XLA_CACHE_PATH",
         "VLLM_CONFIG_ROOT",
         "LD_LIBRARY_PATH",
         "VLLM_SERVER_DEV_MODE",
@@ -2473,7 +2461,6 @@ def compile_factors() -> dict[str, object]:
         # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/npu.py#L12
         # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/hpu.py#L12
         # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/neuron.py#L14
-        # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/tpu.py#L38
         # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/intel_gpu.py#L10
         # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/rbln.py#L10
         "RAY_EXPERIMENTAL_NOSET_CUDA_VISIBLE_DEVICES",
@@ -2482,7 +2469,6 @@ def compile_factors() -> dict[str, object]:
         "RAY_EXPERIMENTAL_NOSET_ASCEND_RT_VISIBLE_DEVICES",
         "RAY_EXPERIMENTAL_NOSET_HABANA_VISIBLE_MODULES",
         "RAY_EXPERIMENTAL_NOSET_NEURON_RT_VISIBLE_CORES",
-        "RAY_EXPERIMENTAL_NOSET_TPU_VISIBLE_CHIPS",
         "RAY_EXPERIMENTAL_NOSET_ONEAPI_DEVICE_SELECTOR",
         "RAY_EXPERIMENTAL_NOSET_RBLN_RT_VISIBLE_DEVICES",
     ]
