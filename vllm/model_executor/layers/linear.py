@@ -56,7 +56,6 @@ WEIGHT_LOADER_V2_SUPPORTED = [
     "AutoAWQLinearMethod",
     "AutoGPTQLinearMethod",
     "Fp8LinearMethod",
-    "FBGEMMFp8LinearMethod",
     "QuarkLinearMethod",
     "HummingLinearMethod",
     # ModelOptLinearMethod self-registers via
