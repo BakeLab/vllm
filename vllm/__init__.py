@@ -16,8 +16,8 @@ import vllm.env_override  # noqa: F401
 MODULE_ATTRS = {
     "AsyncEngineArgs": ".engine.arg_utils:AsyncEngineArgs",
     "EngineArgs": ".engine.arg_utils:EngineArgs",
-    "AsyncLLMEngine": ".engine.async_llm_engine:AsyncLLMEngine",
-    "LLMEngine": ".engine.llm_engine:LLMEngine",
+    "AsyncLLMEngine": ".v1.engine.async_llm:AsyncLLM",
+    "LLMEngine": ".v1.engine.llm_engine:LLMEngine",
     "LLM": ".entrypoints.llm:LLM",
     "initialize_ray_cluster": ".v1.executor.ray_utils:initialize_ray_cluster",
     "PromptType": ".inputs:PromptType",
@@ -40,8 +40,6 @@ MODULE_ATTRS = {
 
 if typing.TYPE_CHECKING:
     from vllm.engine.arg_utils import AsyncEngineArgs, EngineArgs
-    from vllm.engine.async_llm_engine import AsyncLLMEngine
-    from vllm.engine.llm_engine import LLMEngine
     from vllm.entrypoints.llm import LLM
     from vllm.inputs import PromptType, TextPrompt, TokensPrompt
     from vllm.model_executor.models import ModelRegistry
@@ -59,6 +57,8 @@ if typing.TYPE_CHECKING:
     )
     from vllm.pooling_params import PoolingParams
     from vllm.sampling_params import SamplingParams
+    from vllm.v1.engine.async_llm import AsyncLLM as AsyncLLMEngine
+    from vllm.v1.engine.llm_engine import LLMEngine
     from vllm.v1.executor.ray_utils import initialize_ray_cluster
 else:
 
