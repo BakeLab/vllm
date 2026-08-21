@@ -27,12 +27,6 @@ MORE_ARGS_LIST = [
 ]
 MAX_WAIT_SECONDS = None
 
-if current_platform.is_tpu():
-    MORE_ARGS_LIST = [
-        [],  # Default
-    ]
-    MAX_WAIT_SECONDS = 600
-
 
 def run_test(more_args):
     """Run the end to end accuracy test."""
@@ -68,9 +62,8 @@ def test_lm_eval_accuracy_v1_engine():
     """Run with the V1 Engine."""
     more_args = []
 
-    # Limit compilation time for V1 on TPU
     # Avoid OOM on XPU
-    if current_platform.is_tpu() or current_platform.is_xpu():
+    if current_platform.is_xpu():
         more_args = ["--max-num-seqs", "64"]
 
     run_test(more_args)
