@@ -43,7 +43,6 @@ class UnquantizedMoeBackend(Enum):
     MOONEP = "MOONEP"
     CPU = "CPU"
     XPU = "XPU"
-    TPU = "TPU"
     OOT = "OOT"
 
 
@@ -225,8 +224,10 @@ def select_unquantized_moe_backend(
     """Select the primary Unquantized MoE backend.
     Note: Shape-specific fallbacks may still occur at runtime.
     """
-    if current_platform.is_tpu():
-        return UnquantizedMoeBackend.TPU, None
+
+    if current_platform.is_cpu():
+        # TODO: migrate to MK structure.
+        return UnquantizedMoeBackend.CPU, None
 
     if current_platform.is_out_of_tree():
         return UnquantizedMoeBackend.OOT, None

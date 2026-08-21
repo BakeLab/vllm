@@ -1272,17 +1272,13 @@ def _no_device() -> bool:
 
 def _is_cuda() -> bool:
     has_cuda = torch.version.cuda is not None
-    return VLLM_TARGET_DEVICE == "cuda" and has_cuda and not _is_tpu()
+    return VLLM_TARGET_DEVICE == "cuda" and has_cuda
 
 
 def _is_hip() -> bool:
     return (
         VLLM_TARGET_DEVICE == "cuda" or VLLM_TARGET_DEVICE == "rocm"
     ) and torch.version.hip is not None
-
-
-def _is_tpu() -> bool:
-    return VLLM_TARGET_DEVICE == "tpu"
 
 
 def _is_cpu() -> bool:
@@ -1348,7 +1344,7 @@ def get_nvcc_cuda_version() -> Version:
 
 def get_vllm_version() -> str:
     # Allow overriding the version. This is useful to build platform-specific
-    # wheels (e.g. CPU, TPU) without modifying the source.
+    # wheels (e.g. CPU) without modifying the source.
     if env_version := os.getenv("VLLM_VERSION_OVERRIDE"):
         print(f"Overriding VLLM version with {env_version} from VLLM_VERSION_OVERRIDE")
         os.environ["SETUPTOOLS_SCM_PRETEND_VERSION"] = env_version
@@ -1504,8 +1500,6 @@ def get_requirements() -> list[str]:
         requirements = _read_requirements("rocm.txt")
         if "develop" in sys.argv[1:] and "--no-deps" not in sys.argv[1:]:
             _check_requirements_preinstalled(requirements)
-    elif _is_tpu():
-        requirements = _read_requirements("tpu.txt")
     elif _is_cpu():
         requirements = _read_requirements("cpu.txt")
     elif _is_xpu():
