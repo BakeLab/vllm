@@ -20,7 +20,6 @@ _NIXL_SUPPORTED_DEVICE = {
         "cuda",
         "cpu",
     ),
-    "tpu": ("cpu",),
     "xpu": (
         "cpu",
         "xpu",

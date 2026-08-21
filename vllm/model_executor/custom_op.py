@@ -160,12 +160,6 @@ class CustomOp(nn.Module):
         # PyTorch-native implementation.
         return self.forward_native(*args, **kwargs)
 
-    def forward_tpu(self, *args, **kwargs):
-        # By default, we assume that TPU ops are compatible with the
-        # PyTorch-native implementation.
-        # NOTE(woosuk): This is a placeholder for future extensions.
-        return self.forward_native(*args, **kwargs)
-
     def forward_oot(self, *args, **kwargs):
         # By default, we assume that OOT ops are compatible with the
         # PyTorch-native implementation.
@@ -197,8 +191,6 @@ class CustomOp(nn.Module):
             return self.forward_hip
         elif current_platform.is_cpu():
             return self.forward_cpu
-        elif current_platform.is_tpu():
-            return self.forward_tpu
         elif current_platform.is_xpu():
             return self.forward_xpu
         elif current_platform.is_out_of_tree():

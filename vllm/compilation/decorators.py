@@ -502,9 +502,8 @@ def _support_torch_compile(
                             torch._dynamo.decorators.mark_unbacked(arg, dims)
 
     def __call__(self: type[_T], *args: Any, **kwargs: Any) -> Any:
-        # torch.compiler.is_compiling() means we are inside the compilation
-        # e.g. TPU has the compilation logic in model runner, so we don't
-        # need to compile the model inside.
+        # torch.compiler.is_compiling() means we are already inside the
+        # compilation, so we don't need to compile the model again here.
         if self.do_not_compile or torch.compiler.is_compiling():
             return self.forward(*args, **kwargs)
 

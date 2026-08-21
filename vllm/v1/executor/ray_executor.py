@@ -73,8 +73,8 @@ class RayDistributedExecutor(Executor):
     def _init_executor(self) -> None:
         self.forward_dag: ray.dag.CompiledDAG | None = None
 
-        # For TPU or XPU, avoid compiling NVIDIA's NCCL
-        if current_platform.is_tpu() or current_platform.is_xpu():
+        # For XPU, avoid compiling NVIDIA's NCCL
+        if current_platform.is_xpu():
             os.environ["VLLM_USE_RAY_COMPILED_DAG_CHANNEL_TYPE"] = "shm"
 
         assert self.uses_ray

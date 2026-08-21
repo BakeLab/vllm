@@ -991,7 +991,7 @@ class NixlBaseConnectorWorker:
     def initialize_host_xfer_buffer(self, kv_caches: dict[str, torch.Tensor]) -> None:
         """
         Initialize transfer buffer in CPU mem for accelerators
-        NOT directly supported by NIXL (e.g., tpu)
+        NOT directly supported by NIXL
         """
         xfer_buffers: dict[str, torch.Tensor] = {}
         try:

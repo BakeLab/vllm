@@ -172,13 +172,6 @@ def _load_custom_logitsprocs(
     Returns:
       A list of all loaded logitproc types
     """
-    from vllm.platforms import current_platform
-
-    if current_platform.is_tpu():
-        # No logitsprocs specified by caller
-        # TODO(andy) - vLLM V1 on TPU does not support custom logitsprocs
-        return []
-
     return _load_logitsprocs_plugins() + _load_logitsprocs_by_fqcns(logits_processors)
 
 

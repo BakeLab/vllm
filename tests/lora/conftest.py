@@ -62,7 +62,7 @@ def dist_init():
 
     temp_file = tempfile.mkstemp()[1]
 
-    backend = "gloo" if current_platform.is_tpu() else current_platform.dist_backend
+    backend = current_platform.dist_backend
 
     with ensure_current_vllm_config():
         init_distributed_environment(

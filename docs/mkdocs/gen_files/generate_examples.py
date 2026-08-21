@@ -30,7 +30,6 @@ def title(text: str) -> str:
         "llm": "LLM",
         "mae": "MAE",
         "ner": "NER",
-        "tpu": "TPU",
         "lora": "LoRA",
         "nccl": "NCCL",
         "rlhf": "RLHF",

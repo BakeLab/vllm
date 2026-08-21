@@ -2721,26 +2721,6 @@ class EngineArgs:
                 UsageContext.OPENAI_API_SERVER: 256,
             }
 
-        # tpu specific default values.
-        if current_platform.is_tpu():
-            chip_name = current_platform.get_device_name()
-
-            if chip_name == "V6E":
-                default_max_num_batched_tokens = {
-                    UsageContext.LLM_CLASS: 2048,
-                    UsageContext.OPENAI_API_SERVER: 1024,
-                }
-            elif chip_name == "V5E":
-                default_max_num_batched_tokens = {
-                    UsageContext.LLM_CLASS: 1024,
-                    UsageContext.OPENAI_API_SERVER: 512,
-                }
-            elif chip_name == "V5P":
-                default_max_num_batched_tokens = {
-                    UsageContext.LLM_CLASS: 512,
-                    UsageContext.OPENAI_API_SERVER: 256,
-                }
-
         # cpu specific default values.
         if current_platform.is_cpu():
             default_max_num_batched_tokens = {

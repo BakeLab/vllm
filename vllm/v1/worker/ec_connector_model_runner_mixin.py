@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 logger = init_logger(__name__)
 
 
-# Defined as a EC connector functionality mixin for ModelRunner (GPU, TPU)
+# Defined as a EC connector functionality mixin for ModelRunner (GPU)
 class ECConnectorModelRunnerMixin:
     @staticmethod
     def maybe_save_ec_to_connector(

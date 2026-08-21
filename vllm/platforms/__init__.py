@@ -32,30 +32,6 @@ def vllm_version_matches_substr(substr: str) -> bool:
     return substr in vllm_version
 
 
-def tpu_platform_plugin() -> str | None:
-    logger.debug("Checking if TPU platform is available.")
-
-    # Check for Pathways TPU proxy
-    if envs.VLLM_TPU_USING_PATHWAYS:
-        logger.debug("Confirmed TPU platform is available via Pathways proxy.")
-        return "tpu_inference.platforms.tpu_platform.TpuPlatform"
-
-    # Check for libtpu installation
-    try:
-        # While it's technically possible to install libtpu on a
-        # non-TPU machine, this is a very uncommon scenario. Therefore,
-        # we assume that libtpu is installed only if the machine
-        # has TPUs.
-
-        import libtpu  # noqa: F401
-
-        logger.debug("Confirmed TPU platform is available.")
-        return "vllm.platforms.tpu.TpuPlatform"
-    except Exception as e:
-        logger.debug("TPU platform is not available because: %s", str(e))
-        return None
-
-
 def cuda_platform_plugin() -> str | None:
     is_cuda = False
     logger.debug("Checking if CUDA platform is available.")
@@ -222,7 +198,6 @@ def cpu_platform_plugin() -> str | None:
 
 
 builtin_platform_plugins = {
-    "tpu": tpu_platform_plugin,
     "cuda": cuda_platform_plugin,
     "rocm": rocm_platform_plugin,
     "xpu": xpu_platform_plugin,

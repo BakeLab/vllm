@@ -259,10 +259,6 @@ class ParallelConfig:
     keep processing on a single host. Otherwise, an error will be raised. To use "mp"
     you must also set nnodes, and to use "ray" you must manually set
     distributed_executor_backend to "ray".
-
-    Note:
-        [TPU](https://docs.vllm.ai/projects/tpu/en/latest/) platform only supports Ray
-        for distributed inference.
     """
 
     worker_cls: str = "auto"
@@ -948,9 +944,7 @@ class ParallelConfig:
 
             backend: DistributedExecutorBackend = "mp"
             ray_found = ray_utils.ray_is_available()
-            if current_platform.is_tpu() and envs.VLLM_XLA_USE_SPMD:
-                backend = "uni"
-            elif current_platform.is_cuda() and self.nnodes > 1:
+            if current_platform.is_cuda() and self.nnodes > 1:
                 backend = "mp"
             elif (
                 current_platform.is_cuda()

@@ -113,13 +113,8 @@ try:
             # We can remove this API after it is fixed in compiled graph.
             assert self.worker is not None, "Worker is not initialized"
             if not self.compiled_dag_cuda_device_set:
-                if current_platform.is_tpu():
-                    # Not needed
-                    pass
-                else:
-                    assert self.worker.device is not None
-                    current_platform.set_device(self.worker.device)
-
+                assert self.worker.device is not None
+                current_platform.set_device(self.worker.device)
                 self.compiled_dag_cuda_device_set = True
 
         def execute_model_ray(

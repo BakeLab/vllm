@@ -46,7 +46,6 @@ from vllm.logger import init_logger
 from vllm.lora.request import LoRARequest
 from vllm.model_executor.layers.quantization import QuantizationMethods
 from vllm.outputs import PoolingRequestOutput, RequestOutput
-from vllm.platforms import current_platform
 from vllm.sampling_params import SamplingParams
 from vllm.tokenizers import TokenizerLike
 from vllm.usage.usage_lib import UsageContext
@@ -286,7 +285,6 @@ class LLM(BeamSearchOfflineMixin, PoolingOfflineMixin, OfflineInferenceMixin):
         if (
             _dp_size > 1
             and not _distributed_executor_backend == "external_launcher"
-            and not current_platform.is_tpu()
         ):
             raise ValueError(
                 f"LLM(data_parallel_size={_dp_size}) is not supported for single-"

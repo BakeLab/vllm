@@ -1349,29 +1349,6 @@ def initialize_single_dummy_weight(
             param.zero_()
         return
 
-    if current_platform.is_tpu():
-        generator = torch.Generator(device="cpu")
-        generator.manual_seed(seed)
-        # Note: The param.uniform_ function cannot be used in this
-        # context because it demands more TPU HBM than directly copying
-        # from a CPU tensor.
-        # Note: We avoid using torch.rank_like as it doesn't currently
-        # support the generator argument.
-        param.copy_(
-            (high - low)
-            * torch.rand(
-                param.shape,
-                generator=generator,
-                dtype=param.dtype,
-                layout=param.layout,
-                requires_grad=param.requires_grad,
-                device="cpu",
-            )
-            + low
-        )
-        torch._sync(param)
-        return
-
     generator = torch.Generator(device=param.data.device)
     generator.manual_seed(seed)
     if torch.finfo(param.data.dtype).bits < 16:

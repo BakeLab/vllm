@@ -81,8 +81,6 @@ def test_initialize_kv_cache_for_kv_sharing_same_attn_groups():
 def test_initialize_kv_cache_for_kv_sharing_no_attn_groups():
     """
     Test KV sharing set up when no attention groups are provided.
-    This is the case for the TPU model runner, which doesn't have
-    support for attention groups yet.
     """
     shared_kv_cache_layers = {
         "model.layers.2": "model.layers.0",

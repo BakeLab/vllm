@@ -440,7 +440,7 @@ def select_fp8_moe_backend(
             else:
                 logger.debug_once(_make_log_unsupported(backend, reason))
 
-    # TODO(rob): per discussion with TPU team, we need a way to register
+    # TODO(rob): we need a way to register
     # MoE backends by OOT plugins, rather than having an explicit list
     # of AVAILABLE_BACKENDS. Enabling returning `Fp8MoeBackend.NONE` is
     # a temporary measure until these register APIs are complete.

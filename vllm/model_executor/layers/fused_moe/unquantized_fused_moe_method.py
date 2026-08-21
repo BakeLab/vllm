@@ -197,10 +197,7 @@ class UnquantizedFusedMoEMethod(FusedMoEMethodBase, CustomOp):
         layer.w13_weight.data.copy_(self._maybe_pad_weight(layer.w13_weight.data))
         layer.w2_weight.data.copy_(self._maybe_pad_weight(layer.w2_weight.data))
 
-        if self.unquantized_backend in [
-            UnquantizedMoeBackend.TPU,
-            UnquantizedMoeBackend.OOT,
-        ]:
+        if self.unquantized_backend is UnquantizedMoeBackend.OOT:
             # OOT handles internally.
             return
 

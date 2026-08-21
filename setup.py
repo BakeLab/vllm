@@ -1169,17 +1169,13 @@ def _no_device() -> bool:
 
 def _is_cuda() -> bool:
     has_cuda = torch.version.cuda is not None
-    return VLLM_TARGET_DEVICE == "cuda" and has_cuda and not _is_tpu()
+    return VLLM_TARGET_DEVICE == "cuda" and has_cuda
 
 
 def _is_hip() -> bool:
     return (
         VLLM_TARGET_DEVICE == "cuda" or VLLM_TARGET_DEVICE == "rocm"
     ) and torch.version.hip is not None
-
-
-def _is_tpu() -> bool:
-    return VLLM_TARGET_DEVICE == "tpu"
 
 
 def _is_cpu() -> bool:
@@ -1272,8 +1268,6 @@ def get_vllm_version() -> str:
         rocm_version = get_rocm_version() or torch.version.hip
         if rocm_version and rocm_version != envs.VLLM_MAIN_CUDA_VERSION:
             version += f"{sep}rocm{rocm_version.replace('.', '')[:3]}"
-    elif _is_tpu():
-        version += f"{sep}tpu"
     elif _is_cpu():
         # Check the local VLLM_TARGET_DEVICE (may be set by auto-detect above),
         # not envs.VLLM_TARGET_DEVICE, so CPU-only hosts still get `+cpu`.
@@ -1324,8 +1318,6 @@ def get_requirements() -> list[str]:
         requirements = modified_requirements
     elif _is_hip():
         requirements = _read_requirements("rocm.txt")
-    elif _is_tpu():
-        requirements = _read_requirements("tpu.txt")
     elif _is_cpu():
         requirements = _read_requirements("cpu.txt")
     elif _is_xpu():

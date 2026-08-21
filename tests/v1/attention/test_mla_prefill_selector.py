@@ -317,7 +317,7 @@ class TestBackendValidation:
 @pytest.mark.skipif(
     not current_platform.is_cuda_alike(),
     reason="Imports vllm.platforms.rocm, whose module init requires a CUDA or "
-    "ROCm torch build; not importable on XPU/CPU/TPU.",
+    "ROCm torch build; not importable on XPU/CPU.",
 )
 class TestROCmAiterFAPrefillSelection:
     """Tests for the ROCm AITER FlashAttention MLA prefill backend."""

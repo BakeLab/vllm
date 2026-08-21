@@ -12,8 +12,6 @@ AsyncLLMEngine are working correctly.
 import lm_eval
 import pytest
 
-from vllm.platforms import current_platform
-
 MODEL_NAMES = [
     "Qwen/Qwen3-1.7B",
     "google/gemma-3-1b-it",
@@ -57,38 +55,15 @@ def run_test(model_name, more_args=None):
     ), f"Expected: {expected_value} |  Measured: {measured_value}"
 
 
-# TODO: [AlexM] Fix it with new CI/CD tests
-TPU_TP_TEST_STR = ""  # "tensor_parallel_size=4"
-
-
 @pytest.mark.parametrize("model", MODEL_NAMES)
 def test_lm_eval_accuracy_v1_engine(model):
     """Run with the V1 Engine."""
 
-    more_args = None
-    if current_platform.is_tpu():
-        # Limit compilation time for TPU V1
-
-        more_args = "max_model_len=2048,max_num_seqs=64"
-
-        # Add TP test (if provided)
-        if TPU_TP_TEST_STR:
-            more_args += ",{}".format(TPU_TP_TEST_STR)
-
-    run_test(model, more_args)
+    run_test(model)
 
 
 @pytest.mark.parametrize("model", FP8_KV_MODEL_NAMES)
 def test_lm_eval_accuracy_v1_engine_fp8_kv_cache(model):
     """Run with the V1 Engine."""
 
-    more_args = None
-    if current_platform.is_tpu():
-        # Limit compilation time for TPU V1
-        more_args = "max_model_len=2048,max_num_seqs=128,kv_cache_dtype=fp8"
-
-        # Add TP test (if provided)
-        if TPU_TP_TEST_STR:
-            more_args += ",{}".format(TPU_TP_TEST_STR)
-
-    run_test(model, more_args)
+    run_test(model)

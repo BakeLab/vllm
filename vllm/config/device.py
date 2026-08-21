@@ -10,7 +10,7 @@ from pydantic import ConfigDict, SkipValidation
 from vllm.config.utils import config
 from vllm.utils.hashing import safe_hash
 
-Device = Literal["auto", "cuda", "cpu", "tpu", "xpu"]
+Device = Literal["auto", "cuda", "cpu", "xpu"]
 
 
 @config(config=ConfigDict(arbitrary_types_allowed=True))
@@ -65,14 +65,7 @@ class DeviceConfig:
             elif isinstance(self.device, torch.device):
                 self.device_type = self.device.type
 
-        # Some platforms require processing inputs on CPU.
         from vllm.platforms import current_platform
 
-        if (
-            current_platform.uses_host_device_handling()
-            and self.device_type == current_platform.device_type
-        ):
-            self.device = None
-        else:
-            # Set device with device type
-            self.device = torch.device(self.device_type)
+        # Set device with device type
+        self.device = torch.device(self.device_type)
