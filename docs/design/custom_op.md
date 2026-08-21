@@ -16,7 +16,6 @@ When a `CustomOp` is called (i.e., call its `forward()` method), if it is enable
 - **CUDA platform:** dispatch to `forward_cuda()`.
 - **ROCm platform:** dispatch to `forward_hip()`. If `forward_hip()` is not implemented, it will use `forward_cuda()` as a fallback.
 - **XPU platform:** dispatch to `forward_xpu()`.
-- **TPU platform:** dispatch to `forward_tpu()`.
 - **OOT platform:** dispatch to `forward_oot()`. This will only be called on OOT platforms.
 - **Default:** dispatch to `forward_native()` as a final fallback for all platforms.
 
