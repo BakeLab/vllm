@@ -1,8 +1,8 @@
 #
-# Attempt to find the python package that uses the same python executable as
-# `EXECUTABLE` and is one of the `SUPPORTED_VERSIONS`.
+# Attempt to find the Python package that uses `EXECUTABLE` and meets the
+# minimum supported version.
 #
-macro (find_python_from_executable EXECUTABLE SUPPORTED_VERSIONS)
+macro (find_python_from_executable EXECUTABLE MINIMUM_VERSION)
   file(REAL_PATH ${EXECUTABLE} EXECUTABLE)
   set(Python_EXECUTABLE ${EXECUTABLE})
   find_package(Python COMPONENTS Interpreter Development.Module Development.SABIModule)
@@ -10,11 +10,10 @@ macro (find_python_from_executable EXECUTABLE SUPPORTED_VERSIONS)
     message(FATAL_ERROR "Unable to find python matching: ${EXECUTABLE}.")
   endif()
   set(_VER "${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}")
-  set(_SUPPORTED_VERSIONS_LIST ${SUPPORTED_VERSIONS} ${ARGN})
-  if (NOT _VER IN_LIST _SUPPORTED_VERSIONS_LIST)
+  if (Python_VERSION VERSION_LESS "${MINIMUM_VERSION}")
     message(FATAL_ERROR
-      "Python version (${_VER}) is not one of the supported versions: "
-      "${_SUPPORTED_VERSIONS_LIST}.")
+      "Python version (${_VER}) is below the minimum supported version "
+      "(${MINIMUM_VERSION}).")
   endif()
   message(STATUS "Found python matching: ${EXECUTABLE}.")
 endmacro()
@@ -133,16 +132,12 @@ function (get_torch_gpu_compiler_flags OUT_GPU_FLAGS GPU_LANG)
       "from torch.utils.cpp_extension import COMMON_NVCC_FLAGS; print(';'.join(COMMON_NVCC_FLAGS))"
       "Failed to determine torch nvcc compiler flags")
 
-    if (CUDA_VERSION VERSION_GREATER_EQUAL 11.8)
-      list(APPEND GPU_FLAGS "-DENABLE_FP8")
-    endif()
-    if (CUDA_VERSION VERSION_GREATER_EQUAL 12.0)
-      list(REMOVE_ITEM GPU_FLAGS
-        "-D__CUDA_NO_HALF_OPERATORS__"
-        "-D__CUDA_NO_HALF_CONVERSIONS__"
-        "-D__CUDA_NO_BFLOAT16_CONVERSIONS__"
-        "-D__CUDA_NO_HALF2_OPERATORS__")
-    endif()
+    list(APPEND GPU_FLAGS "-DENABLE_FP8")
+    list(REMOVE_ITEM GPU_FLAGS
+      "-D__CUDA_NO_HALF_OPERATORS__"
+      "-D__CUDA_NO_HALF_CONVERSIONS__"
+      "-D__CUDA_NO_BFLOAT16_CONVERSIONS__"
+      "-D__CUDA_NO_HALF2_OPERATORS__")
 
   elseif(${GPU_LANG} STREQUAL "HIP")
     #
@@ -517,11 +512,7 @@ endfunction()
 
 
 function(cuda_archs_sm90plus OUT_CUDA_ARCHS TGT_CUDA_ARCHS)
-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
-    cuda_archs_loose_intersection(_archs "9.0a;10.0f;10.7f;11.0f;12.0f" "${TGT_CUDA_ARCHS}")
-  else()
-    cuda_archs_loose_intersection(_archs "9.0a;10.0a;10.1a;10.3a;12.0a;12.1a" "${TGT_CUDA_ARCHS}")
-  endif()
+  cuda_archs_loose_intersection(_archs "9.0a;10.0f;10.7f;11.0f;12.0f" "${TGT_CUDA_ARCHS}")
   set(${OUT_CUDA_ARCHS} ${_archs} PARENT_SCOPE)
 endfunction()
 

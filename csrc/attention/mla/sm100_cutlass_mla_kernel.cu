@@ -32,24 +32,6 @@ limitations under the License.
 #include "cutlass_sm100_mla/kernel/sm100_mla_tile_scheduler.hpp"
 
 // clang-format off
-#if !defined(CUDA_VERSION) || CUDA_VERSION < 12040
-void sm100_cutlass_mla_decode(
-    torch::stable::Tensor const& out,
-    torch::stable::Tensor const& lse,
-    torch::stable::Tensor const& q_nope,
-    torch::stable::Tensor const& q_pe,
-    torch::stable::Tensor const& kv_c_and_k_pe_cache,
-    torch::stable::Tensor const& seq_lens,
-    torch::stable::Tensor const& page_table,
-    torch::stable::Tensor const& workspace,
-    double sm_scale,
-    int64_t num_kv_splits) {
-  STD_TORCH_CHECK(false, "CUDA version must be >= 12.4 for cutlass_mla_decode");
-}
-int64_t sm100_cutlass_mla_get_workspace_size(int64_t max_seq_len, int64_t num_batches, int64_t sm_count, int64_t num_kv_splits) {
-  STD_TORCH_CHECK(false, "CUDA version must be >= 12.4 for cutlass_mla_get_workspace_size");
-}
-#else
 
 #define CUTLASS_CHECK(status)                                                       \
   {                                                                                 \
@@ -285,8 +267,6 @@ int64_t sm100_cutlass_mla_get_workspace_size(int64_t max_seq_len, int64_t num_ba
 
   return MlaSm100Type::Fmha::get_workspace_size(arguments);
 }
-
-#endif
 
 STABLE_TORCH_LIBRARY_IMPL(_C, CUDA, m) {
   m.impl("sm100_cutlass_mla_decode", TORCH_BOX(&sm100_cutlass_mla_decode));
