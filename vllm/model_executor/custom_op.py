@@ -320,7 +320,7 @@ class CustomOp(nn.Module):
     #   the oot_custom_op layer will be used instead.
     # Example:
     # - @UnquantizedFusedMoEMethod.register_oot
-    #   class HPUUnquantizedFusedMoEMethod(UnquantizedFusedMoEMethod)
+    #   class OOTUnquantizedFusedMoEMethod(UnquantizedFusedMoEMethod)
     # or
     # - @CustomOP.register_oot(name="UnquantizedFusedMoEMethod")
     @classmethod
