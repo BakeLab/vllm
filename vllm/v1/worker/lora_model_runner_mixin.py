@@ -3,6 +3,7 @@
 """Define LoRA functionality mixin for model runners."""
 
 from collections.abc import Callable
+from typing import TypeAlias
 from contextlib import contextmanager
 
 import numpy as np
