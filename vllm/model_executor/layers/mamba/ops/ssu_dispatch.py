@@ -5,7 +5,7 @@ Dispatch module for Mamba selective state update (SSU) backends.
 
 Provides a unified `selective_state_update` function that dispatches to
 the Triton, FlashInfer, or CPU backend based on the configured
-`MambaBackendEnum`. On CPU-only platforms (PowerPC, x86 without CUDA)
+`MambaBackendEnum`. On CPU-only platforms (x86 without CUDA)
 the backend defaults to 'cpu'.
 """
 
@@ -285,12 +285,12 @@ class FlashInferSSUBackend(MambaSSUBackend):
 
 
 class CPUSSUBackend(MambaSSUBackend):
-    """CPU SSU backend using the compiled C++ VSX/scalar kernel.
+    """CPU SSU backend using the compiled C++ vector/scalar kernel.
 
-    On CPU-only platforms (PowerPC, x86 without CUDA) this dispatches to
+    On CPU-only platforms (x86 without CUDA) this dispatches to
     the vectorized C++ kernel registered as ``torch.ops._C.selective_state_update_cpu``.
-    That kernel uses vec_op SIMD intrinsics (VSX on ppc64le, AVX2 on x86,
-    scalar fallback elsewhere) and is parallelised with OpenMP across heads.
+    That kernel uses vec_op SIMD intrinsics (AVX2 on x86, scalar fallback
+    elsewhere) and is parallelised with OpenMP across heads.
 
     Falls back to the pure-PyTorch implementation only if the C++ op is
     unavailable (e.g. a CPU-less build).

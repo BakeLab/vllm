@@ -55,8 +55,6 @@ class CPUWorker(Worker):
                 allowed_memory_nodes,
             )
 
-        # On s390x, numa_node may be a synthetic book ID that doesn't
-        # correspond to a real memory node. Fall back to first visible node.
         if cpu_core.numa_node in allowed_memory_nodes:
             memory_node = cpu_core.numa_node
         else:

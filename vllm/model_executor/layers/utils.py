@@ -12,7 +12,7 @@ from vllm import _custom_ops as ops
 from vllm import envs
 from vllm._aiter_ops import rocm_aiter_ops
 from vllm.logger import init_logger
-from vllm.platforms import CpuArchEnum, current_platform
+from vllm.platforms import current_platform
 from vllm.utils.flashinfer import (
     flashinfer_bf16_mm,
     is_flashinfer_cutedsl_bf16_gemm_supported,
@@ -514,10 +514,7 @@ def dispatch_cpu_unquantized_gemm(
         )
         return
 
-    if (
-        ops._supports_onednn
-        and current_platform.get_cpu_architecture() != CpuArchEnum.POWERPC
-    ):
+    if ops._supports_onednn:
         try:
             origin_weight = layer.weight
             handler = ops.create_onednn_mm(origin_weight.t(), 32)

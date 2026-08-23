@@ -18,10 +18,6 @@ vLLM is a Python library that supports the following CPU variants. Select your C
 
     --8<-- "docs/getting_started/installation/cpu.apple.inc.md:installation"
 
-=== "IBM Z (S390X)"
-
-    --8<-- "docs/getting_started/installation/cpu.s390x.inc.md:installation"
-
 ## Technical Discussions
 
 The main discussions happen in the `#sig-cpu` channel of [vLLM Slack](https://slack.vllm.ai/).
@@ -43,10 +39,6 @@ When open a Github issue about the CPU backend, please add `[CPU Backend]` in th
 === "Apple silicon"
 
     --8<-- "docs/getting_started/installation/cpu.apple.inc.md:requirements"
-
-=== "IBM Z (S390X)"
-
-    --8<-- "docs/getting_started/installation/cpu.s390x.inc.md:requirements"
 
 ## Set up using Python
 
@@ -70,10 +62,6 @@ For example, the nightly build index is: `https://wheels.vllm.ai/nightly/cpu/`.
 === "Apple silicon"
 
     --8<-- "docs/getting_started/installation/cpu.apple.inc.md:pre-built-wheels"
-
-=== "IBM Z (S390X)"
-
-    --8<-- "docs/getting_started/installation/cpu.s390x.inc.md:pre-built-wheels"
 
 ### Build wheel from source
 
@@ -101,10 +89,6 @@ VLLM_USE_PRECOMPILED=1 VLLM_PRECOMPILED_WHEEL_VARIANT=cpu VLLM_TARGET_DEVICE=cpu
 
     --8<-- "docs/getting_started/installation/cpu.apple.inc.md:build-wheel-from-source"
 
-=== "IBM Z (s390x)"
-
-    --8<-- "docs/getting_started/installation/cpu.s390x.inc.md:build-wheel-from-source"
-
 ## Set up using Docker
 
 ### Pre-built images
@@ -121,10 +105,6 @@ VLLM_USE_PRECOMPILED=1 VLLM_PRECOMPILED_WHEEL_VARIANT=cpu VLLM_TARGET_DEVICE=cpu
 
     --8<-- "docs/getting_started/installation/cpu.apple.inc.md:pre-built-images"
 
-=== "IBM Z (S390X)"
-
-    --8<-- "docs/getting_started/installation/cpu.s390x.inc.md:pre-built-images"
-
 ### Build image from source
 
 === "Intel/AMD x86"
@@ -138,9 +118,6 @@ VLLM_USE_PRECOMPILED=1 VLLM_PRECOMPILED_WHEEL_VARIANT=cpu VLLM_TARGET_DEVICE=cpu
 === "Apple silicon"
 
     --8<-- "docs/getting_started/installation/cpu.apple.inc.md:build-image-from-source"
-
-=== "IBM Z (S390X)"
-    --8<-- "docs/getting_started/installation/cpu.s390x.inc.md:build-image-from-source"
 
 ## AMD Zen optimizations {#amd-zen-optimizations}
 
@@ -312,9 +289,9 @@ vLLM CPU supports data parallel (DP), tensor parallel (TP) and pipeline parallel
 ### Which quantization configs does vLLM CPU support?
 
 - vLLM CPU supports quantizations:
-    - AWQ (x86, s390x)
-    - GPTQ (x86, s390x)
-    - compressed-tensor INT8 W8A8 (x86, s390x only)
+    - AWQ (x86)
+    - GPTQ (x86)
+    - compressed-tensor INT8 W8A8 (x86 only)
 
 ### Why do I see `get_mempolicy: Operation not permitted` when running in Docker?
 

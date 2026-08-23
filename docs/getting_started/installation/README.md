@@ -11,7 +11,6 @@ vLLM supports the following hardware platforms:
     - [Intel/AMD x86](cpu.md#intelamd-x86)
     - [ARM AArch64](cpu.md#arm-aarch64)
     - [Apple silicon](cpu.md#apple-silicon)
-    - [IBM Z (S390X)](cpu.md#ibm-z-s390x)
 
 ## Hardware Plugins
 

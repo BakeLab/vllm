@@ -129,13 +129,8 @@ class OMPProcessManager:
         if self.auto_setup:
             # auto generate CPU lists
             cpu_arch = current_platform.get_cpu_architecture()
-            if cpu_arch == CpuArchEnum.POWERPC:
-                # For POWERPC SMT-8/4/2
-                cpu_list, reserve_list = self._get_autobind_cpu_ids(
-                    lambda cpus: [cpu for cpu in cpus if cpu.id % 8 < 4]
-                )
-            elif cpu_arch in (CpuArchEnum.X86, CpuArchEnum.S390X):
-                # For x86/S390X SMT-2, use 1 logical CPU per physical core
+            if cpu_arch == CpuArchEnum.X86:
+                # For x86 SMT-2, use 1 logical CPU per physical core
                 cpu_list, reserve_list = self._get_autobind_cpu_ids(
                     lambda cpus: cpus[-1:]
                 )
@@ -204,13 +199,6 @@ class OMPProcessManager:
         logical_cpu_list = cr_utils.get_allowed_cpu_list()
 
         local_world_size = self.local_world_size
-
-        # On s390x, numa_node is remapped to book IDs (the best CPU
-        # partitioning level). Derive topology domains from the CPU list
-        # since they no longer correspond to physical memory nodes.
-        cpu_arch = current_platform.get_cpu_architecture()
-        if cpu_arch == CpuArchEnum.S390X:
-            allowed_numa_nodes = sorted(set(cpu.numa_node for cpu in logical_cpu_list))
 
         assert (
             len(allowed_numa_nodes) >= local_world_size or self.simulate_multi_node

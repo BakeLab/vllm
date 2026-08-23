@@ -105,9 +105,7 @@ class CpuPlatform(Platform):
 
     @property
     def supported_dtypes(self) -> list[torch.dtype]:
-        if self.get_cpu_architecture() == CpuArchEnum.POWERPC:
-            return [torch.bfloat16, torch.float32, torch.float16]
-        elif self.get_cpu_architecture() == CpuArchEnum.ARM and sys.platform.startswith(
+        if self.get_cpu_architecture() == CpuArchEnum.ARM and sys.platform.startswith(
             "darwin"
         ):
             # sysctl exits non-zero when the OID is absent, so check_output would
@@ -409,12 +407,7 @@ class CpuPlatform(Platform):
         if (
             platform.system() == "Linux"
             and cpu_architecture
-            in (
-                CpuArchEnum.ARM,
-                CpuArchEnum.POWERPC,
-                CpuArchEnum.X86,
-                CpuArchEnum.S390X,
-            )
+            in (CpuArchEnum.ARM, CpuArchEnum.X86)
             and not (
                 "libomp" in ld_preload_str
                 or "libgomp" in ld_preload_str
@@ -453,7 +446,7 @@ class CpuPlatform(Platform):
         if (
             platform.system() == "Linux"
             and cpu_architecture
-            in (CpuArchEnum.ARM, CpuArchEnum.X86, CpuArchEnum.S390X)
+            in (CpuArchEnum.ARM, CpuArchEnum.X86)
             and "libtcmalloc" not in ld_preload_str
         ):
             vllm_pkg = os.path.dirname(os.path.dirname(__file__))

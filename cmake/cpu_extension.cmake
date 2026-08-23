@@ -39,7 +39,7 @@ else()
 
     # locate PyTorch's libgomp (e.g. site-packages/torch.libs/libgomp-947d5fa1.so.1.0.0)
     # and create a local shim dir with it. When PyTorch is built from source or packaged
-    # by a distro (common on RISC-V, s390x, Fedora/RHEL aarch64), no vendored libgomp
+    # by a distro (common on RISC-V, Fedora/RHEL aarch64), no vendored libgomp
     # exists and the shim dir is empty; fall back to the system libgomp in that case.
     vllm_prepare_torch_gomp_shim(VLLM_TORCH_GOMP_SHIM_DIR)
 
@@ -100,13 +100,9 @@ if (MACOSX_FOUND AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
     check_sysctl(hw.optional.arm.FEAT_BF16 ARM_BF16_FOUND)
     check_sysctl(hw.optional.arm.FEAT_I8MM ARM_I8MM_FOUND)
 else()
-    find_isa(${CPUINFO} "Power11" POWER11_FOUND)
-    find_isa(${CPUINFO} "POWER10" POWER10_FOUND)
-    find_isa(${CPUINFO} "POWER9" POWER9_FOUND)
     find_isa(${CPUINFO} "asimd" ASIMD_FOUND) # Check for ARM NEON support
     find_isa(${CPUINFO} "bf16" ARM_BF16_FOUND) # Check for ARM BF16 support
     find_isa(${CPUINFO} "i8mm" ARM_I8MM_FOUND) # Check for ARM I8MM support
-    find_isa(${CPUINFO} "S390" S390_FOUND)
     find_isa(${CPUINFO} "zvfhmin" RVV_FP16_FOUND) # Check for RISC-V Vector FP16 support
     find_isa(${CPUINFO} "zvfbfmin" RVV_BF16_FOUND) # Check for RISC-V Vector BF16 support
 
@@ -175,20 +171,6 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64" OR ENABLE_X86_ISA)
     endif()
     list(APPEND CXX_COMPILE_FLAGS_AVX2
         "-mavx2")
-elseif (POWER9_FOUND OR POWER10_FOUND OR POWER11_FOUND)
-    message(STATUS "PowerPC detected")
-    if (POWER9_FOUND)
-        list(APPEND CXX_COMPILE_FLAGS
-            "-mvsx"
-            "-mcpu=power9"
-            "-mtune=power9")
-    elseif (POWER10_FOUND OR POWER11_FOUND)
-        list(APPEND CXX_COMPILE_FLAGS
-            "-mvsx"
-            "-mcpu=power10"
-            "-mtune=power10")
-    endif()
-
 elseif (ASIMD_FOUND)
     message(STATUS "ARMv8 or later architecture detected")
     if(ARM_BF16_FOUND)
@@ -205,14 +187,6 @@ elseif (ASIMD_FOUND)
         add_compile_definitions(ARM_I8MM_SUPPORT)
     endif()
     list(APPEND CXX_COMPILE_FLAGS ${MARCH_FLAGS})     
-elseif (S390_FOUND)
-    message(STATUS "S390 detected")
-    # Check for S390 VXE support
-    list(APPEND CXX_COMPILE_FLAGS
-        "-mvx"
-        "-mzvector"
-        "-march=native"
-        "-mtune=native")
 elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "riscv64")
     message(STATUS "RISC-V detected")
     if(DEFINED VLLM_RVV_VLEN AND VLLM_RVV_VLEN LESS 0)
@@ -277,12 +251,12 @@ elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "riscv64")
     endif()
     list(APPEND CXX_COMPILE_FLAGS ${MARCH_FLAGS})
 else()
-    message(FATAL_ERROR "vLLM CPU backend requires X86, Power9+ ISA, S390X ISA, ARMv8 or RISC-V support.")
+    message(FATAL_ERROR "vLLM CPU backend requires X86, ARMv8 or RISC-V support.")
 endif()
 
 
 # Build oneDNN for GEMM kernels
-if (ENABLE_X86_ISA OR (ASIMD_FOUND AND NOT APPLE_SILICON_FOUND) OR POWER9_FOUND OR POWER10_FOUND OR POWER11_FOUND OR RVV_FP16_FOUND OR RVV_BF16_FOUND OR S390_FOUND)
+if (ENABLE_X86_ISA OR (ASIMD_FOUND AND NOT APPLE_SILICON_FOUND) OR RVV_FP16_FOUND OR RVV_BF16_FOUND)
     # Fetch and build Arm Compute Library (ACL) as oneDNN's backend for AArch64
     # TODO [fadara01]: remove this once ACL can be fetched and built automatically as a dependency of oneDNN
     set(ONEDNN_AARCH64_USE_ACL OFF CACHE BOOL "")
@@ -394,22 +368,7 @@ if (ENABLE_X86_ISA OR (ASIMD_FOUND AND NOT APPLE_SILICON_FOUND) OR POWER9_FOUND 
     set(VLLM_BUILD_TYPE ${CMAKE_BUILD_TYPE})
     set(CMAKE_BUILD_TYPE "Release") # remove oneDNN debug symbols to reduce size
 
-    if(S390_FOUND)
-        FetchContent_GetProperties(oneDNN)
-        if(NOT onednn_POPULATED)
-            FetchContent_Populate(oneDNN)
-            # Patch s390x helpers.h: ALWAYS_INLINE on operator+= breaks C++20/GCC14
-            file(READ "${onednn_SOURCE_DIR}/src/cpu/s390x/helpers.h" _helpers_content)
-            string(REPLACE
-                "vec_type_t<T> &ALWAYS_INLINE operator+="
-                "ALWAYS_INLINE vec_type_t<T> &operator+="
-                _helpers_content "${_helpers_content}")
-            file(WRITE "${onednn_SOURCE_DIR}/src/cpu/s390x/helpers.h" "${_helpers_content}")
-            add_subdirectory("${onednn_SOURCE_DIR}" "${onednn_BINARY_DIR}")
-        endif()
-    else()
-        FetchContent_MakeAvailable(oneDNN)
-    endif()
+    FetchContent_MakeAvailable(oneDNN)
     set(CMAKE_BUILD_TYPE ${VLLM_BUILD_TYPE})
     add_library(dnnl_ext OBJECT "csrc/cpu/dnnl_helper.cpp")
     target_include_directories(
@@ -497,12 +456,6 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "riscv64" AND VLLM_RVV_VLEN AND
         ${VLLM_EXT_SRC})
 endif()
 
-if (S390_FOUND)
-    set(VLLM_EXT_SRC
-        "csrc/cpu/cpu_wna16.cpp"
-        ${VLLM_EXT_SRC})
-endif()
-
 if (ASIMD_FOUND AND NOT APPLE_SILICON_FOUND)
     set(VLLM_EXT_SRC
         "csrc/cpu/shm.cpp"
@@ -514,12 +467,6 @@ if (ASIMD_FOUND AND NOT APPLE_SILICON_FOUND)
             set(VLLM_EXT_SRC "csrc/cpu/cpu_fused_moe_int8.cpp" ${VLLM_EXT_SRC})
         endif()
     endif()
-endif()
-
-if (POWER9_FOUND OR POWER10_FOUND OR POWER11_FOUND)	
-    set(VLLM_EXT_SRC
-        "csrc/cpu/shm.cpp"
-        ${VLLM_EXT_SRC})
 endif()
 
 if(USE_ONEDNN)
