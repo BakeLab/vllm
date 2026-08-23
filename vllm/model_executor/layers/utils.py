@@ -578,10 +578,7 @@ def dispatch_cpu_unquantized_gemm(
         )
         return
 
-    if (
-        ops._supports_onednn
-        and current_platform.get_cpu_architecture() != CpuArchEnum.POWERPC
-    ):
+    if ops._supports_onednn:
         try:
             origin_weight = layer.weight
             handler = ops.create_onednn_mm(origin_weight.t(), 32)

@@ -22,13 +22,7 @@ struct KernelVecType<c10::BFloat16> {
 
 template <>
 struct KernelVecType<c10::Half> {
-#if defined(__powerpc64__) || defined(__s390x__)
-  // Power architecture-specific vector type
-  using load_vec_type = vec_op::FP32Vec16;
-#else
-  // Fallback for other architectures
   using load_vec_type = vec_op::FP16Vec16;
-#endif
   using cvt_vec_type = vec_op::FP32Vec16;
 };
 
