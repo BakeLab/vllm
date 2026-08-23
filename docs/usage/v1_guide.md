@@ -96,7 +96,6 @@ based on assigned priority, with FCFS as a tie-breaker), configurable via the
 
     - [vllm-ascend](https://github.com/vllm-project/vllm-ascend)
     - [vllm-spyre](https://github.com/vllm-project/vllm-spyre)
-    - [vllm-gaudi](https://github.com/vllm-project/vllm-gaudi)
     - [vllm-openvino](https://github.com/vllm-project/vllm-openvino)
 
     Please check their corresponding repositories for more details.

@@ -43,7 +43,6 @@ CacheDType = Literal[
     "fp8",
     "fp8_e4m3",
     "fp8_e5m2",
-    "fp8_inc",
     "fp8_ds_mla",
     "nvfp4_ds_mla",
     "turboquant_k8v4",
@@ -120,7 +119,7 @@ class CacheConfig:
     cache_dtype: CacheDType = "auto"
     """Data type for kv cache storage. If "auto", will use model data type.
     CUDA 11.8+ supports fp8 (=fp8_e4m3) and fp8_e5m2. ROCm (AMD GPU) supports
-    fp8 (=fp8_e4m3). Intel Gaudi (HPU) supports fp8 (using fp8_inc).
+    fp8 (=fp8_e4m3).
     Some models (namely DeepSeekV3.2) default to fp8, set to bfloat16 to use
     bfloat16 instead, this is an invalid option for models that do not default
     to fp8.
