@@ -160,7 +160,6 @@ def cli_env_setup():
     # - https://docs.python.org/3/library/multiprocessing.html#contexts-and-start-methods
     # - https://pytorch.org/docs/stable/notes/multiprocessing.html#cuda-in-multiprocessing
     # - https://pytorch.org/docs/stable/multiprocessing.html#sharing-cuda-tensors
-    # - https://docs.habana.ai/en/latest/PyTorch/Getting_Started_with_PyTorch_and_Gaudi/Getting_Started_with_PyTorch.html?highlight=multiprocessing#torch-multiprocessing-for-dataloaders
     if "VLLM_WORKER_MULTIPROC_METHOD" not in os.environ:
         logger.debug("Setting VLLM_WORKER_MULTIPROC_METHOD to 'spawn'")
         os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
