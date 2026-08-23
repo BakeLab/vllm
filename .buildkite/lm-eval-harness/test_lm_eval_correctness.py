@@ -62,7 +62,6 @@ def launch_lm_eval(eval_config, tp_size):
         f"add_bos_token=true,"
         f"trust_remote_code={trust_remote_code},"
         f"max_model_len={max_model_len},"
-        "allow_deprecated_quantization=True,"
     )
 
     if current_platform.is_rocm() and "Nemotron-3" in eval_config["model_name"]:
