@@ -52,7 +52,6 @@ Multiple vLLM dependencies indicate either a preference or requirement for using
 
 - <https://pytorch.org/docs/stable/notes/multiprocessing.html#cuda-in-multiprocessing>
 - <https://pytorch.org/docs/stable/multiprocessing.html#sharing-cuda-tensors>
-- <https://docs.habana.ai/en/latest/PyTorch/Getting_Started_with_PyTorch_and_Gaudi/Getting_Started_with_PyTorch.html?highlight=multiprocessing#torch-multiprocessing-for-dataloaders>
 
 Known issues exist when using `fork` after initializing these dependencies.
 
