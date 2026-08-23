@@ -36,15 +36,10 @@ check_gpus() {
     exit 1
   fi
 
-  declare -g arch_suffix=''
-
   if command -v nvidia-smi; then
     declare -g gpu_type=$(nvidia-smi --query-gpu=name --format=csv,noheader | awk '{print $2}')
   elif command -v amd-smi; then
     declare -g gpu_type=$(amd-smi static -g 0 -a | grep 'MARKET_NAME' | awk '{print $2}')
-  elif command -v hl-smi; then
-    declare -g gpu_type=$(hl-smi -q | grep "Product Name" | head -n 1 | awk -F ':' '{print $2}' | sed 's/^ *//')
-    arch_suffix='-hpu'
   fi
   echo "GPU type is $gpu_type"
 }
@@ -842,7 +837,6 @@ main() {
     ARCH="-$gpu_type"
   else
      check_gpus
-     ARCH="$arch_suffix"
   fi
 
   # DRY_RUN does not execute vLLM; do not require HF_TOKEN.
