@@ -397,7 +397,7 @@ class AsyncLLM(EngineClient):
     async def add_request(
         self,
         request_id: str,
-        prompt: PromptType | EngineInput | AsyncGenerator[StreamingInput],
+        prompt: PromptType | EngineInput | AsyncGenerator[StreamingInput, None],
         params: SamplingParams | PoolingParams,
         arrival_time: float | None = None,
         lora_request: LoRARequest | None = None,
@@ -563,7 +563,7 @@ class AsyncLLM(EngineClient):
     async def _add_streaming_input_request(
         self,
         request_id: str,
-        input_stream: AsyncGenerator[StreamingInput],
+        input_stream: AsyncGenerator[StreamingInput, None],
         sampling_params: SamplingParams | PoolingParams,
         arrival_time: float | None = None,
         lora_request: LoRARequest | None = None,
@@ -699,7 +699,7 @@ class AsyncLLM(EngineClient):
     # re-multiplexed in the API server anyhow.
     async def generate(
         self,
-        prompt: PromptType | EngineInput | AsyncGenerator[StreamingInput],
+        prompt: PromptType | EngineInput | AsyncGenerator[StreamingInput, None],
         sampling_params: SamplingParams,
         request_id: str,
         *,
