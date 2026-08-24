@@ -581,8 +581,8 @@ class EngineArgs:
     prefix_caching_hash_algo: PrefixCachingHashAlgo = (
         CacheConfig.prefix_caching_hash_algo
     )
-    prefix_cache_retention_interval: int | None = get_field(
-        CacheConfig, "prefix_cache_retention_interval"
+    prefix_cache_retention_interval: int | None = (
+        CacheConfig.prefix_cache_retention_interval
     )
     disable_sliding_window: bool = ModelConfig.disable_sliding_window
     disable_cascade_attn: bool | None = None
@@ -643,9 +643,7 @@ class EngineArgs:
     mm_processor_cache_type: MMCacheType | None = (
         MultiModalConfig.mm_processor_cache_type
     )
-    mm_hasher_algorithm: MMHasherAlgorithm = get_field(
-        MultiModalConfig, "mm_hasher_algorithm"
-    )
+    mm_hasher_algorithm: MMHasherAlgorithm = MultiModalConfig.mm_hasher_algorithm
     mm_shm_cache_max_object_size_mb: int = (
         MultiModalConfig.mm_shm_cache_max_object_size_mb
     )
@@ -717,9 +715,6 @@ class EngineArgs:
     watermark_config: dict[str, Any] | None = None
     diffusion_config: dict[str, Any] | None = None
 
-    show_hidden_metrics_for_version: str | None = (
-        ObservabilityConfig.show_hidden_metrics_for_version
-    )
     otlp_traces_endpoint: str | None = ObservabilityConfig.otlp_traces_endpoint
     collect_detailed_traces: list[DetailedTraceModules] | None = (
         ObservabilityConfig.collect_detailed_traces
@@ -1638,10 +1633,6 @@ class EngineArgs:
             description=ObservabilityConfig.__doc__,
         )
         observability_group.add_argument(
-            "--show-hidden-metrics-for-version",
-            **observability_kwargs["show_hidden_metrics_for_version"],
-        )
-        observability_group.add_argument(
             "--otlp-traces-endpoint", **observability_kwargs["otlp_traces_endpoint"]
         )
         observability_group.add_argument(
@@ -2170,7 +2161,6 @@ class EngineArgs:
 
     def create_observability_config(self) -> ObservabilityConfig:
         return ObservabilityConfig(
-            show_hidden_metrics_for_version=self.show_hidden_metrics_for_version,
             otlp_traces_endpoint=self.otlp_traces_endpoint,
             collect_detailed_traces=self.collect_detailed_traces,
             per_request_spec_decode_metrics=self.per_request_spec_decode_metrics,

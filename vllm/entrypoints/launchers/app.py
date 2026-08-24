@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-import warnings
 from argparse import Namespace
 
 from fastapi import FastAPI
@@ -10,7 +9,7 @@ from vllm.entrypoints.serve.exception_handling.register import init_exception_ha
 from vllm.entrypoints.serve.middleware.register import init_entrypoints_middleware
 from vllm.entrypoints.serve.sagemaker.api_router import sagemaker_standards_bootstrap
 from vllm.plugins.endpoint_plugins.interface import attach_endpoint_plugins
-from vllm.tasks import FALLBACK_SUPPORTED_TASKS, SupportedTask
+from vllm.tasks import SupportedTask
 
 from .api_server.routers import register_api_routers
 from .utils.server_utils import lifespan
@@ -18,19 +17,9 @@ from .utils.server_utils import lifespan
 
 def build_app(
     args: Namespace,
-    supported_tasks: tuple["SupportedTask", ...] | None = None,
+    supported_tasks: tuple["SupportedTask", ...],
     model_config: ModelConfig | None = None,
 ) -> FastAPI:
-    if supported_tasks is None:
-        warnings.warn(
-            "The 'supported_tasks' parameter was not provided to "
-            "build_app and will be required in a future version. "
-            "Defaulting to ('generate',).",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        supported_tasks = FALLBACK_SUPPORTED_TASKS
-
     if args.disable_fastapi_docs:
         app = FastAPI(
             openapi_url=None, docs_url=None, redoc_url=None, lifespan=lifespan
