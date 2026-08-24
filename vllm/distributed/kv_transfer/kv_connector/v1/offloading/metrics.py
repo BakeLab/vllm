@@ -38,14 +38,6 @@ class _ConnectorMetricName:
     ALLOCATION_FAILURE = "vllm:kv_offload_allocation_failure"
 
 
-class _TransferType:
-    """Transfer direction labels for deprecated CPU offload metrics."""
-
-    LOAD = "CPU_to_GPU"
-    STORE = "GPU_to_CPU"
-    ALL = (LOAD, STORE)
-
-
 TRANSFER_SIZE_BUCKETS = (
     1e6,
     5e6,
@@ -127,28 +119,6 @@ def get_connector_metric_definitions() -> dict[str, OffloadingMetricMetadata]:
             ),
         ),
     }
-
-
-_DEPRECATED_TOTAL_BYTES = "vllm:kv_offload_total_bytes"
-_DEPRECATED_TOTAL_TIME = "vllm:kv_offload_total_time"
-_DEPRECATED_SIZE = "vllm:kv_offload_size"
-
-# Deprecated legacy transfer metrics, kept during the migration to the flat
-# metric names above. These stay in a separate definition block because they
-# use a transfer_type label, but are emitted from the same flat stats payload
-# for compatibility.
-_DEPRECATED_CONNECTOR_METRIC_DEFINITIONS: dict[str, OffloadingMetricMetadata] = {
-    _DEPRECATED_TOTAL_BYTES: OffloadingCounterMetadata(
-        documentation="Number of bytes offloaded by KV connector",
-    ),
-    _DEPRECATED_TOTAL_TIME: OffloadingCounterMetadata(
-        documentation="Total time measured by all KV offloading operations",
-    ),
-    _DEPRECATED_SIZE: OffloadingHistogramMetadata(
-        documentation="Histogram of KV offload transfer size, in bytes.",
-        buckets=TRANSFER_SIZE_BUCKETS,
-    ),
-}
 
 
 class _MetricType:
@@ -317,10 +287,6 @@ class OffloadPromMetrics(KVConnectorPromMetrics):
         per_engine_labelvalues: dict[int, list[object]],
     ):
         super().__init__(vllm_config, metric_types, labelnames, per_engine_labelvalues)
-        # (engine_idx, transfer_type) -> (metric with bounded labels)
-        self.histogram_transfer_size: dict[tuple[int, str], PromMetricT] = {}
-        self.counter_kv_bytes: dict[tuple[int, str], PromMetricT] = {}
-        self.counter_kv_transfer_time: dict[tuple[int, str], PromMetricT] = {}
         kv_transfer_config = vllm_config.kv_transfer_config
         assert kv_transfer_config is not None
         extra_config = kv_transfer_config.kv_connector_extra_config
@@ -329,54 +295,11 @@ class OffloadPromMetrics(KVConnectorPromMetrics):
             **spec_cls.build_metric_definitions(extra_config),
             **get_connector_metric_definitions(),
         }
-        from vllm.v1.kv_offload.cpu.spec import CPUOffloadingSpec
-
-        self._observe_deprecated_metrics = issubclass(spec_cls, CPUOffloadingSpec)
         self._offloading_metric_defs: dict[str, PromMetricT] = {}
         # (engine_idx, metric_name, labelvalues) -> metric with bound labels
         self.offloading_metrics: dict[
             tuple[int, str, tuple[str, ...]], PromMetricT
         ] = {}
-
-        self._counter_kv_bytes = self._counter_cls(
-            name=_DEPRECATED_TOTAL_BYTES,
-            documentation=_DEPRECATED_CONNECTOR_METRIC_DEFINITIONS[
-                _DEPRECATED_TOTAL_BYTES
-            ].documentation,
-            labelnames=labelnames + ["transfer_type"],
-        )
-
-        self._counter_kv_transfer_time = self._counter_cls(
-            name=_DEPRECATED_TOTAL_TIME,
-            documentation=_DEPRECATED_CONNECTOR_METRIC_DEFINITIONS[
-                _DEPRECATED_TOTAL_TIME
-            ].documentation,
-            labelnames=labelnames + ["transfer_type"],
-        )
-
-        deprecated_size_metadata = _DEPRECATED_CONNECTOR_METRIC_DEFINITIONS[
-            _DEPRECATED_SIZE
-        ]
-        assert isinstance(deprecated_size_metadata, OffloadingHistogramMetadata)
-        self._histogram_transfer_size = self._histogram_cls(
-            name=_DEPRECATED_SIZE,
-            documentation=deprecated_size_metadata.documentation,
-            buckets=deprecated_size_metadata.buckets,
-            labelnames=labelnames + ["transfer_type"],
-        )
-
-        for engine_idx, labelvalues in per_engine_labelvalues.items():
-            for transfer_type in _TransferType.ALL:
-                bounded_labelvalues = labelvalues + [transfer_type]
-                self.histogram_transfer_size[(engine_idx, transfer_type)] = (
-                    self._histogram_transfer_size.labels(*bounded_labelvalues)
-                )
-                self.counter_kv_bytes[(engine_idx, transfer_type)] = (
-                    self._counter_kv_bytes.labels(*bounded_labelvalues)
-                )
-                self.counter_kv_transfer_time[(engine_idx, transfer_type)] = (
-                    self._counter_kv_transfer_time.labels(*bounded_labelvalues)
-                )
 
         for metric_name, metadata in self._offloading_metric_metadata.items():
             self._offloading_metric_defs[metric_name] = self._create_metric(
@@ -433,18 +356,6 @@ class OffloadPromMetrics(KVConnectorPromMetrics):
         engine_idx: int,
     ) -> None:
         self._get_prometheus_metric(metric_name, labelvalues, engine_idx).inc(value)
-        if labelvalues or not self._observe_deprecated_metrics:
-            return
-        # Keep deprecated CPU offload transfer metrics updated during the
-        # transition to flat metric names.
-        if metric_name == _TransferMetricName.LOAD_BYTES:
-            self.counter_kv_bytes[(engine_idx, _TransferType.LOAD)].inc(value)
-        elif metric_name == _TransferMetricName.LOAD_TIME:
-            self.counter_kv_transfer_time[(engine_idx, _TransferType.LOAD)].inc(value)
-        elif metric_name == _TransferMetricName.STORE_BYTES:
-            self.counter_kv_bytes[(engine_idx, _TransferType.STORE)].inc(value)
-        elif metric_name == _TransferMetricName.STORE_TIME:
-            self.counter_kv_transfer_time[(engine_idx, _TransferType.STORE)].inc(value)
 
     def _set_gauge(
         self,
@@ -465,18 +376,6 @@ class OffloadPromMetrics(KVConnectorPromMetrics):
         prom_metric = self._get_prometheus_metric(metric_name, labelvalues, engine_idx)
         for observation in value:
             prom_metric.observe(observation)
-            if labelvalues or not self._observe_deprecated_metrics:
-                continue
-            # Keep deprecated CPU offload transfer metrics updated during the
-            # transition to flat metric names.
-            if metric_name == _TransferMetricName.LOAD_SIZE:
-                self.histogram_transfer_size[(engine_idx, _TransferType.LOAD)].observe(
-                    observation
-                )
-            elif metric_name == _TransferMetricName.STORE_SIZE:
-                self.histogram_transfer_size[(engine_idx, _TransferType.STORE)].observe(
-                    observation
-                )
 
     def observe(self, transfer_stats_data: dict[str, Any], engine_idx: int = 0):
         """Observe transfer statistics."""

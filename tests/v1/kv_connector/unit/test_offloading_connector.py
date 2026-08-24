@@ -411,42 +411,6 @@ def test_cpu_offloading_metrics() -> None:
             f"Expected load_size histogram observations > 0, got {load_size_count}"
         )
 
-        # Deprecated labeled metrics — verify per transfer_type label.
-        load_label = {"transfer_type": "CPU_to_GPU"}
-        store_label = {"transfer_type": "GPU_to_CPU"}
-
-        dep_load_bytes = _get_counter_value("vllm:kv_offload_total_bytes", load_label)
-        assert dep_load_bytes > 0, (
-            f"Expected deprecated load bytes > 0, got {dep_load_bytes}"
-        )
-        dep_store_bytes = _get_counter_value("vllm:kv_offload_total_bytes", store_label)
-        assert dep_store_bytes > 0, (
-            f"Expected deprecated store bytes > 0, got {dep_store_bytes}"
-        )
-        dep_load_time = _get_counter_value("vllm:kv_offload_total_time", load_label)
-        assert dep_load_time > 0, (
-            f"Expected deprecated load time > 0, got {dep_load_time}"
-        )
-        dep_store_time = _get_counter_value("vllm:kv_offload_total_time", store_label)
-        assert dep_store_time > 0, (
-            f"Expected deprecated store time > 0, got {dep_store_time}"
-        )
-        dep_load_size = _get_histogram_count("vllm:kv_offload_size", load_label)
-        assert dep_load_size > 0, (
-            f"Expected deprecated load size observations > 0, got {dep_load_size}"
-        )
-        dep_store_size = _get_histogram_count("vllm:kv_offload_size", store_label)
-        assert dep_store_size > 0, (
-            f"Expected deprecated store size observations > 0, got {dep_store_size}"
-        )
-
-        # Flat and deprecated metrics must be consistent (dual-write).
-        assert store_bytes == dep_store_bytes
-        assert load_bytes == dep_load_bytes
-        assert store_time == dep_store_time
-        assert load_time == dep_load_time
-        assert store_size_count == dep_store_size
-        assert load_size_count == dep_load_size
     finally:
         del llm
 

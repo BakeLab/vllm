@@ -109,21 +109,15 @@ def _fetch_nixl_bytes(host: str, port: str) -> float:
     return total
 
 
-_OFFLOAD_BYTES_RE = re.compile(
-    r'vllm:kv_offload_total_bytes_total\{.*?transfer_type="([^"]+)".*?\}\s+'
-    r"([\d.eE+\-]+)"
+_OFFLOAD_LOAD_BYTES_RE = re.compile(
+    r"vllm:kv_offload_load_bytes_total\b.*?\s+([\d.eE+\-]+)"
 )
 
 
-def _fetch_offload_bytes(host: str, port: str) -> dict[str, float]:
-    """Scrape kv_offload_total_bytes counters (CPU_to_GPU / GPU_to_CPU)."""
+def _fetch_offload_load_bytes(host: str, port: str) -> float:
+    """Scrape the kv_offload_load_bytes counter (CPU to GPU restores)."""
     body = urllib.request.urlopen(f"http://{host}:{port}/metrics").read().decode()
-    result = {"CPU_to_GPU": 0.0, "GPU_to_CPU": 0.0}
-    for m in _OFFLOAD_BYTES_RE.finditer(body):
-        transfer_type, val = m.group(1), float(m.group(2))
-        if transfer_type in result:
-            result[transfer_type] += val
-    return result
+    return sum(float(m.group(1)) for m in _OFFLOAD_LOAD_BYTES_RE.finditer(body))
 
 
 def _metrics_delta(before: dict, after: dict) -> dict[str, float]:
@@ -452,15 +446,15 @@ def test_prefill_cpu_offload_after_gpu_eviction():
     for i in range(100):
         _complete(prefill_client, f"Eviction prompt number {i}: " + _make_prompt(200))
 
-    ob0 = _fetch_offload_bytes(PREFILL_HOST, PREFILL_PORT)
+    ob0 = _fetch_offload_load_bytes(PREFILL_HOST, PREFILL_PORT)
     m0 = _fetch_prefill_metrics()
     text2, _ = _complete(prefill_client, EVICTION_PROMPT, max_tokens=30)
 
     cpu_to_gpu_delta = 0.0
     for _ in range(10):
         time.sleep(1)
-        ob1 = _fetch_offload_bytes(PREFILL_HOST, PREFILL_PORT)
-        cpu_to_gpu_delta = ob1["CPU_to_GPU"] - ob0["CPU_to_GPU"]
+        ob1 = _fetch_offload_load_bytes(PREFILL_HOST, PREFILL_PORT)
+        cpu_to_gpu_delta = ob1 - ob0
         if cpu_to_gpu_delta > 0:
             break
 
