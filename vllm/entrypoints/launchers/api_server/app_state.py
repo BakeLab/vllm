@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-import warnings
 from argparse import Namespace
 from typing import cast
 
@@ -18,14 +17,14 @@ from vllm.entrypoints.serve.utils.request_logger import RequestLogger
 from vllm.plugins.endpoint_plugins.interface import init_endpoint_plugins_state
 from vllm.renderers.online_derenderer import OnlineDerenderer
 from vllm.renderers.online_renderer import OnlineRenderer
-from vllm.tasks import FALLBACK_SUPPORTED_TASKS, POOLING_TASKS, SupportedTask
+from vllm.tasks import POOLING_TASKS, SupportedTask
 
 
 async def init_app_state(
     engine_client: EngineClient,
     state: State,
     args: Namespace,
-    supported_tasks: tuple["SupportedTask", ...] | None = None,
+    supported_tasks: tuple["SupportedTask", ...],
 ) -> None:
     vllm_config = engine_client.vllm_config
 
@@ -35,16 +34,6 @@ async def init_app_state(
         init_parser_metrics(
             model_name=cast(str, vllm_config.model_config.served_model_name)
         )
-
-    if supported_tasks is None:
-        warnings.warn(
-            "The 'supported_tasks' parameter was not provided to "
-            "init_app_state and will be required in a future version. "
-            "Please pass 'supported_tasks' explicitly.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        supported_tasks = FALLBACK_SUPPORTED_TASKS
 
     if args.served_model_name is not None:
         served_model_names = args.served_model_name

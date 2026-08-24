@@ -244,8 +244,8 @@ def test_envs_compile_factors_relocation_invariant(tmp_path):
     """Relocating HOME or the XDG roots must not change the compile-cache
     env hash.
 
-    Location-derived env vars (VLLM_XLA_CACHE_PATH from XDG_CACHE_HOME,
-    VLLM_CONFIG_ROOT from XDG_CONFIG_HOME/HOME) carry no information about
+    Location-derived env vars (VLLM_CONFIG_ROOT from XDG_CONFIG_HOME/HOME,
+    VLLM_CACHE_ROOT from XDG_CACHE_HOME) carry no information about
     compiled artifacts, only about where directories live. When they leak
     into compile_factors(), a cache produced under one HOME/XDG layout
     silently misses under another - which defeats copying or pre-baking a
@@ -268,7 +268,7 @@ print(hash_factors(envs.compile_factors()))
         env = {**dict(os.environ), "VLLM_LOGGING_LEVEL": "ERROR"}
         # Drop explicit overrides so the derived defaults are what is
         # exercised, then apply the relocation under test.
-        for key in ("VLLM_XLA_CACHE_PATH", "VLLM_CONFIG_ROOT", "VLLM_CACHE_ROOT"):
+        for key in ("VLLM_CONFIG_ROOT", "VLLM_CACHE_ROOT"):
             env.pop(key, None)
         env.update(extra_env)
         result = subprocess.run(
