@@ -1075,20 +1075,7 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # imported at runtime.
     # If a non-existing backend is used, an AssertionError will be thrown.
     "VLLM_MEDIA_CONNECTOR": lambda: os.getenv("VLLM_MEDIA_CONNECTOR", "http"),
-    # Path to the XLA persistent cache directory.
-    # Only used for XLA devices such as TPUs.
-    "VLLM_XLA_CACHE_PATH": lambda: os.path.expanduser(
-        os.getenv(
-            "VLLM_XLA_CACHE_PATH",
-            os.path.join(get_default_cache_root(), "vllm", "xla_cache"),
-        )
-    ),
-    # If set, assert on XLA recompilation after each execution step.
-    "VLLM_XLA_CHECK_RECOMPILATION": lambda: bool(
-        int(os.getenv("VLLM_XLA_CHECK_RECOMPILATION", "0"))
-    ),
-    # Enable SPMD mode for TPU backend.
-    "VLLM_XLA_USE_SPMD": lambda: bool(int(os.getenv("VLLM_XLA_USE_SPMD", "0"))),
+
     # Maximum size (in MB) for logits tensor in sparse MLA indexer prefill chunks.
     # Bounds the [M, N] float32 logits tensor to prevent CUDA OOM.
     # Default: 512 MB

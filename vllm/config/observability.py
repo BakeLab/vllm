@@ -6,10 +6,8 @@ from functools import cached_property
 from itertools import pairwise
 from typing import Any, Literal
 
-from packaging.version import parse
 from pydantic import Field, field_validator, model_validator
 
-from vllm import version
 from vllm.config.utils import config
 from vllm.utils.hashing import safe_hash
 
@@ -19,21 +17,6 @@ DetailedTraceModules = Literal["model", "worker", "all"]
 @config
 class ObservabilityConfig:
     """Configuration for observability - metrics and tracing."""
-
-    show_hidden_metrics_for_version: str | None = None
-    """Enable deprecated Prometheus metrics that have been hidden since the
-    specified version. For example, if a previously deprecated metric has been
-    hidden since the v0.7.0 release, you use
-    `--show-hidden-metrics-for-version=0.7` as a temporary escape hatch while
-    you migrate to new metrics. The metric is likely to be removed completely
-    in an upcoming release."""
-
-    @cached_property
-    def show_hidden_metrics(self) -> bool:
-        """Check if the hidden metrics should be shown."""
-        if self.show_hidden_metrics_for_version is None:
-            return False
-        return version._prev_minor_version_was(self.show_hidden_metrics_for_version)
 
     otlp_traces_endpoint: str | None = None
     """Target URL to which OpenTelemetry traces will be sent."""
@@ -141,14 +124,6 @@ class ObservabilityConfig:
         factors: list[Any] = []
         hash_str = safe_hash(str(factors).encode(), usedforsecurity=False).hexdigest()
         return hash_str
-
-    @field_validator("show_hidden_metrics_for_version")
-    @classmethod
-    def _validate_show_hidden_metrics_for_version(cls, value: str | None) -> str | None:
-        if value is not None:
-            # Raises an exception if the string is not a valid version.
-            parse(value)
-        return value
 
     @field_validator("otlp_traces_endpoint")
     @classmethod
