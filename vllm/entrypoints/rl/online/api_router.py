@@ -50,6 +50,7 @@ async def pause_generation(
             draining. Ignored when mode="keep".
 
     """
+
     engine = engine_client(raw_request)
 
     try:

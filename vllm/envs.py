@@ -1070,17 +1070,6 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # imported at runtime.
     # If a non-existing backend is used, an AssertionError will be thrown.
     "VLLM_MEDIA_CONNECTOR": lambda: os.getenv("VLLM_MEDIA_CONNECTOR", "http"),
-    # Hash algorithm for multimodal content hashing.
-    # - "blake3": Default, fast cryptographic hash (not FIPS 140-3 compliant)
-    # - "sha256": FIPS 140-3 compliant, widely supported
-    # - "sha512": FIPS 140-3 compliant, faster on 64-bit systems
-    # Use sha256 or sha512 for FIPS compliance in government/enterprise deployments
-    "VLLM_MM_HASHER_ALGORITHM": env_with_choices(
-        "VLLM_MM_HASHER_ALGORITHM",
-        "blake3",
-        ["blake3", "sha256", "sha512"],
-        case_sensitive=False,
-    ),
     # Maximum size (in MB) for logits tensor in sparse MLA indexer prefill chunks.
     # Bounds the [M, N] float32 logits tensor to prevent CUDA OOM.
     # Default: 512 MB
