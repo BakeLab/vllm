@@ -4,7 +4,6 @@
 import asyncio
 import contextlib
 import json
-import sys
 import tempfile
 from argparse import Namespace
 from collections.abc import Awaitable, Callable
@@ -265,10 +264,6 @@ class BatchFrontendArgs(BaseFrontendArgs):
     port: int = 8000
     """Port number for the Prometheus metrics server
     (only needed if enable-metrics is set)."""
-    url: str = "0.0.0.0"
-    """[DEPRECATED] Host name for the Prometheus metrics server
-    (only needed if enable-metrics is set). Use --host instead."""
-
     @classmethod
     def _customize_cli_kwargs(
         cls,
@@ -282,8 +277,6 @@ class BatchFrontendArgs(BaseFrontendArgs):
         frontend_kwargs["output_file"]["required"] = True
 
         frontend_kwargs["enable_metrics"]["action"] = "store_true"
-
-        frontend_kwargs["url"]["deprecated"] = True
         return frontend_kwargs
 
 
@@ -295,20 +288,7 @@ def make_arg_parser(parser: FlexibleArgumentParser):
 
 def parse_args():
     parser = FlexibleArgumentParser(description="vLLM OpenAI-Compatible batch runner.")
-    args = make_arg_parser(parser).parse_args()
-
-    # Backward compatibility: If --url is set, use it for host
-    url_explicit = any(arg == "--url" or arg.startswith("--url=") for arg in sys.argv)
-    host_explicit = any(
-        arg == "--host" or arg.startswith("--host=") for arg in sys.argv
-    )
-    if url_explicit and hasattr(args, "url") and not host_explicit:
-        args.host = args.url
-        logger.warning_once(
-            "Using --url for metrics is deprecated. Please use --host instead."
-        )
-
-    return args
+    return make_arg_parser(parser).parse_args()
 
 
 # explicitly use pure text format, with a newline at the end
