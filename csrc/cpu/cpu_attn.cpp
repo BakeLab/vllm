@@ -24,14 +24,6 @@ static inline cpu_attention::Fp8KVCacheDataType parse_fp8_kv_dtype(
 }
 
 bool cpu_attn_has_isa(const std::string& isa) {
-  if (isa == "rvv") {
-#if defined(__riscv) && defined(__riscv_v_min_vlen) && \
-    (__riscv_v_min_vlen == 128 || __riscv_v_min_vlen == 256)
-    return true;
-#else
-    return false;
-#endif
-  }
   if (isa == "amx_fp8") {
 #ifdef CPU_CAPABILITY_AMXFP8
     // Guard with runtime CPUID check: the binary may be compiled with
@@ -65,8 +57,6 @@ torch::Tensor get_scheduler_metadata(
     isa = cpu_attention::ISA::VEC16;
   } else if (isa_hint == "neon") {
     isa = cpu_attention::ISA::NEON;
-  } else if (isa_hint == "rvv") {
-    isa = cpu_attention::ISA::RVV;
   } else {
     TORCH_CHECK(false, "Unsupported CPU attention ISA hint: " + isa_hint);
   }
@@ -158,8 +148,6 @@ void cpu_attn_reshape_and_cache(
       return cpu_attention::ISA::VEC16;
     } else if (isa == "neon") {
       return cpu_attention::ISA::NEON;
-    } else if (isa == "rvv") {
-      return cpu_attention::ISA::RVV;
     } else {
       TORCH_CHECK(false, "Invalid ISA type: " + isa);
     }

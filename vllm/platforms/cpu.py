@@ -119,8 +119,6 @@ class CpuPlatform(Platform):
             if bf16:
                 return [torch.bfloat16, torch.float16, torch.float32]
             return [torch.float16, torch.float32]
-        elif self.get_cpu_architecture() == CpuArchEnum.RISCV:
-            return [torch.bfloat16, torch.float16, torch.float32]
         # x86/aarch64 CPU has supported both bf16 and fp16 natively.
         return [torch.bfloat16, torch.float16, torch.float32]
 

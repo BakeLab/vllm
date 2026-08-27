@@ -12,7 +12,7 @@
 #include "cpu/utils.hpp"
 
 namespace cpu_attention {
-enum class ISA { AMX, VEC, VEC16, NEON, RVV, AMX_FP8 };
+enum class ISA { AMX, VEC, VEC16, NEON, AMX_FP8 };
 
 // Mirrors csrc/attention/dtype_fp8.cuh Fp8KVCacheDataType exactly.
 enum class Fp8KVCacheDataType {
@@ -165,8 +165,6 @@ struct AttentionMetadata {
         ss << "NEON, ";
         break;
         break;
-      case ISA::RVV:
-        ss << "RVV, ";
         break;
         break;
     }

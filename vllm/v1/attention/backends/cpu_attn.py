@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-import functools
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar
 
@@ -448,36 +447,6 @@ class CPUAttentionBackendImpl(AttentionImpl):
         )
 
 
-@functools.lru_cache(maxsize=1)
-def _riscv_supports_rvv() -> bool:
-    """Whether the C++ RVV attention path is usable.
-
-    The kernel in csrc/cpu/cpu_attn_rvv.hpp uses VLEN-agnostic RVVI()
-    macros and supports VLEN=128 and VLEN=256.  CMake auto-detects the
-    largest zvl<N>b from /proc/cpuinfo and passes it via -mrvv-vector-bits.
-    The RVV path is compiled whenever __riscv_v_min_vlen is defined, so
-    we check that at least one supported zvl<N>b is advertised.
-    """
-    # The C++ compile-time check is the ground truth: it knows which
-    # VLEN the binary was actually compiled for.  The cpuinfo check
-    # below is only a fast-path shortcut.
-    try:
-        import torch
-
-        if torch.ops._C.cpu_attn_has_isa("rvv"):
-            return True
-    except Exception:
-        pass
-
-    # Fallback: check /proc/cpuinfo for zvl128b/zvl256b.
-    try:
-        with open("/proc/cpuinfo") as f:
-            cpuinfo = f.read()
-    except OSError:
-        return False
-    return any(f"zvl{n}b" in cpuinfo for n in (128, 256))
-
-
 def _get_attn_isa(
     dtype: torch.dtype,
     block_size: int,
@@ -494,7 +463,6 @@ def _get_attn_isa(
     supports_amx = torch.cpu._is_amx_tile_supported()
     arch = current_platform.get_cpu_architecture()
     supports_arm = arch == CpuArchEnum.ARM
-    supports_riscv = arch == CpuArchEnum.RISCV
     supports_avx512 = torch.cpu._is_avx512_supported()
     if fp8_kv and not supports_amx and not supports_avx512:
         raise NotImplementedError(
@@ -506,8 +474,6 @@ def _get_attn_isa(
         if supports_arm:
             # support ARM NEON FMLA and BFMMLA (bf16) for block size 32
             return "neon"
-        elif supports_riscv and _riscv_supports_rvv():
-            return "rvv"
         else:
             return "vec"
     else:

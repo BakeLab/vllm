@@ -7,16 +7,16 @@ numba == 0.65.0 # Required for N-gram speculative decoding
 
 # Dependencies for CPUs
 torch==2.13.0+cpu; platform_machine == "x86_64" or platform_machine == "aarch64"
-torch==2.13.0; platform_system == "Darwin" or platform_machine == "riscv64"
+torch==2.13.0; platform_system == "Darwin"
 
 # required for the image processor of minicpm-o-2_6, this must be updated alongside torch
-torchaudio; platform_machine != "riscv64"
+torchaudio
 
 # required for the image processor of phi3v, this must be updated alongside torch
-torchvision; platform_machine != "riscv64"
+torchvision
 
 # required for the torchcodec video decoding backend
-torchcodec >= 0.14; platform_machine != "riscv64"
+torchcodec >= 0.14
 
 # Intel Extension for PyTorch, only for x86_64 CPUs
 intel-openmp==2024.2.1; platform_machine == "x86_64"

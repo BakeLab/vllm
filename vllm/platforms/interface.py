@@ -78,7 +78,6 @@ class PlatformEnum(enum.Enum):
 class CpuArchEnum(enum.Enum):
     X86 = enum.auto()
     ARM = enum.auto()
-    RISCV = enum.auto()
     OTHER = enum.auto()
     UNKNOWN = enum.auto()
 
@@ -993,8 +992,6 @@ class Platform:
             return CpuArchEnum.X86
         elif machine.startswith("arm") or machine.startswith("aarch"):
             return CpuArchEnum.ARM
-        elif machine.startswith("riscv"):
-            return CpuArchEnum.RISCV
 
         return CpuArchEnum.OTHER if machine else CpuArchEnum.UNKNOWN
 

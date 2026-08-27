@@ -19,8 +19,7 @@ ISA_TYPES = {
     "VEC": 1,
     "VEC16": 2,
     "NEON": 3,
-    "RVV": 4,
-    "AMX_FP8": 5,
+    "AMX_FP8": 4,
 }
 
 # KV cache index: 0 = auto (same as scalar_t), 1 = fp8_e4m3, 2 = fp8_e5m2
@@ -38,7 +37,7 @@ KV_CACHE_CPP_TYPES = {
 }
 
 # ISAs supported for head_dims divisible by 32
-ISA_FOR_32 = ["AMX", "AMX_FP8", "NEON", "VEC", "VEC16", "RVV"]
+ISA_FOR_32 = ["AMX", "AMX_FP8", "NEON", "VEC", "VEC16"]
 
 # ISAs supported for head_dims divisible by 16 only
 ISA_FOR_16 = ["VEC16"]
@@ -160,13 +159,6 @@ def generate_header_file() -> str:
   #include "cpu_attn_neon.hpp"
 #endif
 
-// cpu_attn_rvv.hpp supports VLEN=128 and VLEN=256 via RVVI() macros.
-// Other VLENs and scalar RISC-V builds skip it entirely.
-#if defined(__riscv) && defined(__riscv_v_min_vlen) && \
-    (__riscv_v_min_vlen == 128 || __riscv_v_min_vlen == 256)
-  #include "cpu_attn_rvv.hpp"
-#endif
-
 """
 
     header += generate_helper_function()
@@ -226,20 +218,6 @@ def generate_header_file() -> str:
         ["NEON", "VEC", "VEC16"],
         fp8=False,
     )
-    # RISC-V with RVV.  cpu_attn_rvv.hpp supports VLEN=128 and VLEN=256
-    # via RVVI() macros.  Builds with a supported VLEN get
-    # RVV+VEC+VEC16; other RISC-V builds fall back to VEC/VEC16 only.
-    header += _macro_block(
-        "#elif defined(__riscv) && defined(__riscv_v_min_vlen) "
-        "&& (__riscv_v_min_vlen == 128 || __riscv_v_min_vlen == 256)",
-        ["RVV", "VEC", "VEC16"],
-        fp8=False,
-    )
-    header += _macro_block(
-        "#elif defined(__riscv)",
-        ["VEC", "VEC16"],
-        fp8=False,
-    )
     header += _macro_block(
         "#elif defined(__AVX512F__)",
         ["VEC", "VEC16"],
@@ -256,7 +234,7 @@ def generate_header_file() -> str:
         fp8=False,
     )
     header += (
-        "#endif  /* CPU_CAPABILITY_AMXBF16 / __aarch64__ / __riscv */\n\n"
+        "#endif  /* CPU_CAPABILITY_AMXBF16 / __aarch64__ */\n\n"
         "#endif  // CPU_ATTN_DISPATCH_GENERATED_H\n"
     )
 

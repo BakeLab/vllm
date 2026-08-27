@@ -17,7 +17,6 @@ endif()
 set(ENABLE_X86_ISA $ENV{VLLM_CPU_X86})
 set(ENABLE_ARM_BF16 $ENV{VLLM_CPU_ARM_BF16})
 set(ENABLE_ARM_I8MM $ENV{VLLM_CPU_ARM_I8MM})
-set(ENABLE_RVV_BF16 $ENV{VLLM_CPU_RVV_BF16})
 
 include_directories("${CMAKE_SOURCE_DIR}/csrc")
 
@@ -103,8 +102,6 @@ else()
     find_isa(${CPUINFO} "asimd" ASIMD_FOUND) # Check for ARM NEON support
     find_isa(${CPUINFO} "bf16" ARM_BF16_FOUND) # Check for ARM BF16 support
     find_isa(${CPUINFO} "i8mm" ARM_I8MM_FOUND) # Check for ARM I8MM support
-    find_isa(${CPUINFO} "zvfhmin" RVV_FP16_FOUND) # Check for RISC-V Vector FP16 support
-    find_isa(${CPUINFO} "zvfbfmin" RVV_BF16_FOUND) # Check for RISC-V Vector BF16 support
 
     # Support cross-compilation by allowing override via environment variables
     if (ENABLE_ARM_BF16)
@@ -115,13 +112,6 @@ else()
         set(ARM_I8MM_FOUND ON)
         message(STATUS
             "ARM I8MM support enabled via VLLM_CPU_ARM_I8MM environment variable")
-    endif()
-    # Some kernels (e.g. Bianbu on Spacemit X100) do not report zvfbfmin
-    # in /proc/cpuinfo despite hardware support. VLLM_CPU_RVV_BF16=1
-    # overrides the detection result.
-    if (ENABLE_RVV_BF16)
-        set(RVV_BF16_FOUND ON)
-        message(STATUS "RVV BF16 support enabled via VLLM_CPU_RVV_BF16 environment variable")
     endif()
 endif()
 
@@ -187,76 +177,13 @@ elseif (ASIMD_FOUND)
         add_compile_definitions(ARM_I8MM_SUPPORT)
     endif()
     list(APPEND CXX_COMPILE_FLAGS ${MARCH_FLAGS})     
-elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "riscv64")
-    message(STATUS "RISC-V detected")
-    if(DEFINED VLLM_RVV_VLEN AND VLLM_RVV_VLEN LESS 0)
-        message(FATAL_ERROR
-            "VLLM_RVV_VLEN must be zero or a positive integer; got '${VLLM_RVV_VLEN}'")
-    endif()
-    # VLLM_RVV_VLEN selects the target VLEN. Auto-detected from /proc/cpuinfo
-    # by default; set -DVLLM_RVV_VLEN=0 to force scalar RISC-V build.
-    # Override with -DVLLM_RVV_VLEN=128 or -DVLLM_RVV_VLEN=256 for RVV.
-    if(NOT DEFINED VLLM_RVV_VLEN)
-        # Auto-detect: find the largest zvl<N>b in /proc/cpuinfo isa line.
-        # Skip when cross-compiling — /proc/cpuinfo describes the build host.
-        if(CMAKE_CROSSCOMPILING)
-            message(STATUS "Cross-compiling: skipping VLEN auto-detection from /proc/cpuinfo")
-        elseif(EXISTS /proc/cpuinfo)
-            file(READ /proc/cpuinfo _cpuinfo)
-            set(_best 0)
-            foreach(_n IN ITEMS 128 256 512 1024)
-                if(_cpuinfo MATCHES "zvl${_n}b")
-                    set(_best ${_n})
-                endif()
-            endforeach()
-            # Only VLEN=128 and VLEN=256 are supported by the RVV kernels.
-            if(_best GREATER 256)
-                message(WARNING
-                    "Detected VLEN=${_best} but only 128/256 are supported; "
-                    "clamping to 256")
-                set(_best 256)
-            endif()
-            if(_best GREATER 0)
-                set(VLLM_RVV_VLEN ${_best})
-            endif()
-        endif()
-        # If auto-detect failed (no /proc/cpuinfo or no zvl<N>b reported)
-        # but the compiler supports RVV, require explicit specification.
-        if(NOT DEFINED VLLM_RVV_VLEN AND (RVV_FP16_FOUND OR RVV_BF16_FOUND))
-            message(FATAL_ERROR
-                "RISC-V RVV is available but VLEN could not be auto-detected. "
-                "Please specify VLEN explicitly via CMAKE_ARGS:\n"
-                "  CMAKE_ARGS='-DVLLM_RVV_VLEN=128'   (for VLEN=128 hardware)\n"
-                "  CMAKE_ARGS='-DVLLM_RVV_VLEN=256'   (for VLEN=256 hardware, e.g. Spacemit X100)")
-        endif()
-    endif()
-    if(VLLM_RVV_VLEN AND VLLM_RVV_VLEN GREATER 0)
-        message(STATUS "RISC-V RVV VLEN=${VLLM_RVV_VLEN}")
-        # Sources gate FP16/BF16 paths on the compiler-provided
-        # __riscv_zvfh / __riscv_zvfbfmin macros, which GCC and clang
-        # define automatically when those extensions appear in -march.
-        if(RVV_BF16_FOUND)
-            message(STATUS "BF16 extension detected")
-            set(MARCH_FLAGS -march=rv64gcv_zvfh_zfbfmin_zvfbfmin_zvl${VLLM_RVV_VLEN}b -mrvv-vector-bits=zvl -mabi=lp64d)
-        elseif(RVV_FP16_FOUND)
-            message(WARNING "BF16 functionality is not available.")
-            set(MARCH_FLAGS -march=rv64gcv_zvfh_zvl${VLLM_RVV_VLEN}b -mrvv-vector-bits=zvl -mabi=lp64d)
-        else()
-            message(STATUS "compile riscv with scalar (no FP16/BF16)")
-            set(MARCH_FLAGS -march=rv64gc)
-        endif()
-    else()
-        message(STATUS "compile riscv with scalar")
-        set(MARCH_FLAGS -march=rv64gc)
-    endif()
-    list(APPEND CXX_COMPILE_FLAGS ${MARCH_FLAGS})
 else()
-    message(FATAL_ERROR "vLLM CPU backend requires X86, ARMv8 or RISC-V support.")
+    message(FATAL_ERROR "vLLM CPU backend requires X86 or ARMv8 support.")
 endif()
 
 
 # Build oneDNN for GEMM kernels
-if (ENABLE_X86_ISA OR (ASIMD_FOUND AND NOT APPLE_SILICON_FOUND) OR RVV_FP16_FOUND OR RVV_BF16_FOUND)
+if (ENABLE_X86_ISA OR (ASIMD_FOUND AND NOT APPLE_SILICON_FOUND))
     # Fetch and build Arm Compute Library (ACL) as oneDNN's backend for AArch64
     # TODO [fadara01]: remove this once ACL can be fetched and built automatically as a dependency of oneDNN
     set(ONEDNN_AARCH64_USE_ACL OFF CACHE BOOL "")
@@ -449,13 +376,6 @@ set(VLLM_EXT_SRC
     "csrc/cpu/cpu_attn.cpp"
     "csrc/cpu/torch_bindings.cpp")
 
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "riscv64" AND VLLM_RVV_VLEN AND
-        VLLM_RVV_VLEN GREATER 0 AND (RVV_FP16_FOUND OR RVV_BF16_FOUND))
-    set(VLLM_EXT_SRC
-        "csrc/cpu/cpu_wna16.cpp"
-        ${VLLM_EXT_SRC})
-endif()
-
 if (ASIMD_FOUND AND NOT APPLE_SILICON_FOUND)
     set(VLLM_EXT_SRC
         "csrc/cpu/shm.cpp"
@@ -475,11 +395,6 @@ if(USE_ONEDNN)
         ${VLLM_EXT_SRC})
 endif()
 
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "riscv64")
-    set(VLLM_EXT_SRC
-        "csrc/cpu/sgl-kernels/gemm_int4.cpp"
-        ${VLLM_EXT_SRC})
-endif()
 
 if (ENABLE_X86_ISA)
     set(VLLM_EXT_SRC_SGL

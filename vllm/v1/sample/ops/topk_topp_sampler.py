@@ -9,7 +9,7 @@ from vllm import envs
 from vllm._aiter_ops import rocm_aiter_ops
 from vllm.config.model import PROCESSED_LOGPROBS_MODES, LogprobsMode
 from vllm.logger import init_logger
-from vllm.platforms import CpuArchEnum, current_platform
+from vllm.platforms import current_platform
 from vllm.triton_utils import HAS_TRITON
 
 if HAS_TRITON:
@@ -101,13 +101,7 @@ class TopKTopPSampler(nn.Module):
                 self.forward_cuda if can_use_flashinfer else self.forward_native
             )
         elif current_platform.is_cpu():
-            arch = current_platform.get_cpu_architecture()
-            # Fall back to native implementation for RISCV.
-            # PR: https://github.com/vllm-project/vllm/pull/26987
-            if arch == CpuArchEnum.RISCV:
-                self.forward = self.forward_native
-            else:
-                self.forward = self.forward_cpu
+            self.forward = self.forward_cpu
         elif current_platform.is_xpu():
             if envs.VLLM_XPU_USE_SAMPLER_KERNEL:
                 self.forward = self.forward_xpu

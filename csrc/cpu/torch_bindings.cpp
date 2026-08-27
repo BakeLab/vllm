@@ -522,7 +522,7 @@ TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
 
   // Quantization
 #if defined(__AVX512F__) || defined(__AVX2__) || \
-    (defined(__aarch64__) && !defined(__APPLE__)) || defined(__riscv_v)
+    (defined(__aarch64__) && !defined(__APPLE__))
   // Helper function to release oneDNN handlers
   ops.def("release_dnnl_matmul_handler(int handler) -> ()",
           &release_dnnl_matmul_handler);
@@ -780,9 +780,7 @@ TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
            &inverse_gptj_rope_o_proj_cpu);
 #endif
 
-#if (defined(__AVX512BF16__) && defined(__AVX512F__) && \
-     defined(__AVX512VNNI__)) ||                        \
-    defined(__riscv)
+#if defined(__AVX512BF16__) && defined(__AVX512F__) && defined(__AVX512VNNI__)
   // Adapted from sglang: INT4 W4A8 kernels
   ops.def(
       "convert_weight_packed_scale_zp(Tensor weight, Tensor qzeros, Tensor "
@@ -862,7 +860,7 @@ TORCH_LIBRARY_EXPAND(TORCH_EXTENSION_NAME, ops) {
   ops.def("dynamic_per_token_scaled_fp8_quant() -> ()", placeholder_op);
 
   // WNA16
-#if defined(__AVX512F__) || defined(__riscv_v)
+#if defined(__AVX512F__)
   ops.def(
       "cpu_gemm_wna16(Tensor input, Tensor q_weight, Tensor(a2!) output, "
       "Tensor scales, Tensor? zeros, Tensor? bias, SymInt "

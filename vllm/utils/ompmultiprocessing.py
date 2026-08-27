@@ -45,8 +45,7 @@ class OMPProcessManager:
         # TODO: make scheduler proc sleep when idle
         self.reserve_cpu_num = (
             self.local_world_size
-            if current_platform.get_cpu_architecture()
-            in (CpuArchEnum.ARM, CpuArchEnum.RISCV)
+            if current_platform.get_cpu_architecture() == CpuArchEnum.ARM
             else 1
         )
         # reserve at one more core for nixl_connector under p/d case
@@ -134,8 +133,8 @@ class OMPProcessManager:
                 cpu_list, reserve_list = self._get_autobind_cpu_ids(
                     lambda cpus: cpus[-1:]
                 )
-            elif cpu_arch in (CpuArchEnum.ARM, CpuArchEnum.RISCV):
-                # For AArch64 / RISC-V, no SMT, use all logical CPUs
+            elif cpu_arch == CpuArchEnum.ARM:
+                # For AArch64, no SMT, use all logical CPUs
                 cpu_list, reserve_list = self._get_autobind_cpu_ids(lambda cpus: cpus)
             else:
                 cpu_list, reserve_list = [], []
