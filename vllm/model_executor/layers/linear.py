@@ -3,11 +3,10 @@
 
 from abc import abstractmethod
 from collections.abc import Callable, Iterable
-from typing import Any
+from typing import Any, TypeIs
 
 import torch
 from torch.nn.parameter import Parameter
-from typing_extensions import TypeIs
 
 import vllm.envs as envs
 from vllm.config import get_current_vllm_config, get_current_vllm_config_or_none

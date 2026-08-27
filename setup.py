@@ -1385,8 +1385,6 @@ def get_vllm_version() -> str:
                 version += sep + precompiled_wheel_utils.rocm_version_to_variant(
                     rocm_version
                 )
-        elif _is_tpu():
-            version += f"{sep}tpu"
         elif _is_cpu():
             # Check the local VLLM_TARGET_DEVICE (may be set by auto-detect above),
             # not envs.VLLM_TARGET_DEVICE, so CPU-only hosts still get `+cpu`.

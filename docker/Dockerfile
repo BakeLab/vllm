@@ -23,7 +23,7 @@
 # =============================================================================
 
 ARG CUDA_VERSION=13.0.3
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_VERSION=3.14
 ARG UBUNTU_VERSION=24.04
 ARG INSTALL_RUBIN_PRERELEASE=false
 ARG TRITON_INSTALL_FROM_SOURCE_REPO=

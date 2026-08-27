@@ -2,11 +2,11 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 import json
+from typing import TypedDict
 
 import openai
 import pytest
 import pytest_asyncio
-from typing_extensions import TypedDict
 
 from tests.utils import RemoteOpenAIServer
 from vllm.tool_parsers.abstract_tool_parser import ToolParser

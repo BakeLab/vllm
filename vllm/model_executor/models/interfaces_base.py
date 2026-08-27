@@ -6,13 +6,14 @@ from typing import (
     ClassVar,
     Literal,
     Protocol,
+    TypeIs,
+    TypeVar,
     overload,
     runtime_checkable,
 )
 
 import torch
 import torch.nn as nn
-from typing_extensions import TypeIs, TypeVar
 
 from vllm.logger import init_logger
 from vllm.tasks import ScoreType

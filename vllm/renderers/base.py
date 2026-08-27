@@ -10,9 +10,7 @@ from contextlib import ExitStack
 from dataclasses import replace
 from functools import cached_property
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Generic, overload
-
-from typing_extensions import TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
 
 from vllm.exceptions import VLLMValidationError
 from vllm.inputs import (

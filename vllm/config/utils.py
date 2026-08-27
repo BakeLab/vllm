@@ -12,14 +12,23 @@ import textwrap
 from collections.abc import Callable, Mapping, Sequence, Set
 from dataclasses import MISSING, field, fields, is_dataclass
 from itertools import pairwise
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar, cast, get_type_hints, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Protocol,
+    TypeVar,
+    cast,
+    dataclass_transform,
+    get_type_hints,
+    overload,
+    runtime_checkable,
+)
 
 import torch
 from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from pydantic.fields import Field as PydanticField
 from pydantic.fields import FieldInfo
-from typing_extensions import dataclass_transform, runtime_checkable
 
 from vllm.logger import init_logger
 
