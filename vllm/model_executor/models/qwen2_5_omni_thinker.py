@@ -24,7 +24,7 @@
 
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from functools import partial
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, TypeVar
 
 import numpy as np
 import torch
@@ -42,7 +42,6 @@ from transformers.models.qwen2_5_omni.processing_qwen2_5_omni import (
     Qwen2_5OmniProcessor,
 )
 from transformers.models.whisper import WhisperFeatureExtractor
-from typing_extensions import TypeVar
 
 from vllm.config import VllmConfig
 from vllm.config.multimodal import MultiModalDummyOptions
@@ -118,7 +117,7 @@ from .utils import (
 
 try:
     import flash_attn
-except (ImportError, ModuleNotFoundError):
+except ImportError, ModuleNotFoundError:
     flash_attn = None
 
 logger = init_logger(__name__)

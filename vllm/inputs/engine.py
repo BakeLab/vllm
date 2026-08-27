@@ -3,9 +3,14 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Literal, NotRequired, TypeAlias, assert_never
-
-from typing_extensions import TypedDict
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+    NotRequired,
+    TypeAlias,
+    TypedDict,
+    assert_never,
+)
 
 from vllm.exceptions import VLLMValidationError
 

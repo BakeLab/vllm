@@ -11,9 +11,7 @@ TieringOffloadingManager without requiring actual storage or network backends.
 import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, ClassVar
-
-from typing_extensions import override
+from typing import TYPE_CHECKING, Any, ClassVar, override
 
 from vllm.v1.kv_offload.base import (
     ConfigInfo,

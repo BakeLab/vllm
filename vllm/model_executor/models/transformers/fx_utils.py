@@ -15,13 +15,12 @@ import operator
 import textwrap
 from collections.abc import Callable
 from itertools import chain
-from typing import Any
+from typing import Any, TypeIs
 from unittest import mock
 
 import torch
 from torch import fx, nn
 from torch.nn import functional as F
-from typing_extensions import TypeIs
 
 from vllm.logger import init_logger
 
@@ -306,7 +305,7 @@ def forward_parameters(cls: type[nn.Module]) -> dict[str, inspect.Parameter]:
     """`cls.forward`'s signature parameters, or empty if uninspectable."""
     try:
         return dict(inspect.signature(cls.forward).parameters)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return {}
 
 

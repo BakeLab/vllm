@@ -2,10 +2,9 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 from collections.abc import Callable, Iterable, Sequence
-from typing import Any
+from typing import Any, TypeVar
 
 from tqdm import tqdm
-from typing_extensions import TypeVar
 
 from vllm import (
     PoolingParams,

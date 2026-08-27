@@ -52,9 +52,7 @@ Example out-of-tree tier configuration:
 }
 """
 
-from typing import Any
-
-from typing_extensions import override
+from typing import Any, override
 
 from vllm.logger import init_logger
 from vllm.v1.kv_offload.base import (

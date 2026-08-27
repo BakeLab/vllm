@@ -50,7 +50,7 @@ repos:
         --index-strategy, unsafe-best-match,
         --torch-backend, cu130,
         --python-platform, x86_64-manylinux_2_28,
-        --python-version, "3.12",
+        --python-version, "3.14",
       ]
       files: ^requirements/(common|cuda|test/cuda)\.(in|txt)$
     - id: pip-compile
@@ -62,7 +62,7 @@ repos:
         -o, requirements/test/rocm.txt,
         --index-strategy, unsafe-best-match,
         --python-platform, x86_64-manylinux_2_28,
-        --python-version, "3.12",
+        --python-version, "3.14",
         # Exclude torch and CUDA/NVIDIA packages
         --no-emit-package, torch,
         --no-emit-package, torchvision,
@@ -131,7 +131,7 @@ repos:
         -o, requirements/test/xpu.txt,
         --index-strategy, unsafe-best-match,
         --python-platform, x86_64-manylinux_2_39,
-        --python-version, "3.12",
+        --python-version, "3.14",
       ]
       files: ^requirements/(common|xpu|test/xpu)\.(in|txt)$
     - id: pip-compile
@@ -143,7 +143,7 @@ repos:
         --index-strategy, unsafe-best-match,
         --torch-backend, cpu,
         --python-platform, x86_64-manylinux_2_28,
-        --python-version, "3.12",
+        --python-version, "3.14",
       ]
       files: ^requirements/(common|cpu|test/(cuda|cpu))\.(in|txt)$
       exclude: ^requirements/test/cuda\.txt$
@@ -154,7 +154,7 @@ repos:
         requirements/docs.in,
         -o, requirements/docs.txt,
         --python-platform, x86_64-manylinux_2_28,
-        --python-version, "3.12",
+        --python-version, "3.14",
       ]
       files: ^requirements/docs\.(in|txt)$
 - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -199,9 +199,9 @@ repos:
     additional_dependencies: [PyYAML, regex]
     verbose: true # full-scan `note:` lines are advisory, so the hook passes
     require_serial: true # one full scan, not one per pre-commit file batch
-  - id: mypy # TODO: Use https://github.com/pre-commit/mirrors-mypy when mypy setup is less awkward
-    name: Run mypy for the oldest supported Python version
-    entry: python tools/pre_commit/mypy.py "3.11"
+  - id: mypy-3.14 # TODO: Use https://github.com/pre-commit/mirrors-mypy when mypy setup is less awkward
+    name: Run mypy for Python 3.14
+    entry: python tools/pre_commit/mypy.py "3.14"
     language: python
     types_or: [python, pyi]
     require_serial: true

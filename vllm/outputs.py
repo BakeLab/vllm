@@ -4,11 +4,10 @@
 from collections.abc import MutableSequence
 from collections.abc import Sequence as GenericSequence
 from dataclasses import dataclass
-from typing import Any, Generic
+from typing import Any, Generic, TypeVar
 
 import numpy as np
 import torch
-from typing_extensions import TypeVar
 
 from vllm.exceptions import GenerationError, RetryableRequestError, VLLMValidationError
 from vllm.logger import init_logger

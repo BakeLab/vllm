@@ -21,8 +21,7 @@ from collections.abc import Callable, Iterable, MutableMapping, Sequence
 from contextlib import ExitStack, contextmanager
 from multiprocessing import Process, get_context
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, cast
-
+from typing import TYPE_CHECKING, Any, Literal, ParamSpec, cast
 import anthropic
 import cloudpickle
 import httpx
@@ -31,8 +30,6 @@ import pytest
 import requests
 import torch
 import torch.nn.functional as F
-from typing_extensions import ParamSpec
-
 import vllm.envs as envs
 from vllm.distributed import (
     ensure_model_parallel_initialized,

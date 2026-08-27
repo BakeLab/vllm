@@ -4,10 +4,8 @@ import operator
 import sys
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Generic, TypeAlias, TypeVar
-
+from typing import TYPE_CHECKING, Generic, TypeAlias, TypeVar, override
 import torch
-from typing_extensions import override
 
 from vllm.config import ModelConfig
 from vllm.logger import init_logger

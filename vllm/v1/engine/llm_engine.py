@@ -5,10 +5,9 @@ import time
 import weakref
 from collections.abc import Callable, Mapping
 from copy import copy
-from typing import Any
+from typing import Any, TypeVar
 
 import torch.nn as nn
-from typing_extensions import TypeVar
 
 import vllm.envs as envs
 from vllm.config import ParallelConfig, VllmConfig

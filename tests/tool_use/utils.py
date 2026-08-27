@@ -2,10 +2,9 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 from copy import deepcopy
-from typing import Any
+from typing import Any, TypedDict
 
 from openai.types.chat import ChatCompletionMessageParam, ChatCompletionToolParam
-from typing_extensions import TypedDict
 
 from tests.utils import VLLM_PATH
 

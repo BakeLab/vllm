@@ -5,10 +5,9 @@ from collections.abc import Callable, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, get_type_hints, overload
+from typing import TYPE_CHECKING, Any, TypeVar, get_type_hints, overload
 
 import torch
-from typing_extensions import TypeVar
 
 from vllm.exceptions import VLLMValidationError
 from vllm.inputs import MultiModalDataDict

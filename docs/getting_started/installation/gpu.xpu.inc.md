@@ -8,7 +8,7 @@ vLLM initially supports basic model inference and serving on Intel GPU platform.
 
 - Supported Hardware: Intel Data Center GPU, Intel ARC GPU
 - Dependency: [vllm-xpu-kernels](https://github.com/vllm-project/vllm-xpu-kernels): a package provide all necessary vllm custom kernel when running vLLM on Intel GPU platform,
-- Python: 3.12
+- Python: 3.14
 !!! warning
     The provided vllm-xpu-kernels whl is Python3.12 specific so this version is a MUST.
 

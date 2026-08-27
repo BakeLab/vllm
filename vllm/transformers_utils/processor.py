@@ -4,7 +4,7 @@
 import importlib
 import inspect
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, cast, get_args, get_type_hints
+from typing import TYPE_CHECKING, Any, TypeVar, cast, get_args, get_type_hints
 
 from transformers import (
     AutoFeatureExtractor,
@@ -18,7 +18,6 @@ from transformers.image_processing_utils import BaseImageProcessor
 from transformers.models.auto.video_processing_auto import VIDEO_PROCESSOR_MAPPING_NAMES
 from transformers.processing_utils import ProcessorMixin
 from transformers.video_processing_utils import BaseVideoProcessor
-from typing_extensions import TypeVar
 
 from vllm.logger import init_logger
 from vllm.transformers_utils import processors

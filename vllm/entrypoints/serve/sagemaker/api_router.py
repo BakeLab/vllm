@@ -21,7 +21,6 @@ from vllm.entrypoints.serve.utils.api_utils import validate_json_request
 from vllm.tasks import SupportedTask
 
 # TODO: RequestType = TypeForm[BaseModel] when recognized by type checkers
-# (requires typing_extensions >= 4.13)
 RequestType = Any
 GetHandlerFn = Callable[[Request], BaseServing | None]
 EndpointFn = Callable[[RequestType, Request], Awaitable[Any]]

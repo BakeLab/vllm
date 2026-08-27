@@ -5,7 +5,7 @@
 from dataclasses import dataclass, replace
 from enum import Enum
 from functools import partial
-from typing import ClassVar
+from typing import ClassVar, override
 
 import numpy as np
 import torch
@@ -24,7 +24,6 @@ from flashinfer.utils import (
     get_device_sm_count,
     get_trtllm_gen_multi_ctas_kv_counter_bytes,
 )
-from typing_extensions import override
 
 from vllm import _custom_ops as custom_ops
 from vllm import envs

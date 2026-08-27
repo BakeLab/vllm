@@ -4,9 +4,7 @@
 
 from collections.abc import Sequence
 from multiprocessing.synchronize import Lock as LockType
-from typing import TYPE_CHECKING, TypeAlias
-
-from typing_extensions import override
+from typing import TYPE_CHECKING, TypeAlias, override
 
 import vllm.envs as envs
 from vllm.config import VllmConfig
