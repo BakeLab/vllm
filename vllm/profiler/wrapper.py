@@ -10,11 +10,11 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import AbstractContextManager, contextmanager, nullcontext, suppress
 from glob import glob
+from typing import override
 from uuid import uuid4
 
 import torch
 from packaging.version import InvalidVersion, Version
-from typing_extensions import override
 
 import vllm.version
 from vllm.config import ProfilerConfig

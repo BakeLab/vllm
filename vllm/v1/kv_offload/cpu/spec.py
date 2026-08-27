@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-from typing import Any
-
-from typing_extensions import override
+from typing import Any, override
 
 from vllm.platforms import current_platform
 from vllm.utils.math_utils import round_up

@@ -2,10 +2,9 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 from dataclasses import replace
-from typing import Any
+from typing import Any, override
 
 import torch
-from typing_extensions import override
 
 from vllm.config import VllmConfig
 from vllm.forward_context import set_forward_context

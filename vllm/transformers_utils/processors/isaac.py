@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 import math
-from typing import Any, TypedDict
+from typing import Any, TypedDict, Unpack
 
 import numpy as np
 import torch
@@ -14,7 +14,6 @@ from transformers import (
     TensorType,
 )
 from transformers.processing_utils import ProcessingKwargs
-from typing_extensions import Unpack
 
 from vllm.tokenizers.hf import HfTokenizer
 
