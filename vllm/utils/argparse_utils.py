@@ -7,14 +7,12 @@ import json
 import sys
 import textwrap
 from argparse import (
-    Action,
     ArgumentDefaultsHelpFormatter,
     ArgumentParser,
     ArgumentTypeError,
     BooleanOptionalAction,
     Namespace,
     RawDescriptionHelpFormatter,
-    _ArgumentGroup,
 )
 from collections import defaultdict
 from typing import Any, NoReturn
