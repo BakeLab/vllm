@@ -4,11 +4,10 @@ import dataclasses
 import os
 import traceback
 from collections.abc import Callable
-from typing import Any, Concatenate
+from typing import Any, Concatenate, ParamSpec
 
 import torch
 from torch.multiprocessing import spawn  # pyright: ignore[reportPrivateImportUsage]
-from typing_extensions import ParamSpec
 
 import vllm.envs as envs
 from vllm.config import VllmConfig, set_current_vllm_config

@@ -12,10 +12,9 @@ at ``max(pos - (window - 1) - max(left - (window - 1), 0), 0)`` and ends at
 """
 
 import inspect
-
+from typing import TypedDict
 import pytest
 import torch
-from typing_extensions import TypedDict
 
 from tests.v1.attention.utils import create_vllm_config
 from vllm.models.deepseek_v4.common.ops.cache_utils import (

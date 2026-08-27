@@ -19,11 +19,13 @@ from typing import (
     Literal,
     Required,
     TypeAlias,
+    TypedDict,
     TypeVar,
     Union,
     cast,
     get_args,
     get_origin,
+    override,
 )
 
 from openai.types.chat import (
@@ -47,9 +49,6 @@ from openai.types.responses import ResponseInputImageParam
 from openai_harmony import Message as OpenAIHarmonyMessage
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, TypeAdapter
-
-# pydantic needs the TypedDict from typing_extensions
-from typing_extensions import TypedDict, override
 
 from vllm import envs
 from vllm.config import ModelConfig

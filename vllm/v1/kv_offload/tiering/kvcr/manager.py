@@ -9,7 +9,7 @@ import time
 import uuid
 from collections.abc import Collection, Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, cast, override
 
 import msgspec
 from kvcr import (
@@ -49,7 +49,6 @@ from kvcr.types import (
     QueryStatus,
     RegionDescriptor,
 )
-from typing_extensions import override
 
 from vllm.distributed.kv_transfer.kv_connector.v1.offloading.metrics import (
     OffloadingConnectorStats,

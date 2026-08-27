@@ -4,10 +4,9 @@ import contextlib
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, assert_never, cast
+from typing import TYPE_CHECKING, TypeVar, assert_never, cast
 
 import huggingface_hub
-from typing_extensions import TypeVar
 
 from vllm import envs
 from vllm.logger import init_logger

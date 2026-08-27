@@ -9,10 +9,9 @@ Independent metadata / builder; KV cache layout is NHD:
 
 import importlib.util
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import ClassVar, override
 
 import torch
-from typing_extensions import override
 
 from vllm.config import VllmConfig
 from vllm.config.cache import CacheDType

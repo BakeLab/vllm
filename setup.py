@@ -1381,8 +1381,6 @@ def get_vllm_version() -> str:
             rocm_version = get_rocm_version() or torch.version.hip
             if rocm_version and rocm_version != envs.VLLM_MAIN_CUDA_VERSION:
                 version += f"{sep}rocm{rocm_version.replace('.', '')[:3]}"
-        elif _is_tpu():
-            version += f"{sep}tpu"
         elif _is_cpu():
             # Check the local VLLM_TARGET_DEVICE (may be set by auto-detect above),
             # not envs.VLLM_TARGET_DEVICE, so CPU-only hosts still get `+cpu`.

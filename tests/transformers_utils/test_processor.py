@@ -2,11 +2,11 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 import importlib
+from typing import Unpack
 from unittest.mock import patch
 
 from transformers import processing_utils
 from transformers.processing_utils import ProcessingKwargs
-from typing_extensions import Unpack
 
 from vllm.tokenizers import get_tokenizer
 from vllm.transformers_utils.processor import (

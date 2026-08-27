@@ -51,7 +51,7 @@ def check(files: list[str]) -> list[tuple[str, str, str]]:
     for rule in rules:
         for cond in file_conditions(rule.get("conditions", []), []):
             cond = cond.strip()
-            # Negated conditions (label-tpu-remove) are expected to match nothing.
+            # Negated conditions are expected to match nothing.
             if cond.startswith("-"):
                 continue
             attr = next(
