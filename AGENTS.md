@@ -49,7 +49,7 @@ If work is duplicate/trivial busywork, **do not proceed**. Return a short explan
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Always use `uv` for Python environment management:
-uv venv --python 3.12
+uv venv --python 3.14
 source .venv/bin/activate
 
 # Always make sure `pre-commit` and its hooks are installed:
@@ -115,7 +115,7 @@ pre-commit run --all-files
 pre-commit run ruff-check --all-files
 
 # Run mypy as it is in CI:
-pre-commit run mypy-3.12 --all-files --hook-stage manual
+pre-commit run mypy-3.14 --all-files
 ```
 
 The line length limit for Python code is 88 characters. If you are not sure, use pre-commit to check.

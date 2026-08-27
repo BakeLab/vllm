@@ -51,7 +51,7 @@ repos:
         --index-strategy, unsafe-best-match,
         --torch-backend, cu130,
         --python-platform, x86_64-manylinux_2_28,
-        --python-version, "3.12",
+        --python-version, "3.14",
       ]
       files: ^requirements/(common|cuda|test/cuda)\.(in|txt)$
     - id: pip-compile
@@ -63,7 +63,7 @@ repos:
         -o, requirements/test/rocm.txt,
         --index-strategy, unsafe-best-match,
         --python-platform, x86_64-manylinux_2_28,
-        --python-version, "3.12",
+        --python-version, "3.14",
         # Exclude torch and CUDA/NVIDIA packages
         --no-emit-package, torch,
         --no-emit-package, torchvision,
@@ -132,7 +132,7 @@ repos:
         -o, requirements/test/xpu.txt,
         --index-strategy, unsafe-best-match,
         --python-platform, x86_64-manylinux_2_39,
-        --python-version, "3.12",
+        --python-version, "3.14",
       ]
       files: ^requirements/(common|xpu|test/xpu)\.(in|txt)$
     - id: pip-compile
@@ -144,7 +144,7 @@ repos:
         --index-strategy, unsafe-best-match,
         --torch-backend, cpu,
         --python-platform, x86_64-manylinux_2_28,
-        --python-version, "3.12",
+        --python-version, "3.14",
       ]
       files: ^requirements/(common|cpu|test/(cuda|cpu))\.(in|txt)$
       exclude: ^requirements/test/cuda\.txt$
@@ -155,7 +155,7 @@ repos:
         requirements/docs.in,
         -o, requirements/docs.txt,
         --python-platform, x86_64-manylinux_2_28,
-        --python-version, "3.12",
+        --python-version, "3.14",
       ]
       files: ^requirements/docs\.(in|txt)$
 - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -177,29 +177,13 @@ repos:
     files: ^\.github/mergify\.yml$
     pass_filenames: false
     additional_dependencies: [PyYAML, regex]
-  - id: mypy-3.10 # TODO: Use https://github.com/pre-commit/mirrors-mypy when mypy setup is less awkward
-    name: Run mypy for Python 3.10
-    entry: python tools/pre_commit/mypy.py "3.10"
-    <<: &mypy_common
-      language: python
-      types_or: [python, pyi]
-      require_serial: true
-      additional_dependencies: ["mypy==1.20.2", regex, types-cachetools, types-setuptools, types-PyYAML, types-requests, types-torch, pydantic]
-  - id: mypy-3.11 # TODO: Use https://github.com/pre-commit/mirrors-mypy when mypy setup is less awkward
-    name: Run mypy for Python 3.11
-    entry: python tools/pre_commit/mypy.py "3.11"
-    <<: *mypy_common
-    stages: [manual] # Only run in CI
-  - id: mypy-3.12 # TODO: Use https://github.com/pre-commit/mirrors-mypy when mypy setup is less awkward
-    name: Run mypy for Python 3.12
-    entry: python tools/pre_commit/mypy.py "3.12"
-    <<: *mypy_common
-    stages: [manual] # Only run in CI
-  - id: mypy-3.13 # TODO: Use https://github.com/pre-commit/mirrors-mypy when mypy setup is less awkward
-    name: Run mypy for Python 3.13
-    entry: python tools/pre_commit/mypy.py "3.13"
-    <<: *mypy_common
-    stages: [manual] # Only run in CI
+  - id: mypy-3.14 # TODO: Use https://github.com/pre-commit/mirrors-mypy when mypy setup is less awkward
+    name: Run mypy for Python 3.14
+    entry: python tools/pre_commit/mypy.py "3.14"
+    language: python
+    types_or: [python, pyi]
+    require_serial: true
+    additional_dependencies: ["mypy==1.20.2", regex, types-cachetools, types-setuptools, types-PyYAML, types-requests, types-torch, pydantic]
   - id: png-lint
     name: Lint PNG exports from excalidraw
     entry: tools/pre_commit/png-lint.sh

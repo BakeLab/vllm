@@ -6,7 +6,6 @@ from __future__ import annotations
 import ast
 import importlib
 import json
-import sys
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -36,18 +35,12 @@ else:
     oc = LazyLoader("oc", globals(), "outlines_core")
     json_schema = LazyLoader("json_schema", globals(), "outlines_core.json_schema")
 
-# Python 3.11+ sre_parse and sre_constants
-# are deprecated, so we must import them from re
-if sys.version_info >= (3, 11):
-    # Hack to get around pre-commit regex module rule
-    # because going through re is the only way to get sre_parse
-    # and sre_constants in Python 3.11+
-    _re = importlib.import_module("re")
-    sre_parse = _re._parser
-    sre_constants = _re._constants
-else:
-    import sre_constants
-    import sre_parse
+# sre_parse and sre_constants are deprecated, so we must import them from re.
+# Hack to get around pre-commit regex module rule because going through re is
+# the only way to get sre_parse and sre_constants.
+_re = importlib.import_module("re")
+sre_parse = _re._parser
+sre_constants = _re._constants
 
 
 @dataclass

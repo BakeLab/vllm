@@ -7,13 +7,11 @@ import json
 import sys
 import textwrap
 from argparse import (
-    Action,
     ArgumentDefaultsHelpFormatter,
     ArgumentParser,
     ArgumentTypeError,
     Namespace,
     RawDescriptionHelpFormatter,
-    _ArgumentGroup,
 )
 from collections import defaultdict
 from typing import Any, NoReturn
@@ -113,7 +111,6 @@ class SortedHelpFormatter(ArgumentDefaultsHelpFormatter, RawDescriptionHelpForma
 class FlexibleArgumentParser(ArgumentParser):
     """ArgumentParser that allows both underscore and dash in names."""
 
-    _deprecated: set[Action] = set()
     _json_tip: str = (
         "When passing JSON CLI arguments, the following sets of arguments "
         "are equivalent:\n"
@@ -148,39 +145,6 @@ class FlexibleArgumentParser(ArgumentParser):
                 "--convert reward."
             )
         super().error(message)
-
-    if sys.version_info < (3, 13):
-        # Enable the deprecated kwarg for Python 3.12 and below
-
-        def parse_known_args(self, args=None, namespace=None):
-            namespace, args = super().parse_known_args(args, namespace)
-            for action in FlexibleArgumentParser._deprecated:
-                if (
-                    hasattr(namespace, dest := action.dest)
-                    and getattr(namespace, dest) != action.default
-                ):
-                    logger.warning_once("argument '%s' is deprecated", dest)
-            return namespace, args
-
-        def add_argument(self, *args, **kwargs):
-            deprecated = kwargs.pop("deprecated", False)
-            action = super().add_argument(*args, **kwargs)
-            if deprecated:
-                FlexibleArgumentParser._deprecated.add(action)
-            return action
-
-        class _FlexibleArgumentGroup(_ArgumentGroup):
-            def add_argument(self, *args, **kwargs):
-                deprecated = kwargs.pop("deprecated", False)
-                action = super().add_argument(*args, **kwargs)
-                if deprecated:
-                    FlexibleArgumentParser._deprecated.add(action)
-                return action
-
-        def add_argument_group(self, *args, **kwargs):
-            group = self._FlexibleArgumentGroup(self, *args, **kwargs)
-            self._action_groups.append(group)
-            return group
 
     def format_help(self):
         # Only use custom help formatting for bottom level parsers
