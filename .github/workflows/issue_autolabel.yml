@@ -239,12 +239,6 @@ jobs:
                   { term: "CUTLASS", searchIn: "title" },
                 ],
               },
-              tpu: {
-                keywords: [
-                  { term: "TPU", searchIn: "title" },
-                  { term: "XLA", searchIn: "title" },
-                ],
-              },
               // Subsystems.
               //
               // Single distinctive words go in `keywords` so the word-boundary

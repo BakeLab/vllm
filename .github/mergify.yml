@@ -498,36 +498,6 @@ pull_request_rules:
       add:
         - mrv2
 
-- name: label-tpu
-  description: Automatically apply tpu label
-  # Keep this list in sync with `label-tpu-remove` conditions
-  conditions:
-    - label != stale
-    - or:
-      - files~=tpu.py
-      - files~=_tpu
-      - files~=tpu_
-      - files~=/tpu/
-  actions:
-    label:
-      add:
-        - tpu
-
-- name: label-tpu-remove
-  description: Automatically remove tpu label
-  # Keep this list in sync with `label-tpu` conditions
-  conditions:
-    - label != stale
-    - and:
-      - -files~=tpu.py
-      - -files~=_tpu
-      - -files~=tpu_
-      - -files~=/tpu/
-  actions:
-    label:
-      remove:
-        - tpu
-
 - name: label-tool-calling
   description: Automatically add tool-calling label
   conditions:

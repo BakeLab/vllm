@@ -201,11 +201,6 @@ mkdocs.yaml @hmellor
 /vllm/models/*/amd @tjtanaa @dllehr-amd @hongxiayang
 /vllm/models/deepseek_v4/amd @tjtanaa @dllehr-amd @hongxiayang @zyongye
 
-# TPU
-/vllm/v1/worker/tpu* @NickLucche
-/vllm/platforms/tpu.py @NickLucche
-/vllm/v1/sample/tpu @NickLucche
-/vllm/tests/v1/tpu @NickLucche
 
 # KVConnector installation files
 /requirements/kv_connectors.txt @NickLucche
