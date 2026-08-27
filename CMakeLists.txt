@@ -265,11 +265,9 @@ if(NVCC_THREADS AND VLLM_GPU_LANG STREQUAL "CUDA")
 endif()
 
 #
-# Set compression mode for CUDA >=13.x.
+# Set compression mode (CUDA >= 13.0 is enforced above).
 #
-if(VLLM_GPU_LANG STREQUAL "CUDA" AND
-   DEFINED CMAKE_CUDA_COMPILER_VERSION AND
-   CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 13.0)
+if(VLLM_GPU_LANG STREQUAL "CUDA")
   list(APPEND VLLM_GPU_FLAGS "--compress-mode=size")
 endif()
 
@@ -278,9 +276,7 @@ endif()
 #
 if(VLLM_GPU_LANG STREQUAL "CUDA")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${CUDA_TOOLKIT_ROOT_DIR}/include")
-  if(CUDA_VERSION VERSION_GREATER_EQUAL 13.0)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${CUDA_TOOLKIT_ROOT_DIR}/include/cccl")
-  endif()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${CUDA_TOOLKIT_ROOT_DIR}/include/cccl")
 endif()
 
 #
