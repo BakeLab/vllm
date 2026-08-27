@@ -9,15 +9,13 @@
 #include "cpu/cpu_types.hpp"
 
 namespace cpu_utils {
-enum class ISA { AMX, VEC, RVV, NEON };
+enum class ISA { AMX, VEC, NEON };
 
 inline ISA get_isa(const std::string& isa) {
   if (isa == "amx") {
     return ISA::AMX;
   } else if (isa == "vec") {
     return ISA::VEC;
-  } else if (isa == "rvv") {
-    return ISA::RVV;
   } else if (isa == "neon") {
     return ISA::NEON;
   } else {
