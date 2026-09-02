@@ -115,9 +115,8 @@ __host__ __device__ constexpr int mnnvl_lamport_next_stage(int current_stage) {
 template <typename P>
 DINLINE void store_multimem_lamport_payload(P* ptr, P packed) {
   static_assert(sizeof(P) == 16);
-  // multimem was introduced in PTX 8.1 (CUDA 12.1) for SM90 and newer.
-#if !defined(USE_ROCM) && CUDA_VERSION >= 12010 && defined(__CUDA_ARCH__) && \
-    (__CUDA_ARCH__ >= 900)
+  // multimem was introduced in PTX 8.1 for SM90 and newer.
+#if !defined(USE_ROCM) && defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 900)
   LamportPack<P> value{.packed = packed};
   // The local alias remains sentinel until the multicast payload becomes
   // observable; readers reject prior or partial values and retry.

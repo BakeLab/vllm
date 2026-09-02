@@ -29,8 +29,7 @@ ARG INSTALL_RUBIN_PRERELEASE=false
 ARG TRITON_INSTALL_FROM_SOURCE_REPO=
 ARG TRITON_INSTALL_FROM_SOURCE_REVISION=
 # DeepEPv2 requires NCCL >= 2.30.4 (GIN backend).
-# This version is used for CUDA 12+ builds to keep the DeepEP build and
-# runtime NCCL versions compatible.
+# Pinned to keep the DeepEP build and runtime NCCL versions compatible.
 ARG NCCL_VERSION=2.30.7
 
 # By parameterizing the base images, we allow third-party to use their own

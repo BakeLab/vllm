@@ -22,13 +22,7 @@ endif()
 FetchContent_MakeAvailable(flashkda)
 message(STATUS "FlashKDA is available at ${flashkda_SOURCE_DIR}")
 
-set(FLASH_KDA_SUPPORT_ARCHS)
-if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.0)
-  list(APPEND FLASH_KDA_SUPPORT_ARCHS "9.0a")
-endif()
-if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
-  list(APPEND FLASH_KDA_SUPPORT_ARCHS "10.0f" "12.0f")
-endif()
+set(FLASH_KDA_SUPPORT_ARCHS "9.0a" "10.0f" "12.0f")
 
 cuda_archs_loose_intersection(
   FLASH_KDA_ARCHS "${FLASH_KDA_SUPPORT_ARCHS}" "${CUDA_ARCHS}")

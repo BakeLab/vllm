@@ -53,13 +53,11 @@ if(NOT qutlass_SOURCE_DIR)
 endif()
 message(STATUS "[QUTLASS] QuTLASS is available at ${qutlass_SOURCE_DIR}")
 
-if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.0)
-  cuda_archs_loose_intersection(QUTLASS_SM120_ARCHS "12.0f" "${CUDA_ARCHS}")
-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.4)
-    cuda_archs_loose_intersection(QUTLASS_SM100_ARCHS "10.0f;10.7f" "${CUDA_ARCHS}")
-  else()
-    cuda_archs_loose_intersection(QUTLASS_SM100_ARCHS "10.0f" "${CUDA_ARCHS}")
-  endif()
+cuda_archs_loose_intersection(QUTLASS_SM120_ARCHS "12.0f" "${CUDA_ARCHS}")
+if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.4)
+  cuda_archs_loose_intersection(QUTLASS_SM100_ARCHS "10.0f;10.7f" "${CUDA_ARCHS}")
+else()
+  cuda_archs_loose_intersection(QUTLASS_SM100_ARCHS "10.0f" "${CUDA_ARCHS}")
 endif()
 
 # QUTLASS uses TARGET_CUDA_ARCH as a single preprocessor selector for all its
@@ -81,7 +79,7 @@ else()
   set(QUTLASS_ARCHS)
 endif()
 
-if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND QUTLASS_ARCHS)
+if(QUTLASS_ARCHS)
   set(QUTLASS_SOURCES
     csrc/qutlass_registration.cpp
     ${qutlass_SOURCE_DIR}/qutlass/csrc/bindings.cpp

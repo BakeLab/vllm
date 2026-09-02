@@ -447,9 +447,7 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
     "csrc/libtorch_stable/fused_deepseek_v4_qnorm_rope_kv_insert_kernel.cu"
     "csrc/libtorch_stable/fused_kimi_k3_mla_key_concat_kv_cache_kernel.cu")
 
-  if(VLLM_GPU_LANG STREQUAL "CUDA" AND
-     DEFINED CMAKE_CUDA_COMPILER_VERSION AND
-     CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0)
+  if(VLLM_GPU_LANG STREQUAL "CUDA")
 
     cuda_archs_loose_intersection(COOPERATIVE_TOPK_ARCHS
       "9.0a;10.0f;10.1f;10.3f;10.7f;11.0f;12.0f;12.1f" "${CUDA_ARCHS}")
@@ -509,10 +507,10 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
     #
     # Machete kernels
     #
-    # The machete kernels only work on hopper and require CUDA 12.0 or later.
+    # The machete kernels only work on hopper.
     # Only build Machete kernels if we are building for something compatible with sm90a
     cuda_archs_loose_intersection(MACHETE_ARCHS "9.0a" "${CUDA_ARCHS}")
-    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.0 AND MACHETE_ARCHS)
+    if(MACHETE_ARCHS)
       #
       # For the Machete kernels we automatically generate sources for various
       # preselected input type pairs and schedules.
@@ -643,20 +641,16 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
         set_gencode_flags_for_srcs(
           SRCS "${MARLIN_TEMPLATE_KERNEL_SRC}"
           CUDA_ARCHS "${MARLIN_ARCHS}")
-        if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8)
-          set_source_files_properties(${MARLIN_TEMPLATE_KERNEL_SRC}
-            PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
-        endif()
+        set_source_files_properties(${MARLIN_TEMPLATE_KERNEL_SRC}
+          PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
         list(APPEND VLLM_STABLE_EXT_SRC ${MARLIN_TEMPLATE_KERNEL_SRC})
 
         file(GLOB MARLIN_TEMPLATE_BF16_KERNEL_SRC "csrc/libtorch_stable/quantization/marlin/sm80_kernel_*_bfloat16.cu")
         set_gencode_flags_for_srcs(
           SRCS "${MARLIN_TEMPLATE_BF16_KERNEL_SRC}"
           CUDA_ARCHS "${MARLIN_BF16_ARCHS}")
-        if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8)
-          set_source_files_properties(${MARLIN_TEMPLATE_BF16_KERNEL_SRC}
-            PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
-        endif()
+        set_source_files_properties(${MARLIN_TEMPLATE_BF16_KERNEL_SRC}
+          PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
         list(APPEND VLLM_STABLE_EXT_SRC ${MARLIN_TEMPLATE_BF16_KERNEL_SRC})
       endif()
 
@@ -665,10 +659,8 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
         set_gencode_flags_for_srcs(
           SRCS "${MARLIN_TEMPLATE_SM75_KERNEL_SRC}"
           CUDA_ARCHS "${MARLIN_SM75_ARCHS}")
-        if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8)
-          set_source_files_properties(${MARLIN_TEMPLATE_SM75_KERNEL_SRC}
-            PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
-        endif()
+        set_source_files_properties(${MARLIN_TEMPLATE_SM75_KERNEL_SRC}
+          PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
         list(APPEND VLLM_STABLE_EXT_SRC ${MARLIN_TEMPLATE_SM75_KERNEL_SRC})
       endif()
 
@@ -677,10 +669,8 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
         set_gencode_flags_for_srcs(
           SRCS "${MARLIN_TEMPLATE_FP8_KERNEL_SRC}"
           CUDA_ARCHS "${MARLIN_FP8_ARCHS}")
-        if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8)
-          set_source_files_properties(${MARLIN_TEMPLATE_FP8_KERNEL_SRC}
-            PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
-        endif()
+        set_source_files_properties(${MARLIN_TEMPLATE_FP8_KERNEL_SRC}
+          PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
         list(APPEND VLLM_STABLE_EXT_SRC ${MARLIN_TEMPLATE_FP8_KERNEL_SRC})
       endif()
 
@@ -692,10 +682,8 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
       set_gencode_flags_for_srcs(
         SRCS "${MARLIN_SRCS}"
         CUDA_ARCHS "${MARLIN_OTHER_ARCHS}")
-      if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8)
-        set_source_files_properties(${MARLIN_SRCS}
-          PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
-      endif()
+      set_source_files_properties(${MARLIN_SRCS}
+        PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
       list(APPEND VLLM_STABLE_EXT_SRC "${MARLIN_SRCS}")
 
       message(STATUS "Building Marlin kernels for archs: ${MARLIN_OTHER_ARCHS}")
@@ -706,7 +694,7 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
 
   # DeepSeek V3 fused A GEMM kernel (requires SM 9.0+, Hopper and later)
   cuda_archs_loose_intersection(DSV3_FUSED_A_GEMM_ARCHS "9.0a;10.0f;10.7f;11.0f;12.0f" "${CUDA_ARCHS}")
-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.0 AND DSV3_FUSED_A_GEMM_ARCHS)
+  if(DSV3_FUSED_A_GEMM_ARCHS)
     set(DSV3_FUSED_A_GEMM_SRCS "csrc/libtorch_stable/dsv3_fused_a_gemm.cu")
     set_gencode_flags_for_srcs(
       SRCS "${DSV3_FUSED_A_GEMM_SRCS}"
@@ -718,9 +706,9 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
                    "in CUDA target architectures.")
   endif()
 
-  # FP32 router GEMM (H=3072, E=256, M<=32). Requires SM90+ and CUDA >= 12.0.
+  # FP32 router GEMM (H=3072, E=256, M<=32). Requires SM90+.
   cuda_archs_sm90plus(FP32_ROUTER_GEMM_ARCHS "${CUDA_ARCHS}")
-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.0 AND FP32_ROUTER_GEMM_ARCHS)
+  if(FP32_ROUTER_GEMM_ARCHS)
     set(FP32_ROUTER_GEMM_SRCS
       "csrc/libtorch_stable/fp32_router_gemm_entry.cu"
       "csrc/libtorch_stable/fp32_router_gemm.cu")
@@ -731,7 +719,7 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
     message(STATUS "Building fp32_router_gemm for archs: ${FP32_ROUTER_GEMM_ARCHS}")
   else()
     message(STATUS "Not building fp32_router_gemm as no compatible archs found "
-                   "(requires SM90+ and CUDA >= 12.0).")
+                   "(requires SM90+).")
   endif()
 
   # Only build AllSpark kernels if we are building for at least some compatible archs.
@@ -754,10 +742,9 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
   # CUTLASS scaled_mm kernels (moved from _C to _C_stable_libtorch)
   #
   set(SCALED_MM_3X_ARCHS)
-  # The cutlass_scaled_mm kernels for Hopper (c3x, i.e. CUTLASS 3.x) require
-  # CUDA 12.0 or later
+  # The cutlass_scaled_mm kernels for Hopper (c3x, i.e. CUTLASS 3.x)
   cuda_archs_loose_intersection(SCALED_MM_ARCHS "9.0a;" "${CUDA_ARCHS}")
-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.0 AND SCALED_MM_ARCHS)
+  if(SCALED_MM_ARCHS)
     set(SCALED_MM_SM90_SRCS
        "csrc/libtorch_stable/quantization/w8a8/cutlass/scaled_mm_c3x_sm90.cu"
        "csrc/libtorch_stable/quantization/w8a8/cutlass/c3x/scaled_mm_sm90_fp8.cu"
@@ -778,10 +765,9 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
   endif()
 
 
-  # The cutlass_scaled_mm kernels for Blackwell SM12x (c3x, i.e. CUTLASS 3.x) require
-  # CUDA 12.8 or later
+  # The cutlass_scaled_mm kernels for Blackwell SM12x (c3x, i.e. CUTLASS 3.x)
   cuda_archs_loose_intersection(SCALED_MM_ARCHS "12.0f" "${CUDA_ARCHS}")
-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND SCALED_MM_ARCHS)
+  if(SCALED_MM_ARCHS)
     set(SCALED_MM_SM120_SRCS
       "csrc/libtorch_stable/quantization/w8a8/cutlass/scaled_mm_c3x_sm120.cu"
       "csrc/libtorch_stable/quantization/w8a8/cutlass/c3x/scaled_mm_sm120_fp8.cu"
@@ -802,9 +788,8 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
 
 
   # The cutlass_scaled_mm kernels for Blackwell SM100 (c3x, i.e. CUTLASS 3.x)
-  # require CUDA 12.8 or later
   cuda_archs_loose_intersection(SCALED_MM_ARCHS "10.0f;10.7f;11.0f" "${CUDA_ARCHS}")
-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND SCALED_MM_ARCHS)
+  if(SCALED_MM_ARCHS)
     set(SCALED_MM_SM100_SRCS
       "csrc/libtorch_stable/quantization/w8a8/cutlass/scaled_mm_c3x_sm100.cu"
       "csrc/libtorch_stable/quantization/w8a8/cutlass/c3x/scaled_mm_sm100_fp8.cu"
@@ -853,11 +838,11 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
   # CUTLASS MoE kernels (moved from _C to _C_stable_libtorch)
   #
 
-  # The MoE kernel cutlass_moe_mm requires CUDA 12.3 or later (and ONLY works
-  # on Hopper). get_cutlass_(batched_)moe_mm_data should only be compiled
+  # The MoE kernel cutlass_moe_mm ONLY works on Hopper.
+  # get_cutlass_(batched_)moe_mm_data should only be compiled
   # if it's possible to compile MoE kernels that use its output.
   cuda_archs_loose_intersection(SCALED_MM_ARCHS "9.0a" "${CUDA_ARCHS}")
-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.3 AND SCALED_MM_ARCHS)
+  if(SCALED_MM_ARCHS)
     set(CUTLASS_MOE_SM90_SRCS "csrc/libtorch_stable/quantization/w8a8/cutlass/moe/grouped_mm_c3x_sm90.cu")
     set_gencode_flags_for_srcs(
       SRCS "${CUTLASS_MOE_SM90_SRCS}"
@@ -871,7 +856,7 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
   endif()
 
   cuda_archs_loose_intersection(SCALED_MM_ARCHS "10.0f;10.7f;11.0f" "${CUDA_ARCHS}")
-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND SCALED_MM_ARCHS)
+  if(SCALED_MM_ARCHS)
     set(CUTLASS_MOE_SM100_SRCS "csrc/libtorch_stable/quantization/w8a8/cutlass/moe/grouped_mm_c3x_sm100.cu")
     set_gencode_flags_for_srcs(
       SRCS "${CUTLASS_MOE_SM100_SRCS}"
@@ -886,7 +871,7 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
 
   # moe_data.cu is used by all CUTLASS MoE kernels.
   cuda_archs_loose_intersection(CUTLASS_MOE_DATA_ARCHS "9.0a;10.0f;10.7f;11.0f;12.0f" "${CUDA_ARCHS}")
-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.3 AND CUTLASS_MOE_DATA_ARCHS)
+  if(CUTLASS_MOE_DATA_ARCHS)
     set(CUTLASS_MOE_DATA_SRCS "csrc/libtorch_stable/quantization/w8a8/cutlass/moe/moe_data.cu")
     set_gencode_flags_for_srcs(
       SRCS "${CUTLASS_MOE_DATA_SRCS}"
@@ -907,7 +892,7 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
   # per-source flags, so shared files accumulate both SM12x and SM10x/11x
   # gencodes when both families are requested.
   cuda_archs_loose_intersection(FP4_SM120_ARCHS "12.0f" "${CUDA_ARCHS}")
-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND FP4_SM120_ARCHS)
+  if(FP4_SM120_ARCHS)
     set(FP4_SM120_SRCS
       "csrc/libtorch_stable/quantization/fp4/nvfp4_quant_kernels.cu"
       "csrc/libtorch_stable/quantization/fp4/activation_nvfp4_quant_fusion_kernels.cu"
@@ -929,7 +914,7 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
   # SM10x/11x FP4 kernels. MXFP4 experts quantization is currently compiled
   # only in this block; SM12x has separate NVFP4 matmul/MoE kernels above.
   cuda_archs_loose_intersection(FP4_SM100_ARCHS "10.0f;10.7f;11.0f" "${CUDA_ARCHS}")
-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND FP4_SM100_ARCHS)
+  if(FP4_SM100_ARCHS)
     set(FP4_SM100_SRCS
       "csrc/libtorch_stable/quantization/fp4/nvfp4_quant_kernels.cu"
       "csrc/libtorch_stable/quantization/fp4/activation_nvfp4_quant_fusion_kernels.cu"
@@ -957,7 +942,7 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
 
   # Only build W4A8 kernels if we are building for something compatible with sm90a
   cuda_archs_loose_intersection(W4A8_ARCHS "9.0a" "${CUDA_ARCHS}")
-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.0 AND W4A8_ARCHS)
+  if(W4A8_ARCHS)
     set(W4A8_SRCS
        "csrc/libtorch_stable/quantization/cutlass_w4a8/w4a8_mm_entry.cu"
        "csrc/libtorch_stable/quantization/cutlass_w4a8/w4a8_grouped_mm_entry.cu"
@@ -980,7 +965,7 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
   # Runtime dispatch is gated in
   # vllm/v1/attention/backends/mla/cutlass_mla.py.
   cuda_archs_loose_intersection(MLA_ARCHS "10.0f;10.7f;11.0f" "${CUDA_ARCHS}")
-  if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8 AND MLA_ARCHS)
+  if(MLA_ARCHS)
     set(CUTLASS_MLA_SRCS
       "csrc/libtorch_stable/attention/mla/sm100_cutlass_mla_kernel.cu")
     set_gencode_flags_for_srcs(
@@ -1257,10 +1242,8 @@ if(VLLM_GPU_LANG STREQUAL "CUDA")
       set_gencode_flags_for_srcs(
         SRCS "${MARLIN_MOE_SRC}"
         CUDA_ARCHS "${MARLIN_MOE_ARCHS}")
-      if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8)
-        set_source_files_properties(${MARLIN_MOE_SRC}
-          PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
-      endif()
+      set_source_files_properties(${MARLIN_MOE_SRC}
+        PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
       list(APPEND VLLM_MOE_EXT_SRC ${MARLIN_MOE_SRC})
     endif()
 
@@ -1269,10 +1252,8 @@ if(VLLM_GPU_LANG STREQUAL "CUDA")
       set_gencode_flags_for_srcs(
         SRCS "${MARLIN_MOE_SM75_SRC}"
         CUDA_ARCHS "${MARLIN_MOE_SM75_ARCHS}")
-      if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8)
-        set_source_files_properties(${MARLIN_MOE_SM75_SRC}
-          PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
-      endif()
+      set_source_files_properties(${MARLIN_MOE_SM75_SRC}
+        PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
       list(APPEND VLLM_MOE_EXT_SRC ${MARLIN_MOE_SM75_SRC})
     endif()
 
@@ -1281,10 +1262,8 @@ if(VLLM_GPU_LANG STREQUAL "CUDA")
       set_gencode_flags_for_srcs(
         SRCS "${MARLIN_MOE_FP8_SRC}"
         CUDA_ARCHS "${MARLIN_MOE_FP8_ARCHS}")
-      if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8)
-        set_source_files_properties(${MARLIN_MOE_FP8_SRC}
-          PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
-      endif()
+      set_source_files_properties(${MARLIN_MOE_FP8_SRC}
+        PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
       list(APPEND VLLM_MOE_EXT_SRC ${MARLIN_MOE_FP8_SRC})
     endif()
 
@@ -1292,10 +1271,8 @@ if(VLLM_GPU_LANG STREQUAL "CUDA")
     set_gencode_flags_for_srcs(
       SRCS "${MARLIN_MOE_OTHER_SRC}"
       CUDA_ARCHS "${MARLIN_MOE_OTHER_ARCHS}")
-    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.8)
-      set_source_files_properties(${MARLIN_MOE_OTHER_SRC}
-        PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
-    endif()
+    set_source_files_properties(${MARLIN_MOE_OTHER_SRC}
+      PROPERTIES COMPILE_FLAGS "-static-global-template-stub=false")
     list(APPEND VLLM_MOE_EXT_SRC "${MARLIN_MOE_OTHER_SRC}")
 
     message(STATUS "Building Marlin MOE kernels for archs: ${MARLIN_MOE_OTHER_ARCHS}")

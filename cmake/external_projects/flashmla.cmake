@@ -48,23 +48,14 @@ install(FILES "${FLASHMLA_VENDOR_DIR}/flash_mla_interface.py"
         DESTINATION vllm/third_party/flashmla/
         COMPONENT _flashmla_C)
 
-# The FlashMLA kernels only work on hopper and require CUDA 12.3 or later.
-# Only build FlashMLA kernels if we are building for something compatible with 
+# The FlashMLA kernels only work on hopper and later.
+# Only build FlashMLA kernels if we are building for something compatible with
 # sm90a
 
-set(SUPPORT_ARCHS)
-if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.3)
-    list(APPEND SUPPORT_ARCHS "9.0a")
+set(SUPPORT_ARCHS "9.0a" "10.0f")
+if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.4)
+    list(APPEND SUPPORT_ARCHS "10.7f")
 endif()
-if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.9)
-    # CUDA 12.9 has introduced "Family-Specific Architecture Features"
-    # this supports all compute_10x family
-    list(APPEND SUPPORT_ARCHS "10.0f")
-    if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.4)
-        list(APPEND SUPPORT_ARCHS "10.7f")
-    endif()
-endif()
-
 
 cuda_archs_loose_intersection(FLASH_MLA_ARCHS "${SUPPORT_ARCHS}" "${CUDA_ARCHS}")
 if(FLASH_MLA_ARCHS)

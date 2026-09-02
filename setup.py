@@ -1306,9 +1306,6 @@ def get_requirements() -> list[str]:
         requirements = _read_requirements("cuda.txt")
         modified_requirements = []
         for req in requirements:
-            if "vllm-flash-attn" in req:
-                # vllm-flash-attn is built only for CUDA 12.x.
-                continue
             if "flashinfer-cubin" in req:
                 # Not on PyPI since 0.6.14 (only https://flashinfer.ai/whl), so
                 # it cannot be a wheel dependency; flashinfer falls back to

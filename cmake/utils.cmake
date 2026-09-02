@@ -133,16 +133,12 @@ function (get_torch_gpu_compiler_flags OUT_GPU_FLAGS GPU_LANG)
       "from torch.utils.cpp_extension import COMMON_NVCC_FLAGS; print(';'.join(COMMON_NVCC_FLAGS))"
       "Failed to determine torch nvcc compiler flags")
 
-    if (CUDA_VERSION VERSION_GREATER_EQUAL 11.8)
-      list(APPEND GPU_FLAGS "-DENABLE_FP8")
-    endif()
-    if (CUDA_VERSION VERSION_GREATER_EQUAL 12.0)
-      list(REMOVE_ITEM GPU_FLAGS
-        "-D__CUDA_NO_HALF_OPERATORS__"
-        "-D__CUDA_NO_HALF_CONVERSIONS__"
-        "-D__CUDA_NO_BFLOAT16_CONVERSIONS__"
-        "-D__CUDA_NO_HALF2_OPERATORS__")
-    endif()
+    list(APPEND GPU_FLAGS "-DENABLE_FP8")
+    list(REMOVE_ITEM GPU_FLAGS
+      "-D__CUDA_NO_HALF_OPERATORS__"
+      "-D__CUDA_NO_HALF_CONVERSIONS__"
+      "-D__CUDA_NO_BFLOAT16_CONVERSIONS__"
+      "-D__CUDA_NO_HALF2_OPERATORS__")
 
   elseif(${GPU_LANG} STREQUAL "HIP")
     #
