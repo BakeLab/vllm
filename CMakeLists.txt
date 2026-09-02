@@ -114,9 +114,9 @@ find_package(Torch REQUIRED)
 # Supported NVIDIA architectures.
 # This check must happen after find_package(Torch) because that's when CMAKE_CUDA_COMPILER_VERSION gets defined
 if(DEFINED CMAKE_CUDA_COMPILER_VERSION AND
-   CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 13.0)
+   CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 13.3)
   message(FATAL_ERROR
-    "CUDA >= 13.0 is required to build vLLM "
+    "CUDA >= 13.3 is required to build vLLM "
     "(found ${CMAKE_CUDA_COMPILER_VERSION}).")
 endif()
 
@@ -259,7 +259,7 @@ if(NVCC_THREADS AND VLLM_GPU_LANG STREQUAL "CUDA")
 endif()
 
 #
-# Set compression mode (CUDA >= 13.0 is enforced above).
+# Set compression mode (CUDA >= 13.3 is enforced above).
 #
 if(VLLM_GPU_LANG STREQUAL "CUDA")
   list(APPEND VLLM_GPU_FLAGS "--compress-mode=size")

@@ -613,18 +613,19 @@ class precompiled_wheel_utils:
             except Exception:
                 pass
 
-        # Fall back to default
-        if not cuda_version:
+        if cuda_version:
+            major, minor = (int(x) for x in cuda_version.split(".")[:2])
+            if (major, minor) < (13, 3):
+                msg = (
+                    f"CUDA {cuda_version} detected; this tree only supports "
+                    "CUDA >= 13.3."
+                )
+                raise RuntimeError(msg)
+        else:
             cuda_version = envs.VLLM_MAIN_CUDA_VERSION
 
-        # Map to supported variant
-        major = int(cuda_version.split(".")[0])
-        if major < 13:
-            msg = (
-                f"CUDA {cuda_version} detected; this tree only supports "
-                "CUDA >= 13.0."
-            )
-            raise RuntimeError(msg)
+        # cu130 is the published wheel flavor; CUDA 13 minor versions are
+        # binary compatible, so it covers every supported toolkit.
         variant = "cu130"
         print(f"Detected CUDA {cuda_version}, using variant {variant}")
         return variant
