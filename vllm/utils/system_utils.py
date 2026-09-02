@@ -17,7 +17,6 @@ import psutil
 import vllm.envs as envs
 from vllm.logger import init_logger
 from vllm.platforms import current_platform
-from vllm.platforms.interface import in_wsl
 from vllm.ray.lazy_utils import is_in_ray_actor
 
 from .platform_utils import cuda_is_initialized, xpu_is_initialized
@@ -149,9 +148,6 @@ def _maybe_force_spawn():
         reasons.append("CUDA is initialized")
     elif xpu_is_initialized():
         reasons.append("XPU is initialized")
-
-    if in_wsl():
-        reasons.append("WSL is detected and NVML is not compatible with fork")
 
     if reasons:
         logger.warning(

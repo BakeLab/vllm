@@ -220,7 +220,7 @@ export MAX_JOBS=6
 uv pip install -e .
 ```
 
-This is especially useful when you are building on less powerful machines. For example, when you use WSL it only [assigns 50% of the total memory by default](https://learn.microsoft.com/en-us/windows/wsl/wsl-config#main-wsl-settings), so using `export MAX_JOBS=1` can avoid compiling multiple files simultaneously and running out of memory.
+This is especially useful when you are building on less powerful machines: `export MAX_JOBS=1` avoids compiling multiple files simultaneously and running out of memory.
 A side effect is a much slower build process.
 
 Additionally, if you have trouble building vLLM, we recommend using the NVIDIA PyTorch Docker image.

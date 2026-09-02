@@ -301,7 +301,6 @@ if TYPE_CHECKING:
     VLLM_WEIGHT_OFFLOADING_DISABLE_PIN_MEMORY: bool = False
     VLLM_WEIGHT_OFFLOADING_DISABLE_UVA: bool = False
     VLLM_KV_OFFLOAD_MAX_BATCH_DESCRIPTORS: int = 0
-    VLLM_WSL2_ENABLE_PIN_MEMORY: bool = False
     VLLM_DISABLE_LOG_LOGO: bool = False
     VLLM_LORA_DISABLE_PDL: bool = False
     VLLM_ENABLE_CUDA_COMPATIBILITY: bool = False
@@ -2078,13 +2077,6 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # rocm 7.14/7.15 when batch copy is optimized; CUDA uncapped). Set >0 to override.
     "VLLM_KV_OFFLOAD_MAX_BATCH_DESCRIPTORS": lambda: int(
         os.getenv("VLLM_KV_OFFLOAD_MAX_BATCH_DESCRIPTORS", "0")
-    ),
-    # On WSL2 with a compatible kernel (>= 4.19.121), pinned memory is
-    # supported but disabled by default due to a small performance regression.
-    # Set to 1 when pinned memory or UVA is required (e.g. CPU offloading
-    # or v2 model runner).
-    "VLLM_WSL2_ENABLE_PIN_MEMORY": lambda: bool(
-        int(os.getenv("VLLM_WSL2_ENABLE_PIN_MEMORY", "0"))
     ),
     # Disable logging of vLLM logo at server startup time.
     "VLLM_DISABLE_LOG_LOGO": lambda: bool(int(os.getenv("VLLM_DISABLE_LOG_LOGO", "0"))),
