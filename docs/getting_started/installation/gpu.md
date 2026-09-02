@@ -28,7 +28,7 @@ vLLM is a Python library that supports the following GPU variants. Select your G
 - Python: 3.14
 
 !!! note
-    vLLM does not support Windows natively. To run vLLM on Windows, you can use the Windows Subsystem for Linux (WSL) with a compatible Linux distribution, or use some community-maintained forks, e.g. [https://github.com/SystemPanic/vllm-windows](https://github.com/SystemPanic/vllm-windows).
+    This tree supports Linux only. Windows is not supported, natively or under WSL.
 
 === "NVIDIA CUDA"
 
