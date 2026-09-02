@@ -22,17 +22,12 @@ ProtonOutputFormat = Literal["hatchet", "hatchet_msgpack", "chrome_trace"]
 
 
 def _is_uri_path(path: str) -> bool:
-    """Check if path is a URI (scheme://...), excluding Windows drive letters.
+    """Check if path is a URI (scheme://...).
 
     Supports custom URI schemes like gs://, s3://, hdfs://, etc.
     These paths should not be converted to absolute paths.
     """
-    if "://" in path:
-        scheme = path.split("://")[0]
-        # Windows drive letters are single characters (e.g., C://)
-        # Valid URI schemes have more than one character
-        return len(scheme) > 1
-    return False
+    return "://" in path
 
 
 @config

@@ -85,7 +85,7 @@ def memory_fence():
 
     Implementation acquires and immediately releases a lock. Python's
     threading.Lock provides sequentially consistent memory barrier semantics
-    across all major platforms (POSIX, Windows). This is a lightweight
+    across POSIX platforms. This is a lightweight
     operation (~20ns) that guarantees:
     - All stores before the barrier are visible to other threads/processes
     - All loads after the barrier see the latest values
