@@ -119,11 +119,7 @@ def run(command):
         )
         raw_output, raw_err = p.communicate()
         rc = p.returncode
-        if get_platform() == "win32":
-            enc = "oem"
-        else:
-            enc = locale.getpreferredencoding()
-        output = raw_output.decode(enc)
+        output = raw_output.decode(locale.getpreferredencoding())
         if command == "nvidia-smi topo -m":
             # don't remove the leading whitespace of `nvidia-smi topo -m`
             #   because they are meaningful
@@ -228,12 +224,7 @@ def get_running_cuda_version(run_lambda):
 
 def get_cudnn_version(run_lambda):
     """Return a list of libcudnn.so; it's hard to tell which one is being used."""
-    if get_platform() == "win32":
-        system_root = os.environ.get("SYSTEMROOT", "C:\\Windows")
-        cuda_path = os.environ.get("CUDA_PATH", "%CUDA_PATH%")
-        where_cmd = os.path.join(system_root, "System32", "where")
-        cudnn_cmd = '{} /R "{}\\bin" cudnn*.dll'.format(where_cmd, cuda_path)
-    elif get_platform() == "darwin":
+    if get_platform() == "darwin":
         # CUDA libraries and drivers can be found in /usr/local/cuda/. See
         # https://docs.nvidia.com/cuda/cuda-installation-guide-mac-os-x/index.html#install
         # https://docs.nvidia.com/deeplearning/sdk/cudnn-install/index.html#installmac
@@ -264,21 +255,7 @@ def get_cudnn_version(run_lambda):
 
 
 def get_nvidia_smi():
-    # Note: nvidia-smi is currently available only on Windows and Linux
-    smi = "nvidia-smi"
-    if get_platform() == "win32":
-        system_root = os.environ.get("SYSTEMROOT", "C:\\Windows")
-        program_files_root = os.environ.get("PROGRAMFILES", "C:\\Program Files")
-        legacy_path = os.path.join(
-            program_files_root, "NVIDIA Corporation", "NVSMI", smi
-        )
-        new_path = os.path.join(system_root, "System32", smi)
-        smis = [new_path, legacy_path]
-        for candidate_smi in smis:
-            if os.path.exists(candidate_smi):
-                smi = '"{}"'.format(candidate_smi)
-                break
-    return smi
+    return "nvidia-smi"
 
 
 def get_rocm_version(run_lambda):
@@ -505,41 +482,12 @@ def get_gpu_topo(run_lambda):
 #      Spectre v2:            Mitigation; Enhanced IBRS, IBPB conditional, RSB filling, PBRSB-eIBRS SW sequence
 #      Srbds:                 Not affected
 #      Tsx async abort:       Not affected
-#  * win32
-#    Architecture=9
-#    CurrentClockSpeed=2900
-#    DeviceID=CPU0
-#    Family=179
-#    L2CacheSize=40960
-#    L2CacheSpeed=
-#    Manufacturer=GenuineIntel
-#    MaxClockSpeed=2900
-#    Name=Intel(R) Xeon(R) Platinum 8375C CPU @ 2.90GHz
-#    ProcessorType=3
-#    Revision=27142
-#
-#    Architecture=9
-#    CurrentClockSpeed=2900
-#    DeviceID=CPU1
-#    Family=179
-#    L2CacheSize=40960
-#    L2CacheSpeed=
-#    Manufacturer=GenuineIntel
-#    MaxClockSpeed=2900
-#    Name=Intel(R) Xeon(R) Platinum 8375C CPU @ 2.90GHz
-#    ProcessorType=3
-#    Revision=27142
 
 
 def get_cpu_info(run_lambda):
     rc, out, err = 0, "", ""
     if get_platform() == "linux":
         rc, out, err = run_lambda("lscpu")
-    elif get_platform() == "win32":
-        rc, out, err = run_lambda(
-            "wmic cpu get Name,Manufacturer,Family,Architecture,ProcessorType,DeviceID, \
-        CurrentClockSpeed,MaxClockSpeed,L2CacheSize,L2CacheSpeed,Revision /VALUE"
-        )
     elif get_platform() == "darwin":
         rc, out, err = run_lambda("sysctl -n machdep.cpu.brand_string")
     cpu_info = "None"
@@ -553,10 +501,6 @@ def get_cpu_info(run_lambda):
 def get_platform():
     if sys.platform.startswith("linux"):
         return "linux"
-    elif sys.platform.startswith("win32"):
-        return "win32"
-    elif sys.platform.startswith("cygwin"):
-        return "cygwin"
     elif sys.platform.startswith("darwin"):
         return "darwin"
     else:
@@ -565,15 +509,6 @@ def get_platform():
 
 def get_mac_version(run_lambda):
     return run_and_parse_first_match(run_lambda, "sw_vers -productVersion", r"(.*)")
-
-
-def get_windows_version(run_lambda):
-    system_root = os.environ.get("SYSTEMROOT", "C:\\Windows")
-    wmic_cmd = os.path.join(system_root, "System32", "Wbem", "wmic")
-    findstr_cmd = os.path.join(system_root, "System32", "findstr")
-    return run_and_read_all(
-        run_lambda, "{} os get Caption | {} /v Caption".format(wmic_cmd, findstr_cmd)
-    )
 
 
 def get_lsb_version(run_lambda):
@@ -592,9 +527,6 @@ def get_os(run_lambda):
     from platform import machine
 
     platform = get_platform()
-
-    if platform == "win32" or platform == "cygwin":
-        return get_windows_version(run_lambda)
 
     if platform == "darwin":
         version = get_mac_version(run_lambda)
