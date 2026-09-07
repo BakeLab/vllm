@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+import asyncio
 import json
 import os
 
@@ -21,12 +22,10 @@ class FilesystemResolver(LoRAResolver):
         )
         return maybe_lora_request
 
-    async def _get_lora_req_from_path(
+    def _load_lora_request(
         self, lora_name: str, lora_path: str, base_model_name: str
     ) -> LoRARequest | None:
-        """Builds a LoraRequest pointing to the lora path if it's a valid
-        LoRA adapter and has a matching base_model_name.
-        """
+        """The blocking half of _get_lora_req_from_path; runs in a thread."""
         if os.path.exists(lora_path):
             adapter_config_path = os.path.join(lora_path, "adapter_config.json")
 
@@ -44,6 +43,20 @@ class FilesystemResolver(LoRAResolver):
                     )
                     return lora_request
         return None
+
+    async def _get_lora_req_from_path(
+        self, lora_name: str, lora_path: str, base_model_name: str
+    ) -> LoRARequest | None:
+        """Builds a LoraRequest pointing to the lora path if it's a valid
+        LoRA adapter and has a matching base_model_name.
+
+        Resolution runs per request on the API server's event loop, so the
+        filesystem access goes to a thread: a slow mount would otherwise stall
+        every in-flight request.
+        """
+        return await asyncio.to_thread(
+            self._load_lora_request, lora_name, lora_path, base_model_name
+        )
 
 
 def register_filesystem_resolver():
