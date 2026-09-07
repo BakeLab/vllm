@@ -18,6 +18,7 @@ from typing import (
     Any,
     Literal,
     TypeAlias,
+    TypeIs,
     TypeVar,
     Union,
     cast,
@@ -30,7 +31,6 @@ import regex as re
 import torch
 from pydantic import TypeAdapter, ValidationError
 from pydantic.fields import FieldInfo
-from typing_extensions import TypeIs
 
 import vllm.envs as envs
 from vllm.config import (

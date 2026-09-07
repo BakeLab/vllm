@@ -22,7 +22,7 @@ from collections.abc import Callable, Iterable, MutableMapping, Sequence
 from contextlib import ExitStack, contextmanager
 from multiprocessing import Process, get_context
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, ParamSpec, cast
 from unittest.mock import patch
 
 import anthropic
@@ -35,7 +35,6 @@ import torch
 import torch.nn.functional as F
 from huggingface_hub.constants import HF_HUB_OFFLINE
 from openai.types.completion import Completion
-from typing_extensions import ParamSpec
 
 import vllm.envs as envs
 from tests.models.utils import TextTextLogprobs

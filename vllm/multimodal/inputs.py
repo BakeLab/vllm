@@ -13,13 +13,13 @@ from typing import (
     Literal,
     TypeAlias,
     TypedDict,
+    TypeVar,
     Union,
     cast,
 )
 
 import numpy as np
 from PIL.Image import Image
-from typing_extensions import TypeVar
 
 from vllm.utils.collection_utils import is_list_of
 from vllm.utils.import_utils import LazyLoader
@@ -240,8 +240,8 @@ def nested_tensors_equal(
 
     If `check_dtype` is `True`, the tensors must have the same dtype.
     """
-    check_dtype_func = (
-        lambda a, b, check_dtype: a.dtype == b.dtype if check_dtype else True
+    check_dtype_func = lambda a, b, check_dtype: (
+        a.dtype == b.dtype if check_dtype else True
     )
     if isinstance(a, torch.Tensor):
         return (

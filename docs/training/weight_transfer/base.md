@@ -348,7 +348,7 @@ cannot disagree. See [`NCCLTrainerInitInfo`](nccl.md#nccltrainerinitinfo) and
 from dataclasses import dataclass
 from typing import ClassVar
 
-from typing_extensions import Self
+from typing import Self
 
 from vllm.distributed.weight_transfer.base import (
     TrainerInitInfo,

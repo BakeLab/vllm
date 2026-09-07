@@ -8,11 +8,11 @@ fp8 block-quantized case.
 
 import dataclasses
 from contextlib import contextmanager
+from typing import ParamSpec
 
 import pytest
 import torch.distributed
 from torch.distributed import ProcessGroup
-from typing_extensions import ParamSpec
 
 import vllm.envs as envs
 from vllm.config import VllmConfig, set_current_vllm_config

@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+from typing import override
+
 import torch
 import torch.nn as nn
-from typing_extensions import override
 
 from vllm.config import VllmConfig
 from vllm.config.utils import replace

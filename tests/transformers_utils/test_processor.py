@@ -2,9 +2,9 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 import importlib
+from typing import Unpack
 
 from transformers.processing_utils import ProcessingKwargs
-from typing_extensions import Unpack
 
 from vllm.transformers_utils.processor import (
     get_processor_kwargs_keys,

@@ -9,11 +9,11 @@ from typing import (
     Any,
     Protocol,
     cast,
+    runtime_checkable,
 )
 
 import numpy as np
 import torch
-from typing_extensions import runtime_checkable
 
 from vllm.config import CacheConfig, VllmConfig, get_layers_from_vllm_config
 from vllm.config.cache import _layout_from_name

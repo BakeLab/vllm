@@ -10,9 +10,7 @@ import inspect
 import threading
 from collections.abc import Callable, Mapping
 from functools import lru_cache
-from typing import Any, TypeVar
-
-from typing_extensions import ParamSpec
+from typing import Any, ParamSpec, TypeVar
 
 from vllm.logger import init_logger
 

@@ -12,9 +12,7 @@ import time
 import uuid
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
-
-from typing_extensions import override
+from typing import TYPE_CHECKING, Any, override
 
 import vllm.envs as envs
 from vllm.logger import init_logger

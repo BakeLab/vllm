@@ -5,10 +5,10 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
 from enum import Enum
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, Protocol, TypeVar
+from warnings import deprecated
 
 import numpy as np
 import torch
-from typing_extensions import deprecated
 
 from vllm.model_executor.layers.quantization.utils.quant_utils import (
     kFp8Dynamic64Sym,

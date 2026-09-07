@@ -5,10 +5,9 @@ import sys
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from multiprocessing.synchronize import Lock as LockType
-from typing import TYPE_CHECKING, Generic, TypeAlias, TypeVar, cast
+from typing import TYPE_CHECKING, Generic, TypeAlias, TypeVar, cast, override
 
 import torch
-from typing_extensions import override
 
 import vllm.envs as envs
 from vllm.distributed.device_communicators.shm_object_storage import (

@@ -4,7 +4,7 @@
 import itertools
 import math
 import typing
-from collections.abc import Hashable, Iterable, Mapping, Sequence
+from collections.abc import Buffer, Hashable, Iterable, Mapping, Sequence
 from typing import Annotated, Any, Literal
 
 import torch
@@ -18,7 +18,6 @@ from transformers.models.lfm2_vl.image_processing_lfm2_vl_fast import (
     find_closest_aspect_ratio,
     round_by_factor,
 )
-from typing_extensions import Buffer
 
 from vllm.config import VllmConfig
 from vllm.config.multimodal import BaseDummyOptions

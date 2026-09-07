@@ -28,11 +28,11 @@ from io import BytesIO
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Any, cast
+from warnings import deprecated
 
 import numpy as np
 import pybase64 as base64
 from PIL import Image
-from typing_extensions import deprecated
 
 from vllm.benchmarks.datasets.utils import (
     RangeRatio,

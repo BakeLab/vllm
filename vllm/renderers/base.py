@@ -8,9 +8,7 @@ from collections.abc import Mapping, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
 from contextlib import ExitStack
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Generic, overload
-
-from typing_extensions import TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
 
 from vllm.inputs import (
     EmbedsInput,

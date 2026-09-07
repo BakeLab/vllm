@@ -5,7 +5,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, fields
 from functools import partial
 from itertools import islice
-from typing import Annotated, Any
+from typing import Annotated, Any, TypedDict
 
 import numpy as np
 import torch
@@ -22,7 +22,6 @@ from transformers import (
 )
 from transformers.image_utils import ImageInput
 from transformers.video_utils import VideoMetadata
-from typing_extensions import TypedDict
 
 from vllm.compilation.decorators import support_torch_compile
 from vllm.config import CacheConfig, VllmConfig

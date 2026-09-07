@@ -5,11 +5,10 @@
 import inspect
 import warnings
 from contextlib import contextmanager, nullcontext
-from typing import Any
+from typing import Any, assert_never
 
 import torch
 from torch import nn
-from typing_extensions import assert_never
 
 import vllm.envs as envs
 from vllm.config import ModelConfig, VllmConfig, set_current_vllm_config

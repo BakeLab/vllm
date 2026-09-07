@@ -9,7 +9,7 @@ import weakref
 from collections import defaultdict, deque
 from collections.abc import Mapping, Sequence
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Final, Literal, cast, overload
+from typing import TYPE_CHECKING, Any, Final, Literal, cast, overload, override
 
 import jinja2
 import jinja2.ext
@@ -18,7 +18,6 @@ import jinja2.nodes
 import jinja2.parser
 import jinja2.sandbox
 import torch
-from typing_extensions import override
 
 from vllm.entrypoints.chat_utils import (
     PROMPT_EMBEDS_PLACEHOLDER_TOKEN,

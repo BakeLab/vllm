@@ -23,10 +23,9 @@ Key Design Principles:
 import time
 from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass, field
-from typing import NamedTuple
+from typing import NamedTuple, override
 
 import numpy as np
-from typing_extensions import override
 
 from vllm.distributed.kv_transfer.kv_connector.v1.offloading.metrics import (
     OffloadingConnectorStats,

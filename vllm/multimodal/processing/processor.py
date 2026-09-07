@@ -13,10 +13,11 @@ from typing import (
     NamedTuple,
     Protocol,
     TypeAlias,
+    TypeVar,
+    assert_never,
 )
 
 import torch
-from typing_extensions import TypeVar, assert_never
 
 from vllm.inputs import (
     MultiModalEncDecInput,

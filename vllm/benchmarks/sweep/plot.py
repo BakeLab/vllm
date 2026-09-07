@@ -8,9 +8,7 @@ from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from types import TracebackType
-from typing import TYPE_CHECKING, ClassVar
-
-from typing_extensions import Self, override
+from typing import TYPE_CHECKING, ClassVar, Self, override
 
 from vllm.utils.argparse_utils import FlexibleArgumentParser
 from vllm.utils.collection_utils import full_groupby

@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib
-from collections.abc import Callable, Iterable, Mapping, Sequence, Sized
+from collections.abc import Buffer, Callable, Iterable, Mapping, Sequence, Sized
 from functools import lru_cache
 from typing import (
     Annotated,
@@ -48,7 +48,6 @@ from transformers.dynamic_module_utils import (
 )
 from transformers.models.qwen2_vl import Qwen2VLImageProcessor
 from transformers.models.qwen2_vl.image_processing_qwen2_vl import smart_resize
-from typing_extensions import Buffer
 
 from vllm.compilation.decorators import (
     should_torch_compile_mm_encoder,

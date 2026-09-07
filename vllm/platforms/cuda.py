@@ -11,12 +11,11 @@ import os
 from collections.abc import Callable
 from datetime import timedelta
 from functools import cache, lru_cache, wraps
-from typing import TYPE_CHECKING, NamedTuple, TypeVar
+from typing import TYPE_CHECKING, NamedTuple, ParamSpec, TypeVar
 
 import torch
 from torch.distributed import PrefixStore, ProcessGroup
 from torch.distributed.distributed_c10d import is_nccl_available
-from typing_extensions import ParamSpec
 
 # import custom ops, trigger op registration
 import vllm._C_stable_libtorch  # noqa

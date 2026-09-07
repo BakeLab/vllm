@@ -3,7 +3,7 @@
 import math
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import partial
-from typing import Any
+from typing import Any, TypedDict
 
 import einops
 import numpy as np
@@ -12,7 +12,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import BatchFeature, PretrainedConfig
 from transformers.models.qwen2_vl.image_processing_qwen2_vl import smart_resize
-from typing_extensions import TypedDict
 
 from vllm.config import VllmConfig
 from vllm.config.multimodal import (

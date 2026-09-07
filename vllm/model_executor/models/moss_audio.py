@@ -6,7 +6,7 @@ import math
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Annotated, Any
+from typing import Annotated, Any, TypedDict
 
 import numpy as np
 import regex as re
@@ -15,7 +15,6 @@ import torch.nn.functional as F
 from torch import nn
 from transformers import BatchFeature, PretrainedConfig, Qwen3Config
 from transformers.models.whisper import WhisperFeatureExtractor
-from typing_extensions import TypedDict
 
 from vllm.compilation.decorators import support_torch_compile
 from vllm.config import VllmConfig

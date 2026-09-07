@@ -28,7 +28,7 @@ try:
 except ImportError:
     _HAS_BATCH_LOOKUP_C = False
 
-from typing_extensions import override
+from typing import override
 
 from vllm.logger import init_logger
 from vllm.v1.kv_offload.base import (
