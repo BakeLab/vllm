@@ -49,7 +49,6 @@ from vllm.transformers_utils.model_arch_config_convertor import (
     ModelArchConfigConvertorBase,
 )
 from vllm.transformers_utils.repo_utils import resolve_revision
-from vllm.transformers_utils.runai_utils import ObjectStorageModel, is_runai_obj_uri
 from vllm.transformers_utils.utils import maybe_model_redirect
 from vllm.utils.import_utils import LazyLoader
 from vllm.v1.attention.backends.registry import AttentionBackendEnum
@@ -580,8 +579,6 @@ class ModelConfig:
                     hf_overrides_kw[key] = value
             hf_overrides_fn = None
 
-        self.maybe_pull_model_tokenizer_for_runai(self.model, self.tokenizer)
-
         # If loading model/tokenizer from HF Hub, resolve the revision once
         # to prevent resolving it multiple times downstream.
         # If the weights come from a different repo, we cannot eagerly resolve revision
@@ -1073,54 +1070,6 @@ class ModelConfig:
     def architecture(self) -> str:
         """The architecture vllm actually used."""
         return self._architecture
-
-    def maybe_pull_model_tokenizer_for_runai(self, model: str, tokenizer: str) -> None:
-        """Pull model/tokenizer from Object Storage to temporary
-        directory when needed.
-
-        Args:
-            model: Model name or path
-            tokenizer: Tokenizer name or path
-        """
-
-        # Skip if model_weights is already set (model already pulled)
-        if self.model_weights:
-            return
-
-        if not (is_runai_obj_uri(model) or is_runai_obj_uri(tokenizer)):
-            return
-
-        if is_runai_obj_uri(model):
-            object_storage_model = ObjectStorageModel(url=model)
-            object_storage_model.pull_files(
-                model, allow_pattern=["*.model", "*.py", "*.json"]
-            )
-            self.model_weights = model
-            self.model = object_storage_model.dir
-
-            # If tokenizer is same as model, download to same directory
-            if model == tokenizer:
-                object_storage_model.pull_files(
-                    model,
-                    ignore_pattern=[
-                        "*.pt",
-                        "*.safetensors",
-                        "*.bin",
-                        "*.tensors",
-                        "*.pth",
-                    ],
-                )
-                self.tokenizer = object_storage_model.dir
-                return
-
-        # Only download tokenizer if needed and not already handled
-        if is_runai_obj_uri(tokenizer):
-            object_storage_tokenizer = ObjectStorageModel(url=tokenizer)
-            object_storage_tokenizer.pull_files(
-                tokenizer,
-                ignore_pattern=["*.pt", "*.safetensors", "*.bin", "*.tensors", "*.pth"],
-            )
-            self.tokenizer = object_storage_tokenizer.dir
 
     def _get_encoder_config(self) -> dict[str, Any] | None:
         return get_sentence_transformer_tokenizer_config(self.model, self.revision)

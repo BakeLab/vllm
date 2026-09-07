@@ -22,7 +22,6 @@ from pydantic import ConfigDict, Field, model_validator
 
 import vllm.envs as envs
 from vllm.logger import enable_trace_function_call, init_logger
-from vllm.transformers_utils.runai_utils import is_runai_obj_uri
 from vllm.triton_utils import HAS_TRITON
 from vllm.utils import random_uuid
 from vllm.utils.hashing import safe_hash
@@ -2430,28 +2429,6 @@ class VllmConfig:
             from vllm.model_executor.models.adapters import SequenceClassificationConfig
 
             SequenceClassificationConfig.verify_and_update_config(self)
-
-        if hasattr(self.model_config, "model_weights") and is_runai_obj_uri(
-            self.model_config.model_weights
-        ):
-            if self.load_config.load_format == "auto":
-                logger.info(
-                    "Detected Run:ai model config. "
-                    "Overriding `load_format` to 'runai_streamer'"
-                )
-                self.load_config.load_format = "runai_streamer"
-            elif self.load_config.load_format not in (
-                "modelexpress",
-                "runai_streamer",
-                "runai_streamer_sharded",
-            ):
-                raise ValueError(
-                    f"To load a model from object storage (S3/GCS/Azure), "
-                    f"'load_format' must be 'modelexpress', 'runai_streamer' or "
-                    f"'runai_streamer_sharded', "
-                    f"but got '{self.load_config.load_format}'. "
-                    f"Model: {self.model_config.model}"
-                )
 
     def compile_debug_dump_path(self) -> Path | None:
         """Returns a rank-aware path for dumping

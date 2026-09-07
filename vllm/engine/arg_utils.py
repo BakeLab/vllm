@@ -113,7 +113,6 @@ from vllm.plugins import load_general_plugins
 from vllm.ray.lazy_utils import is_in_ray_actor, is_ray_initialized
 from vllm.transformers_utils.config import maybe_override_with_speculators
 from vllm.transformers_utils.repo_utils import get_model_path
-from vllm.transformers_utils.utils import is_cloud_storage
 from vllm.utils.argparse_utils import (
     FlexibleArgumentParser,
     human_readable_int,
@@ -824,20 +823,15 @@ class EngineArgs:
         load_general_plugins()
         # when use hf offline,replace model and tokenizer id to local model path
         if huggingface_hub.constants.HF_HUB_OFFLINE:
-            # Skip cloud storage URIs (s3://, gs://, az://) — they are not
-            # HF repo IDs and will be resolved later by
-            # ModelConfig.maybe_pull_model_tokenizer_for_runai().
-            if not is_cloud_storage(self.model):
-                model_id = self.model
-                self.model = get_model_path(self.model, self.revision)
-                if model_id is not self.model:
-                    logger.info(
-                        "HF_HUB_OFFLINE is True, replace model_id "
-                        "[%s] to model_path [%s]",
-                        model_id,
-                        self.model,
-                    )
-            if self.tokenizer is not None and not is_cloud_storage(self.tokenizer):
+            model_id = self.model
+            self.model = get_model_path(self.model, self.revision)
+            if model_id is not self.model:
+                logger.info(
+                    "HF_HUB_OFFLINE is True, replace model_id [%s] to model_path [%s]",
+                    model_id,
+                    self.model,
+                )
+            if self.tokenizer is not None:
                 tokenizer_id = self.tokenizer
                 self.tokenizer = get_model_path(self.tokenizer, self.tokenizer_revision)
                 if tokenizer_id is not self.tokenizer:
@@ -2018,20 +2012,16 @@ class EngineArgs:
 
         # Check if the model is a speculator and override model/tokenizer/config
         # BEFORE creating ModelConfig, so the config is created with the target model
-        # Skip speculator detection for cloud storage models (eg: S3, GCS) since
-        # HuggingFace cannot load configs directly from S3 URLs. S3 models can still
-        # use speculators with explicit --speculative-config.
-        if not is_cloud_storage(self.model):
-            (self.model, self.tokenizer, self.speculative_config) = (
-                maybe_override_with_speculators(
-                    model=self.model,
-                    tokenizer=self.tokenizer,
-                    revision=self.revision,
-                    trust_remote_code=self.trust_remote_code,
-                    vllm_speculative_config=self.speculative_config,
-                    hf_token=self.hf_token,
-                )
+        (self.model, self.tokenizer, self.speculative_config) = (
+            maybe_override_with_speculators(
+                model=self.model,
+                tokenizer=self.tokenizer,
+                revision=self.revision,
+                trust_remote_code=self.trust_remote_code,
+                vllm_speculative_config=self.speculative_config,
+                hf_token=self.hf_token,
             )
+        )
 
         model_config = self.create_model_config()
         self.model = model_config.model

@@ -3,7 +3,6 @@
 
 import json
 import logging
-import os
 import uuid
 
 from vllm import LLM, SamplingParams
@@ -24,8 +23,8 @@ logger = logging.getLogger()
 """
 tensorize_vllm_model.py is a script that can be used to serialize and 
 deserialize vLLM models. These models can be loaded using tensorizer 
-to the GPU extremely quickly over an HTTP/HTTPS endpoint, an S3 endpoint,
-or locally. Tensor encryption and decryption is also supported, although 
+to the GPU extremely quickly over an HTTP/HTTPS endpoint or locally.
+Tensor encryption and decryption is also supported, although 
 libsodium must be installed to use it. Install vllm with tensorizer support 
 using `pip install vllm[tensorizer]`. To learn more about tensorizer, visit
 https://github.com/coreweave/tensorizer
@@ -36,16 +35,11 @@ like this from the root level of this repository:
 python examples/features/tensorize_vllm_model.py \
    --model facebook/opt-125m \
    serialize \
-   --serialized-directory s3://my-bucket \
+   --serialized-directory /models \
    --suffix v1
    
 Which downloads the model from HuggingFace, loads it into vLLM, serializes it,
-and saves it to your S3 bucket. A local directory can also be used. This
-assumes your S3 credentials are specified as environment variables
-in the form of `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, and 
-`S3_ENDPOINT_URL`. To provide S3 credentials directly, you can provide 
-`--s3-access-key-id` and `--s3-secret-access-key`, as well as `--s3-endpoint` 
-as CLI args to this script.
+and saves it under the given directory.
 
 You can also encrypt the model weights with a randomly-generated key by 
 providing a `--keyfile` argument.
@@ -57,9 +51,9 @@ python examples/features/tensorize_vllm_model.py \
    --model EleutherAI/gpt-j-6B \
    --dtype float16 \
    deserialize \
-   --path-to-tensors s3://my-bucket/vllm/EleutherAI/gpt-j-6B/v1/model.tensors
+   --path-to-tensors /models/vllm/EleutherAI/gpt-j-6B/v1/model.tensors
 
-Which downloads the model tensors from your S3 bucket and deserializes them.
+Which reads the model tensors from that directory and deserializes them.
 
 You can also provide a `--keyfile` argument to decrypt the model weights if 
 they were serialized with encryption.
@@ -83,7 +77,7 @@ directly to load models:
 ```python
 from vllm import LLM
 llm = LLM(
-    "s3://my-bucket/vllm/facebook/opt-125m/v1", 
+    "/models/vllm/facebook/opt-125m/v1", 
     load_format="tensorizer",
 )
 ```
@@ -93,7 +87,7 @@ A serialized model can be used during model loading for the vLLM OpenAI
 inference server:
 
 ```
-vllm serve s3://my-bucket/vllm/facebook/opt-125m/v1 \
+vllm serve /models/vllm/facebook/opt-125m/v1 \
     --load-format tensorizer
 ```
 
@@ -116,7 +110,7 @@ the LoRA artifacts are in your model artifacts directory and specifying
 `--enable-lora`. For instance:
 
 ```
-vllm serve s3://my-bucket/vllm/facebook/opt-125m/v1 \
+vllm serve /models/vllm/facebook/opt-125m/v1 \
     --load-format tensorizer \
     --enable-lora 
 ```
@@ -159,10 +153,10 @@ def get_parser():
         help=(
             "The suffix to append to the serialized model directory, which is "
             "used to construct the location of the serialized model tensors, "
-            "e.g. if `--serialized-directory` is `s3://my-bucket/` and "
+            "e.g. if `--serialized-directory` is `/models/` and "
             "`--suffix` is `v1`, the serialized model tensors will be "
             "saved to "
-            "`s3://my-bucket/vllm/EleutherAI/gpt-j-6B/v1/model.tensors`. "
+            "`/models/vllm/EleutherAI/gpt-j-6B/v1/model.tensors`. "
             "If none is provided, a random UUID will be used."
         ),
     )
@@ -171,7 +165,7 @@ def get_parser():
         type=str,
         required=True,
         help="The directory to serialize the model to. "
-        "This can be a local directory or S3 URI. The path to where the "
+        "This must be a local directory. The path to where the "
         "tensors are saved is a combination of the supplied `dir` and model "
         "reference ID. For instance, if `dir` is the serialized directory, "
         "and the model HuggingFace ID is `EleutherAI/gpt-j-6B`, tensors will "
@@ -213,7 +207,7 @@ def get_parser():
         "--path-to-tensors",
         type=str,
         required=False,
-        help="The local path or S3 URI to the model tensors to deserialize. ",
+        help="The local path to the model tensors to deserialize. ",
     )
 
     deserialize_parser.add_argument(
@@ -306,22 +300,6 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
-    s3_access_key_id = getattr(args, "s3_access_key_id", None) or os.environ.get(
-        "S3_ACCESS_KEY_ID", None
-    )
-    s3_secret_access_key = getattr(
-        args, "s3_secret_access_key", None
-    ) or os.environ.get("S3_SECRET_ACCESS_KEY", None)
-    s3_endpoint = getattr(args, "s3_endpoint", None) or os.environ.get(
-        "S3_ENDPOINT_URL", None
-    )
-
-    credentials = {
-        "s3_access_key_id": s3_access_key_id,
-        "s3_secret_access_key": s3_secret_access_key,
-        "s3_endpoint": s3_endpoint,
-    }
-
     model_ref = args.model
 
     if args.command == "serialize" or args.command == "deserialize":
@@ -363,7 +341,6 @@ def main():
             tensorizer_uri=model_path,
             encryption_keyfile=keyfile,
             serialization_kwargs=args.serialization_kwargs or {},
-            **credentials,
         )
 
         if args.lora_path:
@@ -379,7 +356,6 @@ def main():
             tensorizer_dir=args.serialized_directory,
             encryption_keyfile=keyfile,
             deserialization_kwargs=args.deserialization_kwargs or {},
-            **credentials,
         )
 
         merge_extra_config_with_tensorizer_config(extra_config, tensorizer_config)

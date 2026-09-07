@@ -27,9 +27,6 @@ if TYPE_CHECKING:
     VLLM_ENGINE_READY_TIMEOUT_S: int = 600
     VLLM_API_KEY: str | None = None
     VLLM_DEBUG_LOG_API_SERVER_RESPONSE: bool = False
-    S3_ACCESS_KEY_ID: str | None = None
-    S3_SECRET_ACCESS_KEY: str | None = None
-    S3_ENDPOINT_URL: str | None = None
     VLLM_MODEL_REDIRECT_PATH: str | None = None
     VLLM_CACHE_ROOT: str = os.path.expanduser("~/.cache/vllm")
     VLLM_CONFIG_ROOT: str = os.path.expanduser("~/.config/vllm")
@@ -811,9 +808,6 @@ environment_variables: dict[str, Callable[[], Any]] = {
         os.environ.get("VLLM_DEBUG_LOG_API_SERVER_RESPONSE", "False").lower() == "true"
     ),
     # S3 access information, used for tensorizer to load model from S3
-    "S3_ACCESS_KEY_ID": lambda: os.environ.get("S3_ACCESS_KEY_ID", None),
-    "S3_SECRET_ACCESS_KEY": lambda: os.environ.get("S3_SECRET_ACCESS_KEY", None),
-    "S3_ENDPOINT_URL": lambda: os.environ.get("S3_ENDPOINT_URL", None),
     # Usage stats collection
     "VLLM_USAGE_STATS_SERVER": lambda: os.environ.get(
         "VLLM_USAGE_STATS_SERVER", "https://stats.vllm.ai"
@@ -2275,9 +2269,6 @@ def compile_factors() -> dict[str, object]:
         "VLLM_HOST_IP",
         "VLLM_ELASTIC_EP_SCALE_UP_LAUNCH",
         "VLLM_FORCE_AOT_LOAD",
-        "S3_ACCESS_KEY_ID",
-        "S3_SECRET_ACCESS_KEY",
-        "S3_ENDPOINT_URL",
         # Credential; never affects compiled artifacts and must not be
         # persisted in cache_key_factors.json.
         "VLLM_API_KEY",

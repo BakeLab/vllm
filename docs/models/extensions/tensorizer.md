@@ -1,7 +1,7 @@
 # Loading models with CoreWeave's Tensorizer
 
 vLLM supports loading models with [CoreWeave's Tensorizer](https://docs.coreweave.com/coreweave-machine-learning-and-ai/inference/tensorizer).
-vLLM model tensors that have been serialized to disk, an HTTP/HTTPS endpoint, or S3 endpoint can be deserialized
+vLLM model tensors that have been serialized to disk, or an HTTP/HTTPS endpoint can be deserialized
 at runtime extremely quickly directly to the GPU, resulting in significantly
 shorter Pod startup times and CPU memory usage. Tensor encryption is also supported.
 
@@ -22,24 +22,24 @@ Let's walk through a basic example by serializing `facebook/opt-125m` using the 
 
 To serialize a model with Tensorizer, call the example script with the necessary
 CLI arguments. The docstring for the script itself explains the CLI args
-and how to use it properly in great detail, and we'll use one of the examples from the docstring directly, assuming we want to serialize and save our model at our S3 bucket example `s3://my-bucket`:
+and how to use it properly in great detail, and we'll use one of the examples from the docstring directly, assuming we want to serialize and save our model under `/models`:
 
 ```bash
 python examples/features/tensorize_vllm_model.py \
    --model facebook/opt-125m \
    serialize \
-   --serialized-directory s3://my-bucket \
+   --serialized-directory /models \
    --suffix v1
 ```
 
-This saves the model tensors at `s3://my-bucket/vllm/facebook/opt-125m/v1`. If you intend on applying a LoRA adapter to your tensorized model, you can pass the HF id of the LoRA adapter in the above command, and the artifacts will be saved there too:
+This saves the model tensors at `/models/vllm/facebook/opt-125m/v1`. If you intend on applying a LoRA adapter to your tensorized model, you can pass the HF id of the LoRA adapter in the above command, and the artifacts will be saved there too:
 
 ```bash
 python examples/features/tensorize_vllm_model.py \
    --model facebook/opt-125m \
    --lora-path <lora_id> \
    serialize \
-   --serialized-directory s3://my-bucket \
+   --serialized-directory /models \
    --suffix v1
 ```
 
@@ -48,7 +48,7 @@ python examples/features/tensorize_vllm_model.py \
 Once the model is serialized where you want it, you can load the model using `vllm serve` or the `LLM` entrypoint. You can pass the directory where you saved the model to the `model` argument for `LLM()` and `vllm serve`. For example, to serve the tensorized model saved previously with the LoRA adapter, you'd do:
 
 ```bash
-vllm serve s3://my-bucket/vllm/facebook/opt-125m/v1 \
+vllm serve /models/vllm/facebook/opt-125m/v1 \
     --load-format tensorizer \
     --enable-lora 
 ```
@@ -58,7 +58,7 @@ Or, with `LLM()`:
 ```python
 from vllm import LLM
 llm = LLM(
-    "s3://my-bucket/vllm/facebook/opt-125m/v1", 
+    "/models/vllm/facebook/opt-125m/v1", 
     load_format="tensorizer",
     enable_lora=True,
 )
@@ -75,7 +75,7 @@ python examples/features/tensorize_vllm_model.py \
    --model facebook/opt-125m \
    --lora-path <lora_id> \
    serialize \
-   --serialized-directory s3://my-bucket \
+   --serialized-directory /models \
    --serialization-kwargs '{"limit_cpu_concurrency": 2}' \
    --suffix v1
 ```
@@ -83,7 +83,7 @@ python examples/features/tensorize_vllm_model.py \
 As an example when customizing the loading process via `TensorDeserializer`, you could limit the number of concurrency readers during deserialization with the `num_readers` parameter in the initializer via `model_loader_extra_config` like so:
 
 ```bash
-vllm serve s3://my-bucket/vllm/facebook/opt-125m/v1 \
+vllm serve /models/vllm/facebook/opt-125m/v1 \
     --load-format tensorizer \
     --enable-lora \
     --model-loader-extra-config '{"deserialization_kwargs": {"num_readers": 2}}'
@@ -94,7 +94,7 @@ Or with `LLM()`:
 ```python
 from vllm import LLM
 llm = LLM(
-    "s3://my-bucket/vllm/facebook/opt-125m/v1", 
+    "/models/vllm/facebook/opt-125m/v1", 
     load_format="tensorizer",
     enable_lora=True,
     model_loader_extra_config={"deserialization_kwargs": {"num_readers": 2}},

@@ -1731,140 +1731,6 @@ def test_get_and_verify_max_len_with_nope_layers(
     assert hf_config.rope_parameters["full_attention"] is None
 
 
-class MockConfig:
-    """Simple mock object for testing maybe_pull_model_tokenizer_for_runai"""
-
-    def __init__(self, model: str, tokenizer: str):
-        self.model = model
-        self.tokenizer = tokenizer
-        self.model_weights = None
-
-
-@pytest.mark.parametrize(
-    "s3_url",
-    [
-        "s3://example-bucket-1/model/",
-        "s3://example-bucket-2/model/",
-    ],
-)
-@patch("vllm.transformers_utils.runai_utils.ObjectStorageModel.pull_files")
-def test_s3_url_model_tokenizer_paths(mock_pull_files, s3_url):
-    """Test that S3 URLs create deterministic local directories for model and
-    tokenizer."""
-    # Mock pull_files to avoid actually downloading files during tests
-    mock_pull_files.return_value = None
-
-    # Create first mock and run the method
-    config1 = MockConfig(model=s3_url, tokenizer=s3_url)
-    ModelConfig.maybe_pull_model_tokenizer_for_runai(config1, s3_url, s3_url)
-
-    # Check that model and tokenizer point to existing directories
-    assert os.path.exists(config1.model), (
-        f"Model directory does not exist: {config1.model}"
-    )
-    assert os.path.isdir(config1.model), (
-        f"Model path is not a directory: {config1.model}"
-    )
-    assert os.path.exists(config1.tokenizer), (
-        f"Tokenizer directory does not exist: {config1.tokenizer}"
-    )
-    assert os.path.isdir(config1.tokenizer), (
-        f"Tokenizer path is not a directory: {config1.tokenizer}"
-    )
-
-    # Verify that the paths are different from the original S3 URL
-    assert config1.model != s3_url, "Model path should be converted to local directory"
-    assert config1.tokenizer != s3_url, (
-        "Tokenizer path should be converted to local directory"
-    )
-
-    # Store the original paths
-    created_model_dir = config1.model
-    create_tokenizer_dir = config1.tokenizer
-
-    # Create a new mock and run the method with the same S3 URL
-    config2 = MockConfig(model=s3_url, tokenizer=s3_url)
-    ModelConfig.maybe_pull_model_tokenizer_for_runai(config2, s3_url, s3_url)
-
-    # Check that the new directories exist
-    assert os.path.exists(config2.model), (
-        f"Model directory does not exist: {config2.model}"
-    )
-    assert os.path.isdir(config2.model), (
-        f"Model path is not a directory: {config2.model}"
-    )
-    assert os.path.exists(config2.tokenizer), (
-        f"Tokenizer directory does not exist: {config2.tokenizer}"
-    )
-    assert os.path.isdir(config2.tokenizer), (
-        f"Tokenizer path is not a directory: {config2.tokenizer}"
-    )
-
-    # Verify that the paths are deterministic (same as before)
-    assert config2.model == created_model_dir, (
-        f"Model paths are not deterministic. "
-        f"Original: {created_model_dir}, New: {config2.model}"
-    )
-    assert config2.tokenizer == create_tokenizer_dir, (
-        f"Tokenizer paths are not deterministic. "
-        f"Original: {create_tokenizer_dir}, New: {config2.tokenizer}"
-    )
-
-
-@patch("vllm.transformers_utils.runai_utils.ObjectStorageModel.pull_files")
-def test_s3_url_different_models_create_different_directories(mock_pull_files):
-    """Test that different S3 URLs create different local directories."""
-    # Mock pull_files to avoid actually downloading files during tests
-    mock_pull_files.return_value = None
-
-    s3_url1 = "s3://example-bucket-1/model/"
-    s3_url2 = "s3://example-bucket-2/model/"
-
-    # Create mocks with different S3 URLs and run the method
-    config1 = MockConfig(model=s3_url1, tokenizer=s3_url1)
-    ModelConfig.maybe_pull_model_tokenizer_for_runai(config1, s3_url1, s3_url1)
-
-    config2 = MockConfig(model=s3_url2, tokenizer=s3_url2)
-    ModelConfig.maybe_pull_model_tokenizer_for_runai(config2, s3_url2, s3_url2)
-
-    # Verify that different URLs produce different directories
-    assert config1.model != config2.model, (
-        f"Different S3 URLs should create different model directories. "
-        f"URL1 model: {config1.model}, URL2 model: {config2.model}"
-    )
-    assert config1.tokenizer != config2.tokenizer, (
-        f"Different S3 URLs should create different tokenizer directories. "
-        f"URL1 tokenizer: {config1.tokenizer}, "
-        f"URL2 tokenizer: {config2.tokenizer}"
-    )
-
-    # Verify that both sets of directories exist
-    assert os.path.exists(config1.model) and os.path.isdir(config1.model)
-    assert os.path.exists(config1.tokenizer) and os.path.isdir(config1.tokenizer)
-    assert os.path.exists(config2.model) and os.path.isdir(config2.model)
-    assert os.path.exists(config2.tokenizer) and os.path.isdir(config2.tokenizer)
-
-
-@patch("vllm.transformers_utils.runai_utils.ObjectStorageModel.pull_files")
-def test_s3_url_different_model_and_tokenizer(mock_pull_files):
-    """Test that when model and tokenizer are different cloud URIs,
-    pull_files receives the correct URI for each."""
-    mock_pull_files.return_value = None
-
-    model_url = "s3://bucket/model/"
-    tokenizer_url = "s3://bucket/tokenizer/"
-
-    config = MockConfig(model=model_url, tokenizer=tokenizer_url)
-    ModelConfig.maybe_pull_model_tokenizer_for_runai(config, model_url, tokenizer_url)
-
-    # pull_files should be called twice: once for model, once for tokenizer
-    assert mock_pull_files.call_count == 2
-    # First call: model URI with allow_pattern
-    assert mock_pull_files.call_args_list[0][0][0] == model_url
-    # Second call: tokenizer URI with ignore_pattern
-    assert mock_pull_files.call_args_list[1][0][0] == tokenizer_url
-
-
 @pytest.mark.parametrize(
     ("model_id", "expected_attn_type", "expected_result", "reason"),
     [
@@ -2637,12 +2503,11 @@ def test_watermarking_forces_model_runner_v2(monkeypatch):
 
 @patch("vllm.config.speculative.ModelConfig")
 def test_mtp_draft_uses_model_weights_not_local_cache(mock_model_config_cls):
-    """Regression test: MTP + runai_streamer should use model_weights (original
-    S3 URL) for the draft model, not model (local cache dir set by
-    pull_runai_model_from_obj_storage)."""
+    """Regression test: MTP should use model_weights for the draft model when
+    it is set, not model."""
     from unittest.mock import MagicMock
 
-    s3_url = "s3://my-bucket/Qwen3-35B-A3B-FP8"
+    weights_url = "https://my-host/Qwen3-35B-A3B-FP8"
     local_cache = "/root/.cache/vllm/assets/model_streamer/abcd1234"
 
     mock_draft = MagicMock()
@@ -2654,7 +2519,7 @@ def test_mtp_draft_uses_model_weights_not_local_cache(mock_model_config_cls):
 
     target_config = MagicMock()
     target_config.model = local_cache
-    target_config.model_weights = s3_url
+    target_config.model_weights = weights_url
     target_config.hf_text_config.model_type = "deepseek_v3"
     target_config.quantization = None
     target_config.max_model_len = 4096
@@ -2667,7 +2532,7 @@ def test_mtp_draft_uses_model_weights_not_local_cache(mock_model_config_cls):
     )
 
     actual_model = mock_model_config_cls.call_args.kwargs["model"]
-    assert actual_model == s3_url
+    assert actual_model == weights_url
 
 
 def _make_qwen3_omni_dspark_configs():

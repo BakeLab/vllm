@@ -7,7 +7,6 @@ from types import ModuleType, SimpleNamespace
 import pytest
 from torch import nn
 
-from vllm.config import VllmConfig
 from vllm.config.load import LoadConfig
 from vllm.model_executor.model_loader import get_model_loader
 from vllm.model_executor.model_loader.modelexpress_loader import (
@@ -113,21 +112,3 @@ def test_modelexpress_loader_preserves_internal_import_errors(monkeypatch):
     with pytest.raises(ModuleNotFoundError) as exc_info:
         ModelExpressModelLoader(LoadConfig(load_format="modelexpress"))
     assert exc_info.value.name == "not_modelexpress_dependency"
-
-
-def test_modelexpress_load_format_allows_object_storage_model_weights():
-    model_config = SimpleNamespace(
-        architecture="UnknownForTest",
-        config_updated=False,
-        convert_type=None,
-        is_hybrid=False,
-        model="test-model",
-        model_weights="s3://bucket/model",
-    )
-    vllm_config = object.__new__(VllmConfig)
-    vllm_config.model_config = model_config
-    vllm_config.load_config = LoadConfig(load_format="modelexpress")
-
-    vllm_config.try_verify_and_update_config()
-
-    assert vllm_config.load_config.load_format == "modelexpress"

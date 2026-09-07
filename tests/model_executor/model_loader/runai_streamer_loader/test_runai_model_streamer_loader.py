@@ -14,8 +14,6 @@ from vllm.model_executor.model_loader import runai_streamer_loader as rsl
 
 load_format = "runai_streamer"
 test_model = "openai-community/gpt2"
-# TODO(amacaskill): Replace with a GKE owned GCS bucket.
-test_gcs_model = "gs://vertex-model-garden-public-us/codegemma/codegemma-2b/"
 
 prompts = [
     "Hello, my name is",
@@ -43,23 +41,6 @@ def test_runai_model_loader_download_files(vllm_runner):
         assert deserialized_outputs
 
 
-@pytest.mark.skip(
-    reason="Temporarily disabled due to GCS access issues. "
-    "TODO: Re-enable this test once the underlying issue is resolved."
-)
-def test_runai_model_loader_download_files_gcs(
-    vllm_runner, monkeypatch: pytest.MonkeyPatch
-):
-    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "fake-project")
-    monkeypatch.setenv("RUNAI_STREAMER_GCS_USE_ANONYMOUS_CREDENTIALS", "true")
-    monkeypatch.setenv(
-        "CLOUD_STORAGE_EMULATOR_ENDPOINT", "https://storage.googleapis.com"
-    )
-    with vllm_runner(test_gcs_model, load_format=load_format) as llm:
-        deserialized_outputs = llm.generate(prompts, sampling_params)
-        assert deserialized_outputs
-
-
 def test_runai_passes_revision_by_name():
     # revision must reach download_safetensors_index_file_from_hf as the
     # ``revision`` keyword, not the positional ``subfolder`` slot.
@@ -67,7 +48,6 @@ def test_runai_passes_revision_by_name():
         load_config=types.SimpleNamespace(download_dir="/cache", ignore_patterns=[])
     )
     with (
-        patch.object(rsl, "is_runai_obj_uri", return_value=False),
         patch.object(rsl, "download_weights_from_hf", return_value="/folder"),
         patch.object(
             rsl, "list_safetensors", return_value=["/folder/model.safetensors"]
