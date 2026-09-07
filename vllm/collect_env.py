@@ -64,7 +64,6 @@ SystemEnv = namedtuple(
         "hip_runtime_version",
         "miopen_runtime_version",
         "caching_allocator_config",
-        "is_xnnpack_available",
         "cpu_info",
         "rocm_version",  # vllm specific field
         "vllm_version",  # vllm specific field
@@ -623,15 +622,6 @@ def get_cuda_module_loading_config():
         return "N/A"
 
 
-def is_xnnpack_available():
-    if TORCH_AVAILABLE:
-        import torch.backends.xnnpack
-
-        return str(torch.backends.xnnpack.enabled)  # type: ignore[attr-defined]
-    else:
-        return "N/A"
-
-
 def get_env_vars():
     env_vars = ""
     secret_terms = ("secret", "token", "api", "access", "password")
@@ -738,7 +728,6 @@ def get_env_info():
         clang_version=get_clang_version(run_lambda),
         cmake_version=get_cmake_version(run_lambda),
         caching_allocator_config=get_cachingallocator_config(),
-        is_xnnpack_available=is_xnnpack_available(),
         cpu_info=get_cpu_info(run_lambda),
         rocm_version=rocm_version,
         vllm_version=vllm_version,
@@ -931,7 +920,6 @@ Nvidia driver version        : {nvidia_driver_version}
 cuDNN version                : {cudnn_version}
 HIP runtime version          : {hip_runtime_version}
 MIOpen runtime version       : {miopen_runtime_version}
-Is XNNPACK available         : {is_xnnpack_available}
 """.strip()
 
     XPU_FMT = """
