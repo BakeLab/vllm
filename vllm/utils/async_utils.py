@@ -36,7 +36,7 @@ def make_async(
     """
 
     def _async_wrapper(*args: P.args, **kwargs: P.kwargs) -> Future[T]:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         p_func = partial(func, *args, **kwargs)
         return loop.run_in_executor(executor=executor, func=p_func)
 
@@ -61,7 +61,7 @@ def make_async_with_semaphore(
     semaphore = asyncio.Semaphore(executor._max_workers)
 
     async def _async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         p_func = partial(func, *args, **kwargs)
         async with semaphore:
             return await loop.run_in_executor(executor, p_func)
