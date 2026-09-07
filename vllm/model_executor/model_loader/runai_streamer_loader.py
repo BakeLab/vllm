@@ -24,105 +24,14 @@ from vllm.model_executor.model_loader.weight_utils import (
     runai_safetensors_weights_iterator,
 )
 from vllm.transformers_utils.repo_utils import resolve_revision
-from vllm.transformers_utils.runai_utils import (
-    is_runai_obj_uri,
-    list_safetensors,
-    runai_pull_files,
-)
+from vllm.transformers_utils.runai_utils import list_safetensors
 
 logger = init_logger(__name__)
 
 
-def _get_remote_checkpoint_keys(files: list[str]) -> list[list[str]]:
-    from runai_model_streamer import DistributedStreamer
-    from runai_model_streamer.safetensors_streamer.safetensors_pytorch import (
-        prepare_request,
-    )
-
-    # RunAI's metadata reader uses header ranges and the streamer's backend.
-    with DistributedStreamer() as streamer:
-        metadata = prepare_request(streamer, files, None)
-    return [[tensor.name for tensor in tensors] for _, tensors, _ in metadata]
-
-
-def _filter_remote_weights(
-    files: list[str],
-    source: str,
-    is_unused_weight: Callable[[str], bool],
-) -> list[str]:
-    try:
-        with tempfile.TemporaryDirectory() as directory:
-            # Backends may match the full object key, not its basename.
-            index_key = posixpath.join(
-                urlsplit(source).path.strip("/"), SAFE_WEIGHTS_INDEX_NAME
-            )
-            runai_pull_files(
-                source.rstrip("/") + "/",
-                directory,
-                allow_pattern=[index_key, SAFE_WEIGHTS_INDEX_NAME],
-            )
-            with open(os.path.join(directory, SAFE_WEIGHTS_INDEX_NAME)) as index:
-                weight_map = json.load(index)["weight_map"]
-        if not isinstance(weight_map, dict) or not weight_map:
-            raise ValueError("Empty or invalid weight map")
-        if any(
-            not isinstance(name, str)
-            or not isinstance(shard, str)
-            or not shard
-            or posixpath.isabs(shard)
-            or posixpath.normpath(shard) != shard
-            or shard in (".", "..")
-            or shard.startswith("../")
-            for name, shard in weight_map.items()
-        ):
-            raise ValueError("Invalid checkpoint index entry")
-    except Exception:
-        # Optional metadata must not make an otherwise loadable model fail.
-        # Model-rule and tensor-read errors remain outside this boundary.
-        logger.warning(
-            "Cannot use checkpoint index for RunAI shard selection; "
-            "keeping the original file list"
-        )
-        return files
-
-    # Unindexed files cannot be excluded using this metadata.
-    root = source.rstrip("/") + "/"
-    indexed = {root + shard for shard in weight_map.values()}
-    needed = {
-        root + shard for name, shard in weight_map.items() if not is_unused_weight(name)
-    }
-    if not needed.issubset(files):
-        logger.warning(
-            "Checkpoint index references missing required RunAI shards; "
-            "keeping the original file list"
-        )
-        return files
-    kept = [path for path in files if path not in indexed or path in needed]
-    excluded = [path for path in files if path not in kept]
-    if excluded and kept:
-        try:
-            headers = _get_remote_checkpoint_keys(excluded)
-            if len(headers) != len(excluded):
-                raise ValueError("Incomplete checkpoint headers")
-        except Exception:
-            logger.warning(
-                "Cannot verify excluded RunAI shard headers; "
-                "keeping the original file list"
-            )
-            return files
-        # A stale index can omit wanted tensors inside an indexed shard.
-        if any(not is_unused_weight(name) for names in headers for name in names):
-            logger.warning(
-                "Checkpoint index disagrees with RunAI shard headers; "
-                "keeping the original file list"
-            )
-            return files
-    return kept or files
-
-
 class RunaiModelStreamerLoader(BaseModelLoader):
-    """Model loader that can load safetensors
-    files from local FS, S3, GCS, or Azure Blob Storage.
+    """Model loader that can load safetensors files from the local filesystem
+    or the Hugging Face Hub.
     """
 
     def __init__(self, load_config: LoadConfig):
@@ -173,30 +82,24 @@ class RunaiModelStreamerLoader(BaseModelLoader):
                 env_updates["RUNAI_STREAMER_MEMORY_LIMIT"] = str(memory_limit)
             os.environ.update(env_updates)
 
-            runai_streamer_s3_endpoint = os.getenv("RUNAI_STREAMER_S3_ENDPOINT")
-            aws_endpoint_url = os.getenv("AWS_ENDPOINT_URL")
-            if runai_streamer_s3_endpoint is None and aws_endpoint_url is not None:
-                os.environ["RUNAI_STREAMER_S3_ENDPOINT"] = aws_endpoint_url
-
     def _prepare_weights(
         self, model_name_or_path: str, revision: str | None
     ) -> list[str]:
         """Prepare weights for the model.
 
         If the model is not local, it will be downloaded."""
-        is_object_storage_path = is_runai_obj_uri(model_name_or_path)
         is_local = os.path.isdir(model_name_or_path)
         safetensors_pattern = "*.safetensors"
         index_file = SAFE_WEIGHTS_INDEX_NAME
 
-        if not is_local and not is_object_storage_path:
+        if not is_local:
             # `model_weights` can point to another repo than the one `revision` was
             # resolved for, which does not pin this one.
             revision = resolve_revision(model_name_or_path, revision)
 
         hf_folder = (
             model_name_or_path
-            if (is_local or is_object_storage_path)
+            if is_local
             else download_weights_from_hf(
                 model_name_or_path,
                 self.load_config.download_dir,
@@ -207,7 +110,7 @@ class RunaiModelStreamerLoader(BaseModelLoader):
         )
         hf_weights_files = list_safetensors(path=hf_folder)
 
-        if not is_local and not is_object_storage_path:
+        if not is_local:
             download_safetensors_index_file_from_hf(
                 model_name_or_path,
                 index_file,

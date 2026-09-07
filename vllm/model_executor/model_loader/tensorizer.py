@@ -71,7 +71,7 @@ _TENSORIZER_ENGINE_CLEANUP_GRACE_S = 10.0
 def is_valid_deserialization_uri(uri: str | None) -> bool:
     if uri:
         scheme = uri.lower().split("://")[0]
-        return scheme in {"s3", "http", "https"} or os.path.exists(uri)
+        return scheme in {"http", "https"} or os.path.exists(uri)
     return False
 
 
@@ -163,9 +163,7 @@ class TensorizerConfig(MutableMapping):
     verify_hash: bool | None = None
     num_readers: int | None = None
     encryption_keyfile: str | None = None
-    s3_access_key_id: str | None = None
-    s3_secret_access_key: str | None = None
-    s3_endpoint: str | None = None
+    lora_dir: str | None = None
     stream_kwargs: dict[str, Any] | None = None
     serialization_kwargs: dict[str, Any] | None = None
     deserialization_kwargs: dict[str, Any] | None = None
@@ -177,43 +175,44 @@ class TensorizerConfig(MutableMapping):
     _fields: ClassVar[tuple[str, ...]]
     _keys: ClassVar[frozenset[str]]
     """Configuration class for Tensorizer settings.
-    
-    These settings configure the behavior of model serialization and 
+
+    These settings configure the behavior of model serialization and
     deserialization using Tensorizer.
-    
+
     Attributes:
-        tensorizer_uri: Path to serialized model tensors. Can be a local file 
-            path or a S3 URI. Unless a `tensorizer_dir` is passed to this
-            object's initializer, this is a required argument.
+        tensorizer_uri: Path to serialized model tensors. Can be a local file
+            path or an HTTP(S) URI. This is a required field unless lora_dir is
+            provided and the config is meant to be used for the
+            `tensorize_lora_adapter` function. Unless a `tensorizer_dir` or
+            `lora_dir` is passed to this object's initializer, this is
+            a required argument.
         tensorizer_dir: Path to a directory containing serialized model tensors,
-            and all other potential model artifacts to load the model, such as 
-            configs and tokenizer files. Can be passed instead of 
-            `tensorizer_uri` where the `model.tensors` file will be assumed 
+            and all other potential model artifacts to load the model, such as
+            configs and tokenizer files. Can be passed instead of
+            `tensorizer_uri` where the `model.tensors` file will be assumed
             to be in this directory.
-        vllm_tensorized: If True, indicates that the serialized model is a 
-            vLLM model. This is used to determine the behavior of the 
+        vllm_tensorized: If True, indicates that the serialized model is a
+            vLLM model. This is used to determine the behavior of the
             TensorDeserializer when loading tensors from a serialized model.
             It is far faster to deserialize a vLLM model as it utilizes
             tensorizer's optimized GPU loading. Note that this is now
             deprecated, as serialized vLLM models are now automatically
             inferred as vLLM models.
-        verify_hash: If True, the hashes of each tensor will be verified 
-            against the hashes stored in the metadata. A `HashMismatchError` 
+        verify_hash: If True, the hashes of each tensor will be verified
+            against the hashes stored in the metadata. A `HashMismatchError`
             will be raised if any of the hashes do not match.
         num_readers: Controls how many threads are allowed to read concurrently
             from the source file. Default is `None`, which will dynamically set
-            the number of readers based on the number of available 
+            the number of readers based on the number of available
             resources and model size. This greatly increases performance.
-        encryption_keyfile: File path to a binary file containing a  
-            binary key to use for decryption. `None` (the default) means 
-            no decryption. See the example script in 
-            examples/features/tensorize_vllm_model.py. 
-        s3_access_key_id: The access key for the S3 bucket. Can also be set via
-            the S3_ACCESS_KEY_ID environment variable.
-        s3_secret_access_key: The secret access key for the S3 bucket. Can also
-            be set via the S3_SECRET_ACCESS_KEY environment variable.
-        s3_endpoint: The endpoint for the S3 bucket. Can also be set via the
-            S3_ENDPOINT_URL environment variable.
+        encryption_keyfile: File path to a binary file containing a
+            binary key to use for decryption. `None` (the default) means
+            no decryption. See the example script in
+            examples/features/tensorize_vllm_model.py.
+        lora_dir: Path to a directory containing LoRA adapter artifacts for
+            serialization or deserialization. When serializing LoRA adapters
+            this is the only necessary parameter to pass to this object's
+            initializer.
     """
 
     def __post_init__(self):
@@ -347,18 +346,8 @@ class TensorizerArgs:
         for k, v in tensorizer_config.items():
             setattr(self, k, v)
         self.file_obj = tensorizer_config.tensorizer_uri
-        self.s3_access_key_id = (
-            tensorizer_config.s3_access_key_id or envs.S3_ACCESS_KEY_ID
-        )
-        self.s3_secret_access_key = (
-            tensorizer_config.s3_secret_access_key or envs.S3_SECRET_ACCESS_KEY
-        )
-        self.s3_endpoint = tensorizer_config.s3_endpoint or envs.S3_ENDPOINT_URL
 
         self.stream_kwargs = {
-            "s3_access_key_id": tensorizer_config.s3_access_key_id,
-            "s3_secret_access_key": tensorizer_config.s3_secret_access_key,
-            "s3_endpoint": tensorizer_config.s3_endpoint,
             **(tensorizer_config.stream_kwargs or {}),
         }
 
@@ -402,7 +391,7 @@ class TensorizerArgs:
             "--tensorizer-uri",
             type=str,
             help="Path to serialized model tensors. Can be a local file path,"
-            " or an HTTP(S) or S3 URI.",
+            " or an HTTP(S) URI.",
         )
         group.add_argument(
             "--verify-hash",
@@ -416,7 +405,7 @@ class TensorizerArgs:
             type=str,
             default=None,
             help="The file path to a binary file containing a binary key to "
-            "use for decryption. Can be a file path or S3 network URI.",
+            "use for decryption.",
         )
         group.add_argument(
             "--num-readers",
@@ -427,28 +416,6 @@ class TensorizerArgs:
             "set the number of readers based on the available resources "
             "and model size. This greatly increases performance.",
         )
-        group.add_argument(
-            "--s3-access-key-id",
-            type=str,
-            default=None,
-            help="The access key for the S3 bucket. Can also be set via the "
-            "S3_ACCESS_KEY_ID environment variable.",
-        )
-        group.add_argument(
-            "--s3-secret-access-key",
-            type=str,
-            default=None,
-            help="The secret access key for the S3 bucket. Can also be set via "
-            "the S3_SECRET_ACCESS_KEY environment variable.",
-        )
-        group.add_argument(
-            "--s3-endpoint",
-            type=str,
-            default=None,
-            help="The endpoint for the S3 bucket. Can also be set via the "
-            "S3_ENDPOINT_URL environment variable.",
-        )
-
         return parser
 
     @classmethod
@@ -492,8 +459,8 @@ def deserialize_tensorizer_model(
         raise ValueError(
             f"{tensorizer_config.tensorizer_uri} is not a valid "
             f"tensorizer URI. Please check that the URI is correct. "
-            f"It must either point to a local existing file, or have a "
-            f"S3, HTTP or HTTPS scheme."
+            f"It must either point to a local existing file, or have an "
+            f"HTTP or HTTPS scheme."
         )
     before_mem = get_mem_usage()
     start = time.perf_counter()
@@ -682,13 +649,7 @@ def tensorize_vllm_model(
         and (keyfile := tensorizer_config.encryption_keyfile) is not None
     ):
         encryption_params = EncryptionParams.random()
-        with open_stream(
-            keyfile,
-            mode="wb+",
-            s3_access_key_id=tensorizer_config.s3_access_key_id,
-            s3_secret_access_key=tensorizer_config.s3_secret_access_key,
-            s3_endpoint=tensorizer_config.s3_endpoint,
-        ) as stream:
+        with open_stream(keyfile, mode="wb+") as stream:
             stream.write(encryption_params.key)
 
     from vllm.v1.engine.llm_engine import LLMEngine
