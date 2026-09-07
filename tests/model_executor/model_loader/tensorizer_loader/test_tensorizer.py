@@ -208,7 +208,7 @@ def test_raise_value_error_on_invalid_load_format(vllm_runner, capfd, model_ref)
 def test_tensorizer_with_tp_path_without_template(vllm_runner, capfd):
     try:
         model_ref = "EleutherAI/pythia-1.4b"
-        tensorized_path = f"s3://tensorized/{model_ref}/fp16/model.tensors"
+        tensorized_path = f"/tmp/tensorized/{model_ref}/fp16/model.tensors"
 
         vllm_runner(
             model_ref,
@@ -216,7 +216,6 @@ def test_tensorizer_with_tp_path_without_template(vllm_runner, capfd):
             model_loader_extra_config=TensorizerConfig(
                 tensorizer_uri=tensorized_path,
                 num_readers=1,
-                s3_endpoint="object.ord1.coreweave.com",
             ),
             tensor_parallel_size=2,
             disable_custom_all_reduce=True,

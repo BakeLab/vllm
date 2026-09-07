@@ -970,7 +970,7 @@ ARG RUNAI_MODEL_STREAMER_VERSION=">=0.15.7"
 ARG GGUF_VERSION=">=0.19.0"
 RUN --mount=type=cache,target=/opt/uv/cache \
     uv pip install --system accelerate 'modelscope<1.38' \
-        "timm${TIMM_VERSION}" "runai-model-streamer[s3,gcs,azure]${RUNAI_MODEL_STREAMER_VERSION}" \
+        "timm${TIMM_VERSION}" "runai-model-streamer${RUNAI_MODEL_STREAMER_VERSION}" \
         "gguf${GGUF_VERSION}"
 
 # ============================================================
