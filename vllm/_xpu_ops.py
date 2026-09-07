@@ -20,10 +20,7 @@ if TYPE_CHECKING:
     def register_fake(fn):
         return lambda name: fn
 else:
-    try:
-        from torch.library import register_fake
-    except ImportError:
-        from torch.library import impl_abstract as register_fake
+    from torch.library import register_fake
 
 if hasattr(torch.ops._xpu_C, "fp8_gemm"):
 

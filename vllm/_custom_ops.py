@@ -24,10 +24,7 @@ if TYPE_CHECKING:
     def register_fake(fn):
         return lambda name: fn
 else:
-    try:
-        from torch.library import register_fake
-    except ImportError:
-        from torch.library import impl_abstract as register_fake
+    from torch.library import register_fake
 
 
 # scaled_fp4_quant functional + out variant for torch.compile buffer management
