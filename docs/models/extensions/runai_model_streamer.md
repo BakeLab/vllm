@@ -17,37 +17,10 @@ vllm serve /home/meta-llama/Llama-3.2-3B-Instruct \
     --load-format runai_streamer
 ```
 
-To run model from AWS S3 object store run:
+A Hugging Face model id works too, and is downloaded before streaming:
 
 ```bash
-vllm serve s3://core-llm/Llama-3-8b \
-    --load-format runai_streamer
-```
-
-To run model from Google Cloud Storage run:
-
-```bash
-vllm serve gs://core-llm/Llama-3-8b \
-    --load-format runai_streamer
-```
-
-To run model from Azure Blob Storage run:
-
-```bash
-AZURE_STORAGE_ACCOUNT_NAME=<account> \
-vllm serve az://<container>/<model-path> \
-    --load-format runai_streamer
-```
-
-Authentication uses `DefaultAzureCredential`, which supports `az login`, managed identity, environment variables (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_CLIENT_SECRET`), and other methods.
-
-To run model from a S3 compatible object store run:
-
-```bash
-RUNAI_STREAMER_S3_USE_VIRTUAL_ADDRESSING=0 \
-AWS_EC2_METADATA_DISABLED=true \
-AWS_ENDPOINT_URL=https://storage.googleapis.com \
-vllm serve s3://core-llm/Llama-3-8b \
+vllm serve meta-llama/Llama-3.2-3B-Instruct \
     --load-format runai_streamer
 ```
 
@@ -55,7 +28,7 @@ vllm serve s3://core-llm/Llama-3-8b \
 
 You can tune parameters using `--model-loader-extra-config`:
 
-You can tune `distributed` that controls whether distributed streaming should be used. This is currently only possible on CUDA and ROCM devices. This can significantly improve loading times from object storage or high-throughput network fileshares.
+You can tune `distributed` that controls whether distributed streaming should be used. This is currently only possible on CUDA and ROCM devices. This can significantly improve loading times from high-throughput network fileshares.
 You can read further about Distributed streaming [here](https://github.com/run-ai/runai-model-streamer/blob/master/docs/src/usage.md#distributed-streaming)
 
 ```bash
@@ -65,7 +38,6 @@ vllm serve /home/meta-llama/Llama-3.2-3B-Instruct \
 ```
 
 You can tune `concurrency` that controls the level of concurrency and number of OS threads reading tensors from the file to the CPU buffer.
-For reading from S3, it will be the number of client instances the host is opening to the S3 server.
 
 ```bash
 vllm serve /home/meta-llama/Llama-3.2-3B-Instruct \

@@ -21,8 +21,6 @@ from vllm.model_executor.model_loader.weight_utils import (
     download_weights_from_hf,
     runai_safetensors_weights_iterator,
 )
-from vllm.transformers_utils.s3_utils import glob as s3_glob
-from vllm.transformers_utils.utils import is_s3
 
 logger = init_logger(__name__)
 
@@ -172,7 +170,7 @@ class ShardedStateLoader(BaseModelLoader):
         return result
 
     def _prepare_weights(self, model_name_or_path: str, revision: str | None):
-        if is_s3(model_name_or_path) or os.path.isdir(model_name_or_path):
+        if os.path.isdir(model_name_or_path):
             return model_name_or_path
         else:
             allow_patterns = ["*.safetensors"]
@@ -196,17 +194,12 @@ class ShardedStateLoader(BaseModelLoader):
         rendered_pattern = ShardedStateLoader._render_default_pattern(
             self.pattern, part="*"
         )
-        filepaths = []
-        if is_s3(local_model_path):
-            file_pattern = f"*{rendered_pattern}"
-            filepaths = s3_glob(path=local_model_path, allow_pattern=[file_pattern])
-        else:
-            filepaths = glob.glob(
-                os.path.join(
-                    local_model_path,
-                    rendered_pattern,
-                )
+        filepaths = glob.glob(
+            os.path.join(
+                local_model_path,
+                rendered_pattern,
             )
+        )
         if not filepaths:
             # TODO: support un-sharded checkpoints too
             raise ValueError(

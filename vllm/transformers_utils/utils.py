@@ -15,22 +15,6 @@ from vllm.logger import init_logger
 logger = init_logger(__name__)
 
 
-def is_s3(model_or_path: str) -> bool:
-    return model_or_path.lower().startswith("s3://")
-
-
-def is_gcs(model_or_path: str) -> bool:
-    return model_or_path.lower().startswith("gs://")
-
-
-def is_azure(model_or_path: str) -> bool:
-    return model_or_path.lower().startswith("az://")
-
-
-def is_cloud_storage(model_or_path: str) -> bool:
-    return is_s3(model_or_path) or is_gcs(model_or_path) or is_azure(model_or_path)
-
-
 def without_trust_remote_code(kwargs: dict[str, Any]) -> dict[str, Any]:
     """Return kwargs without trust_remote_code without modifying original dict."""
     if "trust_remote_code" not in kwargs:
