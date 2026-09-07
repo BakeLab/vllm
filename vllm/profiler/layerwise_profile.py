@@ -384,7 +384,6 @@ class layerwise_profile(profile):
             activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
             record_shapes=True,
             with_stack=True,
-            with_modules=True,
             experimental_config=_ExperimentalConfig(verbose=True),
         )
 
