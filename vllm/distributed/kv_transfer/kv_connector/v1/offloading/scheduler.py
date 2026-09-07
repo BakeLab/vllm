@@ -303,20 +303,15 @@ class SchedulerOffloadConfig(NamedTuple):
         )
 
         if retention_interval is not None:
-            if retention_interval < 0:
-                raise ValueError(
-                    f"VLLM_PREFIX_CACHE_RETENTION_INTERVAL "
-                    f"({retention_interval}) must be non-negative."
-                )
             for config in kv_group_configs:
                 if (
                     config.sliding_window_size_in_chunks is not None
                     and retention_interval % config.tokens_per_chunk != 0
                 ):
                     raise ValueError(
-                        f"VLLM_PREFIX_CACHE_RETENTION_INTERVAL "
-                        f"({retention_interval}) must be a multiple of "
-                        f"tokens_per_chunk ({config.tokens_per_chunk})."
+                        f"prefix_cache_retention_interval ({retention_interval}) "
+                        f"must be a multiple of tokens_per_chunk "
+                        f"({config.tokens_per_chunk})."
                     )
 
         return cls(

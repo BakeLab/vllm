@@ -530,8 +530,8 @@ class EngineArgs:
     prefix_caching_hash_algo: PrefixCachingHashAlgo = (
         CacheConfig.prefix_caching_hash_algo
     )
-    prefix_cache_retention_interval: int | None = get_field(
-        CacheConfig, "prefix_cache_retention_interval"
+    prefix_cache_retention_interval: int | None = (
+        CacheConfig.prefix_cache_retention_interval
     )
     disable_sliding_window: bool = ModelConfig.disable_sliding_window
     disable_cascade_attn: bool = ModelConfig.disable_cascade_attn
@@ -587,9 +587,7 @@ class EngineArgs:
     mm_processor_cache_type: MMCacheType | None = (
         MultiModalConfig.mm_processor_cache_type
     )
-    mm_hasher_algorithm: MMHasherAlgorithm = get_field(
-        MultiModalConfig, "mm_hasher_algorithm"
-    )
+    mm_hasher_algorithm: MMHasherAlgorithm = MultiModalConfig.mm_hasher_algorithm
     mm_shm_cache_max_object_size_mb: int = (
         MultiModalConfig.mm_shm_cache_max_object_size_mb
     )
