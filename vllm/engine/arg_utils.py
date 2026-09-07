@@ -657,9 +657,6 @@ class EngineArgs:
     watermark_config: dict[str, Any] | None = None
     diffusion_config: dict[str, Any] | None = None
 
-    show_hidden_metrics_for_version: str | None = (
-        ObservabilityConfig.show_hidden_metrics_for_version
-    )
     otlp_traces_endpoint: str | None = ObservabilityConfig.otlp_traces_endpoint
     collect_detailed_traces: list[DetailedTraceModules] | None = (
         ObservabilityConfig.collect_detailed_traces
@@ -1495,10 +1492,6 @@ class EngineArgs:
             description=ObservabilityConfig.__doc__,
         )
         observability_group.add_argument(
-            "--show-hidden-metrics-for-version",
-            **observability_kwargs["show_hidden_metrics_for_version"],
-        )
-        observability_group.add_argument(
             "--otlp-traces-endpoint", **observability_kwargs["otlp_traces_endpoint"]
         )
         # TODO: generalise this special case
@@ -1993,7 +1986,6 @@ class EngineArgs:
 
     def create_observability_config(self) -> ObservabilityConfig:
         return ObservabilityConfig(
-            show_hidden_metrics_for_version=self.show_hidden_metrics_for_version,
             otlp_traces_endpoint=self.otlp_traces_endpoint,
             collect_detailed_traces=self.collect_detailed_traces,
             per_request_spec_decode_metrics=self.per_request_spec_decode_metrics,

@@ -53,6 +53,5 @@ These metrics are available via `--enable-mfu-metrics`:
 
 ## Deprecation Policy
 
-Note: when metrics are deprecated in version `X.Y`, they are hidden in version `X.Y+1`
-but can be re-enabled using the `--show-hidden-metrics-for-version=X.Y` escape hatch,
-and are then removed in version `X.Y+2`.
+Note: when metrics are deprecated in version `X.Y`, they are removed in version
+`X.Y+2`.

@@ -458,9 +458,6 @@ class PrometheusStatLogger(AggregateStatLoggerBase):
 
         unregister_vllm_metrics()
         self.vllm_config = vllm_config
-        # Use this flag to hide metrics that were deprecated in
-        # a previous release and which will be removed future
-        self.show_hidden_metrics = vllm_config.observability_config.show_hidden_metrics
         self.kv_cache_metrics_enabled = (
             vllm_config.observability_config.kv_cache_metrics
         )

@@ -309,9 +309,6 @@ class RemoteVLLMServer:
             self.host = str(args.host or "127.0.0.1")
             self.port = int(args.port)
 
-        self.show_hidden_metrics = (
-            getattr(args, "show_hidden_metrics_for_version", None) is not None
-        )
         self._request_shutdown_timeout = float(args.shutdown_timeout)
 
         with _temporarily_sanitized_pythonpath_env():

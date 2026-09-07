@@ -16,14 +16,12 @@ from transformers import AutoTokenizer
 
 from tests.conftest import LocalAssetServer
 from tests.utils import RemoteOpenAIServer
-from vllm import version
 from vllm.utils.network_utils import get_open_port
 
 MODELS = {
     "text": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
     "multimodal": "HuggingFaceTB/SmolVLM-256M-Instruct",
 }
-PREV_MINOR_VERSION = version._prev_minor_version()
 
 
 @pytest.fixture(scope="module", params=list(MODELS.keys()))
@@ -50,7 +48,6 @@ def default_server_args():
     params=[
         "",
         "--enable-chunked-prefill",
-        f"--show-hidden-metrics-for-version={PREV_MINOR_VERSION}",
     ],
 )
 def server(model_key, default_server_args, request):
@@ -142,10 +139,7 @@ async def test_metrics_counts(
     # Loop over all expected metric_families
     expected_values = _get_expected_values(num_requests, prompt_ids, max_tokens)
     for metric_family, suffix_values_list in expected_values.items():
-        if metric_family not in EXPECTED_METRICS_V1 or (
-            not server.show_hidden_metrics
-            and metric_family in HIDDEN_DEPRECATED_METRICS
-        ):
+        if metric_family not in EXPECTED_METRICS_V1:
             continue
 
         found_metric = False
@@ -236,8 +230,6 @@ EXPECTED_METRICS_MM = [
     "vllm:mm_cache_hits",
 ]
 
-HIDDEN_DEPRECATED_METRICS: list[str] = []
-
 
 @pytest.mark.asyncio
 async def test_metrics_exist(
@@ -289,8 +281,6 @@ async def test_metrics_exist(
         expected_metrics = expected_metrics + EXPECTED_METRICS_MM
 
     for metric in expected_metrics:
-        if metric in HIDDEN_DEPRECATED_METRICS and not server.show_hidden_metrics:
-            continue
         assert metric in response.text
 
     cache_config_samples = [
