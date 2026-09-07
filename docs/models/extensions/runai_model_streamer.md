@@ -31,7 +31,7 @@ safetensors files containing only unused weights before streaming. It uses the
 same model-owned rule as the default loader, including MTP draft models with
 this hook; it does not assume a particular MTP tensor prefix.
 
-Object-storage checkpoints use `model.safetensors.index.json` and verify excluded
+Indexed safetensors checkpoints use `model.safetensors.index.json` and verify excluded
 shards against their safetensors headers before streaming. Mixed shards remain
 included. Missing or inconsistent metadata retains the original file list.
 Models without a selection rule keep all files. Distributed streaming with
