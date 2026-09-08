@@ -1322,6 +1322,17 @@ def get_requirements() -> list[str]:
         requirements = _read_requirements("xpu.txt")
     else:
         raise ValueError("Unsupported platform, please use CUDA, ROCm, or CPU.")
+
+    if torch_version := os.getenv("VLLM_TORCH_VERSION_OVERRIDE"):
+        Version(torch_version)
+        requirements = [
+            requirement
+            for requirement in requirements
+            if re.match(r"^torch(?:\s|[<>=!~@\[]|$)", requirement, re.IGNORECASE)
+            is None
+        ]
+        requirements.append(f"torch=={torch_version}")
+
     return requirements
 
 
