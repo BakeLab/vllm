@@ -60,7 +60,12 @@ logger = init_logger(__name__)
 FP8_DTYPE = current_platform.fp8_dtype()
 
 
-if current_platform.is_cuda():
+if current_platform.is_rocm():
+
+    @contextmanager
+    def _nvml():
+        yield
+elif current_platform.is_cuda():
     from vllm.third_party.pynvml import (
         nvmlDeviceGetHandleByIndex,
         nvmlDeviceGetHandleByUUID,
@@ -186,7 +191,7 @@ class RemoteVLLMServer:
     """
 
     DUMMY_API_KEY = "token-abc123"  # vLLM's OpenAI server does not need API key
-    _active_servers: set["RemoteVLLMServer"] = set()
+    _active_servers: set[RemoteVLLMServer] = set()
     _active_servers_lock = threading.RLock()
     _cleanup_hooks_registered = False
     _signal_hooks_registered = False
@@ -421,7 +426,7 @@ class RemoteVLLMServer:
         self._kill_process_group_survivors(pgid)
 
     @classmethod
-    def shutdown_many(cls, servers: Sequence["RemoteVLLMServer"]) -> None:
+    def shutdown_many(cls, servers: Sequence[RemoteVLLMServer]) -> None:
         """Shut down multiple sibling servers and wait for GPU memory once.
 
         Test fixtures that hold several ``RemoteVLLMServer`` instances at
@@ -554,13 +559,11 @@ class RemoteVLLMServer:
         """
         try:
             if current_platform.is_rocm():
-                # Use HIP logical devices. On MI355 DPX/NPS2, the primary
-                # AMD SMI device can expose whole-card memory counters.
                 total_used = 0
-                for i in range(current_platform.device_count()):
-                    free, total = torch.accelerator.get_memory_info(i)
+                for device in range(current_platform.device_count()):
+                    free, total = torch.accelerator.get_memory_info(device)
                     total_used += total - free
-                return float(total_used)
+                return total_used
             elif current_platform.is_cuda():
                 with _nvml():
                     total_used = 0
@@ -1547,11 +1550,11 @@ def record_gpu_memory_usage_stats(
     output: dict[int, tuple[float, float]] = {}
     for device in devices:
         if current_platform.is_rocm():
-            free, total = torch.accelerator.get_memory_info(device)
-            gb_used = (total - free) / 2**30
-            gb_total = total / 2**30
+            free_b, total_b = torch.accelerator.get_memory_info(device)
+            gb_used = (total_b - free_b) / 2**30
+            gb_total = total_b / 2**30
         elif current_platform.is_xpu():
-            # nvml/amdsmi are unavailable on XPU. Query device memory through
+            # NVML is unavailable on XPU. Query device memory through
             # torch.accelerator.get_memory_info, which the XPU platform patches
             # to return (free, total) bytes via Level Zero.
             free_b, total_b = torch.accelerator.get_memory_info(device)
@@ -1730,13 +1733,15 @@ def wait_for_memory_to_settle(
 _P = ParamSpec("_P")
 
 
-def fork_new_process_for_each_test(func: Callable[_P, None]) -> Callable[_P, None]:
+def fork_new_process_for_each_test[**P](
+    func: Callable[P, None],
+) -> Callable[P, None]:
     """Decorator to fork a new process for each test function.
     See https://github.com/vllm-project/vllm/issues/7053 for more details.
     """
 
     @functools.wraps(func)
-    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> None:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
         from _pytest.outcomes import Skipped
 
         # Create a unique temporary file to store exception info from child
@@ -1856,7 +1861,7 @@ def _format_subprocess_exit(returncode: int) -> str:
 _SPAWN_CHILD_ENV = "VLLM_TEST_SPAWN_CHILD"
 
 
-def spawn_new_process_for_each_test(f: Callable[_P, None]) -> Callable[_P, None]:
+def spawn_new_process_for_each_test[**P](f: Callable[P, None]) -> Callable[P, None]:
     """Decorator to spawn a new process for each test function.
 
     Uses subprocess to run each test in a fresh interpreter and propagates
@@ -1879,7 +1884,7 @@ def spawn_new_process_for_each_test(f: Callable[_P, None]) -> Callable[_P, None]
     """
 
     @functools.wraps(f)
-    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> None:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
         if os.environ.get(_SPAWN_CHILD_ENV) == "1":
             return f(*args, **kwargs)
 
@@ -2220,7 +2225,7 @@ class TestFP8Layer(torch.nn.Module):
         out_dtype: torch.dtype | None = None,
         transpose_weights: bool = False,
         device: torch.device | None = None,
-        force_kernel: "type[_KernelT] | None" = None,
+        force_kernel: type[_KernelT] | None = None,
     ):
         super().__init__()
         from vllm.model_executor.kernels.linear import init_fp8_linear_kernel

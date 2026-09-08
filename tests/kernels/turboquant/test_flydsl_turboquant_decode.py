@@ -18,9 +18,8 @@ import torch
 
 from vllm.platforms import current_platform
 
-# Guard the ROCm-only import: `vllm.platforms.rocm` pulls in amdsmi and other
-# ROCm-specific modules that are not importable on non-ROCm platforms, so it
-# must not be imported at module load time on CUDA/CPU CI.
+# Guard the ROCm-only import because the module initializes ROCm-specific
+# state and must not be imported at module load time on CUDA/CPU CI.
 if not current_platform.is_rocm():
     pytest.skip(
         "TurboQuant FlyDSL decode only runs on ROCm gfx950.",
