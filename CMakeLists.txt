@@ -15,9 +15,9 @@ project(vllm_extensions LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CUDA_STANDARD 20)
+set(CMAKE_CUDA_STANDARD 23)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-set(CMAKE_HIP_STANDARD 20)
+set(CMAKE_HIP_STANDARD 26)
 set(CMAKE_HIP_STANDARD_REQUIRED ON)
 
 # PyTorch headers require C++20; GCC < 11.3 has incomplete C++20 support.
@@ -206,6 +206,14 @@ else()
   message(FATAL_ERROR "Can't find CUDA or HIP installation.")
 endif()
 
+if(VLLM_GPU_LANG STREQUAL "HIP")
+  set(TORCH_HIPIFY_INCLUDE_DIR
+    "${TORCH_INSTALL_PREFIX}/include/build/hipify/aten/src")
+  if(EXISTS "${TORCH_HIPIFY_INCLUDE_DIR}")
+    include_directories(BEFORE "${TORCH_HIPIFY_INCLUDE_DIR}")
+  endif()
+endif()
+
 
 if(VLLM_GPU_LANG STREQUAL "CUDA")
   #
@@ -352,6 +360,9 @@ if(VLLM_GPU_LANG STREQUAL "CUDA" OR VLLM_GPU_LANG STREQUAL "HIP")
     LIBRARIES ${CUMEM_LIBS}
     USE_SABI 3.8
     WITH_SOABI)
+  if(VLLM_GPU_LANG STREQUAL "HIP")
+    target_compile_definitions(cumem_allocator PRIVATE USE_ROCM)
+  endif()
 endif()
 
 #

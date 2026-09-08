@@ -47,6 +47,9 @@ void CustomAllreduce::mnnvl_lamport_allgather(cudaStream_t stream, T* input,
                                               void* multicast_buffer,
                                               uint32_t* epochs, int size_bytes,
                                               int stage_size_bytes) {
+#if defined(USE_ROCM)
+  throw std::runtime_error("MNNVL Lamport allgather is not supported on ROCm");
+#else
   if (size_bytes % sizeof(typename packed_t<T>::P) != 0 ||
       stage_size_bytes % sizeof(typename packed_t<T>::P) != 0)
     throw std::runtime_error(
@@ -58,7 +61,6 @@ void CustomAllreduce::mnnvl_lamport_allgather(cudaStream_t stream, T* input,
   int blocks =
       (size_per_rank + kMnnvlLamportAgThreads - 1) / kMnnvlLamportAgThreads;
 
-#if !defined(USE_ROCM)
   cudaLaunchAttribute attributes[1]{};
   attributes[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
   attributes[0].val.programmaticStreamSerializationAllowed = 1;
@@ -73,12 +75,11 @@ void CustomAllreduce::mnnvl_lamport_allgather(cudaStream_t stream, T* input,
                                  ptrs, input, output,                          \
                                  reinterpret_cast<T*>(multicast_buffer),       \
                                  epochs, rank_, size_per_rank, stage_size))
-#endif
 
-#define MNNVL_LAMPORT_AG_CASE(ngpus) \
-  case ngpus:                        \
-    MNNVL_LAMPORT_AG_LAUNCH(ngpus);  \
-    break;
+  #define MNNVL_LAMPORT_AG_CASE(ngpus) \
+    case ngpus:                        \
+      MNNVL_LAMPORT_AG_LAUNCH(ngpus);  \
+      break;
 
   switch (world_size_) {
     MNNVL_LAMPORT_AG_CASE(2)
@@ -90,8 +91,9 @@ void CustomAllreduce::mnnvl_lamport_allgather(cudaStream_t stream, T* input,
       throw std::runtime_error(
           "MNNVL Lamport allgather only supports num gpus in (2,4,6,8,16)");
   }
-#undef MNNVL_LAMPORT_AG_CASE
-#undef MNNVL_LAMPORT_AG_LAUNCH
+  #undef MNNVL_LAMPORT_AG_CASE
+  #undef MNNVL_LAMPORT_AG_LAUNCH
+#endif
 }
 
 template <typename T>
@@ -131,6 +133,10 @@ void CustomAllreduce::mnnvl_lamport_reduce_scatter(cudaStream_t stream,
                                                    void* local_buffer,
                                                    uint32_t* epochs, int size,
                                                    int stage_size_bytes) {
+#if defined(USE_ROCM)
+  throw std::runtime_error(
+      "MNNVL Lamport reduce-scatter is not supported on ROCm");
+#else
   auto packed_size = packed_t<T>::P::size;
   if (size % (packed_size * world_size_) != 0 ||
       stage_size_bytes % sizeof(typename packed_t<T>::P) != 0)
@@ -144,7 +150,6 @@ void CustomAllreduce::mnnvl_lamport_reduce_scatter(cudaStream_t stream,
       (size_per_rank + kMnnvlLamportRsThreads - 1) / kMnnvlLamportRsThreads;
   int blocks = blocks_per_rank * world_size_;
 
-#if !defined(USE_ROCM)
   cudaLaunchAttribute attributes[1]{};
   attributes[0].id = cudaLaunchAttributeProgrammaticStreamSerialization;
   attributes[0].val.programmaticStreamSerializationAllowed = 1;
@@ -158,12 +163,11 @@ void CustomAllreduce::mnnvl_lamport_reduce_scatter(cudaStream_t stream,
     CUDACHECK(cudaLaunchKernelEx(                                             \
         &config, &mnnvl_lamport_reduce_scatter_kernel<T, ngpus>, ptrs, input, \
         output, epochs, rank_, size_per_rank, stage_size))
-#endif
 
-#define MNNVL_LAMPORT_RS_CASE(ngpus) \
-  case ngpus:                        \
-    MNNVL_LAMPORT_RS_LAUNCH(ngpus);  \
-    break;
+  #define MNNVL_LAMPORT_RS_CASE(ngpus) \
+    case ngpus:                        \
+      MNNVL_LAMPORT_RS_LAUNCH(ngpus);  \
+      break;
 
   switch (world_size_) {
     MNNVL_LAMPORT_RS_CASE(2)
@@ -176,8 +180,9 @@ void CustomAllreduce::mnnvl_lamport_reduce_scatter(cudaStream_t stream,
           "MNNVL Lamport reduce-scatter only supports num gpus in "
           "(2,4,6,8,16)");
   }
-#undef MNNVL_LAMPORT_RS_CASE
-#undef MNNVL_LAMPORT_RS_LAUNCH
+  #undef MNNVL_LAMPORT_RS_CASE
+  #undef MNNVL_LAMPORT_RS_LAUNCH
+#endif
 }
 
 }  // namespace vllm
