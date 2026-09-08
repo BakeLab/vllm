@@ -1323,15 +1323,23 @@ def get_requirements() -> list[str]:
     else:
         raise ValueError("Unsupported platform, please use CUDA, ROCm, or CPU.")
 
-    if torch_version := os.getenv("VLLM_TORCH_VERSION_OVERRIDE"):
-        Version(torch_version)
-        requirements = [
-            requirement
-            for requirement in requirements
-            if re.match(r"^torch(?:\s|[<>=!~@\[]|$)", requirement, re.IGNORECASE)
-            is None
-        ]
-        requirements.append(f"torch=={torch_version}")
+    for distribution, environment_variable in (
+        ("torch", "VLLM_TORCH_VERSION_OVERRIDE"),
+        ("torchvision", "VLLM_TORCHVISION_VERSION_OVERRIDE"),
+    ):
+        if version := os.getenv(environment_variable):
+            Version(version)
+            requirements = [
+                requirement
+                for requirement in requirements
+                if re.match(
+                    rf"^{distribution}(?:\s|[<>=!~@\[]|$)",
+                    requirement,
+                    re.IGNORECASE,
+                )
+                is None
+            ]
+            requirements.append(f"{distribution}=={version}")
 
     return requirements
 
