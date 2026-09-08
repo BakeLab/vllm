@@ -35,7 +35,7 @@ def _asm_fp4_scale_swizzle_supported(weight_scale: torch.Tensor) -> bool:
 # NOTE: Do not import aiter at module scope. Importing aiter eagerly initializes HIP
 # which can force the engine core to spawn instead of fork.
 # is_aiter_found_and_supported() checks platform + arch + library availability via
-# find_spec/amdsmi, so it stays HIP-free.
+# lightweight probes, so it stays HIP-free.
 # Actual aiter imports are deferred to the functions/methods that need them,
 # where HIP initialization is expected.
 if is_aiter_found_and_supported():

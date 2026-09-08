@@ -11,7 +11,7 @@ _TORCH_CUDA_PATTERNS = [
     r"\btorch\.cuda\.(empty_cache|synchronize|device_count|current_device|memory_reserved|memory_allocated|max_memory_allocated|max_memory_reserved|reset_peak_memory_stats|memory_stats|mem_get_info|set_device|device\()\b",
     r"\btorch\.cuda\.(manual_seed|manual_seed_all)\b",
     r"\bwith\storch\.cuda\.device\b",
-    # Calls torch.cuda.{_is_compiled/_device_count_amdsmi/_device_count_nvml} internally
+    # Calls backend-specific stateless device-count probes internally.
     r"\bcuda_device_count_stateless\(\)\b",
     r"\bcurrent_platform\.mem_get_info\(\)\b",
 ]
