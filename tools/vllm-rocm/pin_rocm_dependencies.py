@@ -5,7 +5,7 @@
 Pin vLLM dependencies to exact versions of custom ROCm wheels.
 
 This script modifies vLLM's requirements files to replace version constraints
-with exact versions of custom-built ROCm wheels (torch, triton, torchvision, amdsmi).
+with exact versions of custom-built ROCm wheels (torch, triton, torchvision).
 
 This ensures that 'pip install vllm' automatically installs the correct custom wheels
 instead of allowing pip to download different versions from PyPI.
@@ -62,7 +62,6 @@ def get_custom_wheel_versions(install_dir: str) -> dict[str, str]:
         ("triton_kernels-", "triton-kernels"),  # Match triton_kernels-
         ("torchvision-", "torchvision"),  # Match torchvision-
         ("torchaudio-", "torchaudio"),  # Match torchaudio-
-        ("amdsmi-", "amdsmi"),  # Match amdsmi-
         ("flash_attn-", "flash-attn"),  # Match flash_attn-
         ("amd_aiter-", "amd-aiter"),  # Match amd_aiter-
     ]
@@ -104,8 +103,6 @@ def pin_dependencies_in_requirements(requirements_path: str, versions: dict[str,
         torch==2.9.0a0+git1c57644
         triton==3.4.0
         torchvision==0.23.0a0+824e8c8
-        amdsmi==26.1.0+5df6c765
-
         -r common.txt
         ... rest of file ...
     """

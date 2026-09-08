@@ -3,7 +3,8 @@
 
 import os
 from datetime import timedelta
-from functools import cache, lru_cache, wraps
+from functools import cache, lru_cache
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import regex as re
@@ -23,22 +24,6 @@ if TYPE_CHECKING:
     from vllm.v1.attention.selector import AttentionSelectorConfig
 
 logger = init_logger(__name__)
-
-try:
-    from amdsmi import (
-        AmdSmiException,
-        AmdSmiMemoryType,
-        amdsmi_get_gpu_asic_info,
-        amdsmi_get_gpu_device_uuid,
-        amdsmi_get_gpu_memory_total,
-        amdsmi_get_processor_handles,
-        amdsmi_init,
-        amdsmi_shut_down,
-        amdsmi_topo_get_link_type,
-        amdsmi_topo_get_numa_node_number,
-    )
-except ImportError as e:
-    logger.warning("Failed to import from amdsmi with %r", e)
 
 try:
     import vllm._C  # noqa: F401
@@ -62,23 +47,6 @@ _ROCM_UNSUPPORTED_MODELS: list[str] = []
 # Models partially supported by ROCm.
 # Architecture -> Reason.
 _ROCM_PARTIALLY_SUPPORTED_MODELS: dict[str, str] = {}
-_ROCM_DEVICE_ID_NAME_MAP: dict[str, str] = {
-    "0x74a0": "AMD_Instinct_MI300A",
-    "0x74a1": "AMD_Instinct_MI300X",
-    "0x74b5": "AMD_Instinct_MI300X",  # MI300X VF
-    "0x74a2": "AMD_Instinct_MI308X",
-    "0x74a5": "AMD_Instinct_MI325X",
-    "0x74b9": "AMD_Instinct_MI325X",  # MI325X VF
-    "0x74a9": "AMD_Instinct_MI300X_HF",
-    "0x74bd": "AMD_Instinct_MI300X_HF",
-    "0x744c": "AMD_Radeon_RX7900XTX",
-    # RDNA 3.5 APUs (Strix Point / Strix Halo)
-    "0x150e": "AMD_Radeon_890M",  # gfx1150, Strix Point
-    "0x1586": "AMD_Radeon_8060S",  # gfx1151, Strix Halo
-    # RDNA 4 discrete (Navi 48)
-    "0x7550": "AMD_Radeon_RX9070XT",  # gfx1201
-    "0x7551": "AMD_Radeon_R9700",  # gfx1201
-}
 
 
 @lru_cache(maxsize=8)
@@ -102,15 +70,7 @@ def _rocm_device_count_stateless(cuda_visible_devices: str | None = None) -> int
 
     if not torch.cuda._is_compiled():
         return 0
-    # ROCm uses amdsmi instead of nvml for stateless device count
-    # This requires a sufficiently modern version of Torch 2.4.0
-    raw_count = (
-        torch.cuda._device_count_amdsmi()
-        if (hasattr(torch.cuda, "_device_count_amdsmi"))
-        else -1
-    )
-    r = torch._C._cuda_getDeviceCount() if raw_count < 0 else raw_count
-    return r
+    return torch._C._cuda_getDeviceCount()
 
 
 def _sync_hip_cuda_env_vars():
@@ -145,62 +105,12 @@ def _sync_hip_cuda_env_vars():
 _sync_hip_cuda_env_vars()
 
 
-# AMDSMI utils
-# Note that NVML is not affected by `{CUDA/HIP}_VISIBLE_DEVICES`,
-# all the related functions work on real physical device ids.
-# the major benefit of using AMDSMI is that it will not initialize CUDA
-
-
-def with_amdsmi_context(fn):
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        amdsmi_init()
-        try:
-            return fn(*args, **kwargs)
-        finally:
-            amdsmi_shut_down()
-
-    return wrapper
-
-
-@with_amdsmi_context
-def _query_gcn_arch_from_amdsmi() -> str:
-    """Query GCN arch from amdsmi. Raises if not available."""
-    handles = amdsmi_get_processor_handles()
-    if handles:
-        asic_info = amdsmi_get_gpu_asic_info(handles[0])
-        # Use target_graphics_version which contains the gfx name
-        # e.g., 'gfx942' for MI300X/MI325X
-        target_gfx = asic_info.get("target_graphics_version", "")
-        if target_gfx:
-            return target_gfx
-    raise RuntimeError("amdsmi did not return valid GCN arch")
-
-
-@with_amdsmi_context
-def _query_total_memory_from_amdsmi(physical_device_id: int) -> int:
-    """Query total VRAM (bytes) from amdsmi. Raises if not available."""
-    handles = amdsmi_get_processor_handles()
-    handle = handles[physical_device_id]
-    return amdsmi_get_gpu_memory_total(handle, AmdSmiMemoryType.VRAM)
-
-
 def _get_gcn_arch() -> str:
-    """
-    Get GCN arch via amdsmi (no CUDA init), fallback to torch.cuda.
-    Called once at module level; result stored in _GCN_ARCH.
-    """
-    try:
-        return _query_gcn_arch_from_amdsmi()
-    except Exception as e:
-        logger.debug("Failed to get GCN arch via amdsmi: %s", e)
-    # Ultimate fallback: use torch.cuda (will initialize CUDA)
-    return torch.cuda.get_device_properties("cuda").gcnArchName
+    return torch.cuda.get_device_properties(0).gcnArchName
 
 
-# Resolve once at module load. Uses amdsmi (no CUDA init) so Ray workers
-# can still set CUDA_VISIBLE_DEVICES after import.
-# These are plain Python bools — fully torch.compile/Dynamo safe.
+# Resolve once at module load. These are plain Python bools and therefore
+# torch.compile/Dynamo safe.
 _GCN_ARCH = _get_gcn_arch()
 
 _ON_GFX1X = any(arch in _GCN_ARCH for arch in ["gfx11", "gfx12"])
@@ -543,11 +453,11 @@ class RocmPlatform(Platform):
     def get_valid_backends(
         cls,
         device_capability: DeviceCapability,
-        attn_selector_config: "AttentionSelectorConfig",
+        attn_selector_config: AttentionSelectorConfig,
         num_heads: int | None = None,
     ) -> tuple[
-        list[tuple["AttentionBackendEnum", int]],
-        dict["AttentionBackendEnum", list[str]],
+        list[tuple[AttentionBackendEnum, int]],
+        dict[AttentionBackendEnum, list[str]],
     ]:
         valid_backends_priorities = []
         invalid_reasons = {}
@@ -590,8 +500,8 @@ class RocmPlatform(Platform):
     @classmethod
     def get_attn_backend_cls(
         cls,
-        selected_backend: "AttentionBackendEnum",
-        attn_selector_config: "AttentionSelectorConfig",
+        selected_backend: AttentionBackendEnum,
+        attn_selector_config: AttentionSelectorConfig,
         num_heads: int | None = None,
     ) -> str:
         device_capability = cls.get_device_capability()
@@ -706,7 +616,7 @@ class RocmPlatform(Platform):
         return selected_backend.get_path()
 
     @classmethod
-    def get_supported_vit_attn_backends(cls) -> list["AttentionBackendEnum"]:
+    def get_supported_vit_attn_backends(cls) -> list[AttentionBackendEnum]:
         return [
             AttentionBackendEnum.FLASH_ATTN,
             AttentionBackendEnum.ROCM_AITER_FA,
@@ -719,8 +629,8 @@ class RocmPlatform(Platform):
         cls,
         head_size: int,
         dtype: torch.dtype,
-        backend: "AttentionBackendEnum | None" = None,
-    ) -> "AttentionBackendEnum":
+        backend: AttentionBackendEnum | None = None,
+    ) -> AttentionBackendEnum:
         if backend is not None:
             assert backend in cls.get_supported_vit_attn_backends(), (
                 f"Backend {backend} is not supported for vit attention. "
@@ -786,72 +696,45 @@ class RocmPlatform(Platform):
         return DeviceCapability(major=major, minor=minor)
 
     @classmethod
-    @with_amdsmi_context
     def is_fully_connected(cls, physical_device_ids: list[int]) -> bool:
         """
-        Query if the set of gpus are fully connected by xgmi (1 hop)
+        Query whether every GPU can directly access every peer GPU.
         """
-        handles = [amdsmi_get_processor_handles()[i] for i in physical_device_ids]
-        for i, handle in enumerate(handles):
-            for j, peer_handle in enumerate(handles):
-                if i < j:
-                    try:
-                        link_type = amdsmi_topo_get_link_type(handle, peer_handle)
-                        # type is 2 for XGMI
-                        if link_type["hops"] != 1 or link_type["type"] != 2:
-                            return False
-                    except AmdSmiException as error:
-                        logger.error("AMD 1 hop XGMI detection failed.", exc_info=error)
-                        return False
+        visible_physical_ids = [
+            cls.visible_device_id_to_physical_device_id(device_id)
+            for device_id in range(cls.device_count())
+        ]
+        try:
+            visible_device_ids = [
+                visible_physical_ids.index(device_id)
+                for device_id in physical_device_ids
+            ]
+        except ValueError:
+            return False
+        for index, device_id in enumerate(visible_device_ids):
+            for peer_device_id in visible_device_ids[index + 1 :]:
+                if not torch.cuda.can_device_access_peer(device_id, peer_device_id):
+                    return False
         return True
 
     @classmethod
-    @with_amdsmi_context
     @lru_cache(maxsize=8)
     def get_device_name(cls, device_id: int = 0) -> str:
-        physical_device_id = cls.device_id_to_physical_device_id(device_id)
-        handle = amdsmi_get_processor_handles()[physical_device_id]
-        asic_info = amdsmi_get_gpu_asic_info(handle)
-        asic_info_device_id: str = asic_info["device_id"]
-        if asic_info_device_id in _ROCM_DEVICE_ID_NAME_MAP:
-            return _ROCM_DEVICE_ID_NAME_MAP[asic_info_device_id]
-        return asic_info["market_name"]
+        visible_device_id = cls.logical_device_id_to_visible_device_id(device_id)
+        return torch.cuda.get_device_properties(visible_device_id).name
 
     @classmethod
-    @with_amdsmi_context
     def get_device_uuid(cls, device_id: int = 0) -> str:
-        try:
-            device = amdsmi_get_processor_handles()[device_id]
-        except AmdSmiException as error:
-            logger.error("amdsmi device query failed ", exc_info=error)
-            return ""
-        try:
-            device_uuid = amdsmi_get_gpu_device_uuid(device)
-        except AmdSmiException as error:
-            logger.error("amdsmi device uuid query failed ", exc_info=error)
-        return device_uuid
+        visible_device_id = cls.logical_device_id_to_visible_device_id(device_id)
+        return str(torch.cuda.get_device_properties(visible_device_id).uuid)
 
     @classmethod
     def get_device_total_memory(cls, device_id: int = 0) -> int:
-        # Query total VRAM via amdsmi so we don't initialize a HIP context in
-        # the calling process. torch.cuda.get_device_properties() creates a
-        # HIP context, which makes vLLM fall back from `fork` to `spawn` for
-        # worker processes. Keeping this query context-free preserves `fork`
-        # where it is otherwise valid (e.g. out-of-tree models registered in
-        # the parent process).
-        try:
-            physical_device_id = cls.device_id_to_physical_device_id(device_id)
-            return _query_total_memory_from_amdsmi(physical_device_id)
-        except Exception as e:
-            logger.debug("Failed to get total memory via amdsmi: %s", e)
-            logger.warning_once(
-                "Failed to get total memory via amdsmi, falling back to "
-                "torch.cuda. This will initialize CUDA."
-            )
-        return torch.cuda.get_device_properties(device_id).total_memory
+        visible_device_id = cls.logical_device_id_to_visible_device_id(device_id)
+        return torch.cuda.get_device_properties(visible_device_id).total_memory
 
     @classmethod
-    def apply_config_platform_defaults(cls, vllm_config: "VllmConfig") -> None:
+    def apply_config_platform_defaults(cls, vllm_config: VllmConfig) -> None:
         from vllm._aiter_ops import rocm_aiter_ops
 
         compilation_config = vllm_config.compilation_config
@@ -882,7 +765,7 @@ class RocmPlatform(Platform):
         compilation_config.custom_ops.append("+sparse_attn_indexer")
 
     @classmethod
-    def check_and_update_config(cls, vllm_config: "VllmConfig") -> None:
+    def check_and_update_config(cls, vllm_config: VllmConfig) -> None:
         from vllm.config.compilation import CUDAGraphMode
 
         compilation_config = vllm_config.compilation_config
@@ -1086,9 +969,7 @@ class RocmPlatform(Platform):
         return True
 
     @classmethod
-    def get_default_ir_op_priority(
-        cls, vllm_config: "VllmConfig"
-    ) -> "IrOpPriorityConfig":
+    def get_default_ir_op_priority(cls, vllm_config: VllmConfig) -> IrOpPriorityConfig:
         from vllm.config.compilation import CompilationMode, CUDAGraphMode
         from vllm.config.kernel import IrOpPriorityConfig
 
@@ -1116,25 +997,31 @@ class RocmPlatform(Platform):
         )
 
     @classmethod
-    @with_amdsmi_context
     def get_all_device_numa_nodes(cls) -> list[int] | None:
         """Get NUMA nodes for all visible GPU devices."""
         try:
-            handles = amdsmi_get_processor_handles()
             numa_nodes = []
             for device_id in range(cls.device_count()):
-                physical_device_id = cls.device_id_to_physical_device_id(device_id)
+                properties = torch.cuda.get_device_properties(device_id)
+                pci_device = (
+                    f"{properties.pci_domain_id:04x}:{properties.pci_bus_id:02x}:"
+                    f"{properties.pci_device_id:02x}.0"
+                )
                 try:
-                    numa_node = amdsmi_topo_get_numa_node_number(
-                        handles[physical_device_id]
+                    numa_node = int(
+                        (Path("/sys/bus/pci/devices") / pci_device / "numa_node")
+                        .read_text()
+                        .strip()
                     )
-                except AmdSmiException as e:
+                except (OSError, ValueError) as e:
                     logger.warning(
                         "Could not detect NUMA node for GPU %d, "
                         "disabling automatic NUMA binding: %s",
                         device_id,
                         e,
                     )
+                    return None
+                if numa_node < 0:
                     return None
                 numa_nodes.append(numa_node)
             return numa_nodes

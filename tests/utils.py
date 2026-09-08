@@ -87,23 +87,10 @@ def prewarm_hf_cache(assets: list[tuple[str, str]]) -> None:
 
 
 if current_platform.is_rocm():
-    from amdsmi import (
-        amdsmi_get_gpu_vram_usage,
-        amdsmi_get_processor_handles,
-        amdsmi_init,
-        amdsmi_shut_down,
-    )
-
-    _amdsmi_lock = threading.Lock()
 
     @contextmanager
     def _nvml():
-        with _amdsmi_lock:
-            try:
-                amdsmi_init()
-                yield
-            finally:
-                amdsmi_shut_down()
+        yield
 elif current_platform.is_cuda():
     from vllm.third_party.pynvml import (
         nvmlDeviceGetHandleByIndex,
@@ -230,7 +217,7 @@ class RemoteVLLMServer:
     """
 
     DUMMY_API_KEY = "token-abc123"  # vLLM's OpenAI server does not need API key
-    _active_servers: set["RemoteVLLMServer"] = set()
+    _active_servers: set[RemoteVLLMServer] = set()
     _active_servers_lock = threading.RLock()
     _cleanup_hooks_registered = False
     _signal_hooks_registered = False
@@ -465,7 +452,7 @@ class RemoteVLLMServer:
         self._kill_process_group_survivors(pgid)
 
     @classmethod
-    def shutdown_many(cls, servers: Sequence["RemoteVLLMServer"]) -> None:
+    def shutdown_many(cls, servers: Sequence[RemoteVLLMServer]) -> None:
         """Shut down multiple sibling servers and wait for GPU memory once.
 
         Test fixtures that hold several ``RemoteVLLMServer`` instances at
@@ -594,24 +581,11 @@ class RemoteVLLMServer:
         """Get total GPU memory used across all visible devices in bytes."""
         try:
             if current_platform.is_rocm():
-                with _nvml():
-                    handles = amdsmi_get_processor_handles()
-                    devices = get_physical_device_indices(
-                        list(range(current_platform.device_count()))
-                    )
-                    total_used_mib = 0
-                    for device in devices:
-                        handle = handles[device]
-                        vram_info = amdsmi_get_gpu_vram_usage(handle)
-                        total_used_mib += vram_info["vram_used"]
-                    # amdsmi reports VRAM in MiB; convert to bytes so this
-                    # matches the CUDA/nvml branch (already bytes) and the
-                    # byte-based target in _wait_for_gpu_memory_release. Without
-                    # this, that wait compares MiB against a ~2e9-byte target,
-                    # is always satisfied instantly, and returns "released to
-                    # 0.00 GB" while the previous server's VRAM is still
-                    # resident -- OOMing the next server's startup on ROCm.
-                    return total_used_mib * 1024 * 1024
+                total_used = 0
+                for device in range(current_platform.device_count()):
+                    free, total = torch.accelerator.get_memory_info(device)
+                    total_used += total - free
+                return total_used
             elif current_platform.is_cuda():
                 with _nvml():
                     total_used = 0
@@ -1569,12 +1543,11 @@ def record_gpu_memory_usage_stats(
     output: dict[int, tuple[float, float]] = {}
     for device in devices:
         if current_platform.is_rocm():
-            dev_handle = amdsmi_get_processor_handles()[device]
-            mem_info = amdsmi_get_gpu_vram_usage(dev_handle)
-            gb_used = mem_info["vram_used"] / 2**10
-            gb_total = mem_info["vram_total"] / 2**10
+            free_b, total_b = torch.accelerator.get_memory_info(device)
+            gb_used = (total_b - free_b) / 2**30
+            gb_total = total_b / 2**30
         elif current_platform.is_xpu():
-            # nvml/amdsmi are unavailable on XPU. Query device memory through
+            # NVML is unavailable on XPU. Query device memory through
             # torch.accelerator.get_memory_info, which the XPU platform patches
             # to return (free, total) bytes via Level Zero.
             free_b, total_b = torch.accelerator.get_memory_info(device)
@@ -1753,13 +1726,15 @@ def wait_for_memory_to_settle(
 _P = ParamSpec("_P")
 
 
-def fork_new_process_for_each_test(func: Callable[_P, None]) -> Callable[_P, None]:
+def fork_new_process_for_each_test[**P](
+    func: Callable[P, None],
+) -> Callable[P, None]:
     """Decorator to fork a new process for each test function.
     See https://github.com/vllm-project/vllm/issues/7053 for more details.
     """
 
     @functools.wraps(func)
-    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> None:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
         from _pytest.outcomes import Skipped
 
         # Create a unique temporary file to store exception info from child
@@ -1879,7 +1854,7 @@ def _format_subprocess_exit(returncode: int) -> str:
 _SPAWN_CHILD_ENV = "VLLM_TEST_SPAWN_CHILD"
 
 
-def spawn_new_process_for_each_test(f: Callable[_P, None]) -> Callable[_P, None]:
+def spawn_new_process_for_each_test[**P](f: Callable[P, None]) -> Callable[P, None]:
     """Decorator to spawn a new process for each test function.
 
     Uses subprocess to run each test in a fresh interpreter and propagates
@@ -1902,7 +1877,7 @@ def spawn_new_process_for_each_test(f: Callable[_P, None]) -> Callable[_P, None]
     """
 
     @functools.wraps(f)
-    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> None:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
         if os.environ.get(_SPAWN_CHILD_ENV) == "1":
             return f(*args, **kwargs)
 
@@ -2369,7 +2344,7 @@ class TestFP8Layer(torch.nn.Module):
         out_dtype: torch.dtype | None = None,
         transpose_weights: bool = False,
         device: torch.device | None = None,
-        force_kernel: "type[_KernelT] | None" = None,
+        force_kernel: type[_KernelT] | None = None,
     ):
         super().__init__()
         from vllm.model_executor.kernels.linear import init_fp8_linear_kernel

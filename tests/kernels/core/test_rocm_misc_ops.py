@@ -61,8 +61,8 @@ def test_aiter_ops_module_imports():
 def test_rocm_platform_module_imports():
     """ROCm platform module imports without error.
 
-    The platform module queries hardware via amdsmi and sets up arch flags.
-    Import failures indicate missing amdsmi or HIP runtime issues.
+    The platform module queries hardware through torch and sets up arch flags.
+    Import failures indicate missing or incompatible HIP runtime components.
     """
     import vllm.platforms.rocm  # noqa: F401
 
