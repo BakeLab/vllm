@@ -124,7 +124,9 @@ class CudaCommunicator(DeviceCommunicatorBase):
         config = get_current_vllm_config_or_none()
         register = config is None or not config.use_cumem_cudagraph_pool
 
-        if use_torch_symm_mem and current_platform.is_cuda():
+        if use_torch_symm_mem and (
+            current_platform.is_cuda() or current_platform.is_rocm()
+        ):
             self.symm_mem_comm = SymmMemCommunicator(
                 group=self.cpu_group,
                 device=self.device,
