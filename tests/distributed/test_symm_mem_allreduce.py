@@ -4,6 +4,7 @@
 import queue
 import random
 import typing
+from types import SimpleNamespace
 
 import pytest
 import torch
@@ -14,7 +15,9 @@ import vllm.envs as envs
 from vllm.config import ParallelConfig, VllmConfig, set_current_vllm_config
 from vllm.distributed import cleanup_dist_env_and_memory
 from vllm.distributed.communication_op import tensor_model_parallel_all_reduce
+from vllm.distributed.device_communicators import symm_mem
 from vllm.distributed.device_communicators.cuda_communicator import CudaCommunicator
+from vllm.distributed.device_communicators.symm_mem import SymmMemCommunicator
 from vllm.distributed.parallel_state import (
     get_tp_group,
     init_distributed_environment,
@@ -29,6 +32,292 @@ torch.manual_seed(42)
 random.seed(44)
 
 test_size_elements = 1024 * 1024
+
+
+@pytest.mark.parametrize(
+    ("group_world_size", "group_ranks", "same_node", "expected"),
+    [
+        (2, [0, 1], True, False),
+        (4, [0, 1, 2, 3], True, True),
+        (4, [0, 1, 2, 4], True, False),
+        (4, [0, 1, 2, 3], False, False),
+    ],
+)
+def test_rocm_group_can_use_global_heap(
+    monkeypatch, group_world_size, group_ranks, same_node, expected
+):
+    from vllm.distributed import parallel_state
+
+    monkeypatch.setattr(symm_mem.dist, "get_world_size", lambda: 4)
+    monkeypatch.setattr(symm_mem.dist, "get_process_group_ranks", lambda _: group_ranks)
+    monkeypatch.setattr(
+        parallel_state,
+        "in_the_same_node_as",
+        lambda *args, **kwargs: [same_node] * group_world_size,
+    )
+
+    assert (
+        symm_mem._rocm_group_can_use_global_heap(object(), group_world_size) is expected
+    )
+
+
+def test_rocm_symm_mem_uses_rocshmem_without_multicast(monkeypatch):
+    monkeypatch.setattr(symm_mem, "symm_mem_available", True)
+    monkeypatch.setattr(
+        symm_mem,
+        "current_platform",
+        SimpleNamespace(
+            is_cuda=lambda: False,
+            is_rocm=lambda: True,
+            get_device_capability=lambda: SimpleNamespace(
+                as_version_str=lambda: "12.0"
+            ),
+        ),
+    )
+    monkeypatch.setattr(symm_mem.torch.accelerator, "set_device_index", lambda _: None)
+    monkeypatch.setattr(symm_mem.dist, "get_world_size", lambda _: 2)
+    monkeypatch.setattr(symm_mem, "_rocm_group_can_use_global_heap", lambda *args: True)
+    monkeypatch.setattr(symm_mem, "_all_ranks_support", lambda _, value: value)
+    monkeypatch.setattr(symm_mem.torch_symm_mem, "is_nvshmem_available", lambda: True)
+    monkeypatch.setattr(symm_mem.torch_symm_mem, "get_backend", lambda _: "NVSHMEM")
+    monkeypatch.setattr(
+        symm_mem.torch_symm_mem,
+        "set_backend",
+        lambda _: pytest.fail("vLLM must not mutate the process-global backend"),
+    )
+    monkeypatch.setattr(
+        symm_mem.torch_symm_mem, "empty", lambda *args, **kwargs: object()
+    )
+    monkeypatch.setattr(
+        symm_mem.torch_symm_mem,
+        "rendezvous",
+        lambda *args, **kwargs: SimpleNamespace(
+            multicast_ptr=0,
+            buffer_ptrs=[1, 2],
+            signal_pad_ptrs=[3, 4],
+        ),
+    )
+
+    communicator = SymmMemCommunicator(
+        SimpleNamespace(group_name="test"),
+        "cuda:0",
+    )
+
+    assert not communicator.disabled
+    assert not communicator.multimem_supported
+
+
+def test_rocm_unsupported_world_size_does_not_change_backend(monkeypatch):
+    monkeypatch.setattr(symm_mem, "symm_mem_available", True)
+    monkeypatch.setattr(
+        symm_mem,
+        "current_platform",
+        SimpleNamespace(
+            is_cuda=lambda: False,
+            is_rocm=lambda: True,
+            get_device_capability=lambda: SimpleNamespace(
+                as_version_str=lambda: "12.0"
+            ),
+        ),
+    )
+    monkeypatch.setattr(symm_mem.torch.accelerator, "set_device_index", lambda _: None)
+    monkeypatch.setattr(symm_mem.dist, "get_world_size", lambda _: 3)
+    monkeypatch.setattr(
+        symm_mem.torch_symm_mem,
+        "set_backend",
+        lambda _: pytest.fail("unsupported groups must not change the backend"),
+    )
+
+    communicator = SymmMemCommunicator(
+        SimpleNamespace(group_name="test"),
+        "cuda:0",
+    )
+
+    assert communicator.disabled
+
+
+@pytest.mark.parametrize("backend", ["CUDA", "NCCL"])
+def test_rocm_conflicting_backend_disables_communicator(monkeypatch, backend):
+    monkeypatch.setattr(symm_mem, "symm_mem_available", True)
+    monkeypatch.setattr(
+        symm_mem,
+        "current_platform",
+        SimpleNamespace(
+            is_cuda=lambda: False,
+            is_rocm=lambda: True,
+            get_device_capability=lambda: SimpleNamespace(
+                as_version_str=lambda: "12.0"
+            ),
+        ),
+    )
+    monkeypatch.setattr(symm_mem.torch.accelerator, "set_device_index", lambda _: None)
+    monkeypatch.setattr(symm_mem.dist, "get_world_size", lambda _: 2)
+    monkeypatch.setattr(symm_mem, "_rocm_group_can_use_global_heap", lambda *args: True)
+    monkeypatch.setattr(symm_mem, "_all_ranks_support", lambda _, value: value)
+    monkeypatch.setattr(symm_mem.torch_symm_mem, "is_nvshmem_available", lambda: True)
+    monkeypatch.setattr(symm_mem.torch_symm_mem, "get_backend", lambda _: backend)
+    monkeypatch.setattr(
+        symm_mem.torch_symm_mem,
+        "set_backend",
+        lambda _: pytest.fail("configured backends must not be overwritten"),
+    )
+
+    communicator = SymmMemCommunicator(
+        SimpleNamespace(group_name="test"),
+        "cuda:0",
+    )
+
+    assert communicator.disabled
+
+
+def test_rocm_subgroup_does_not_use_global_rocshmem_heap(monkeypatch):
+    monkeypatch.setattr(symm_mem, "symm_mem_available", True)
+    monkeypatch.setattr(
+        symm_mem,
+        "current_platform",
+        SimpleNamespace(
+            is_cuda=lambda: False,
+            is_rocm=lambda: True,
+            get_device_capability=lambda: SimpleNamespace(
+                as_version_str=lambda: "12.0"
+            ),
+        ),
+    )
+    monkeypatch.setattr(symm_mem.torch.accelerator, "set_device_index", lambda _: None)
+    monkeypatch.setattr(symm_mem.dist, "get_world_size", lambda _: 2)
+    monkeypatch.setattr(
+        symm_mem, "_rocm_group_can_use_global_heap", lambda *args: False
+    )
+    monkeypatch.setattr(
+        symm_mem.torch_symm_mem,
+        "get_backend",
+        lambda _: pytest.fail("subgroups must return before inspecting the backend"),
+    )
+
+    communicator = SymmMemCommunicator(
+        SimpleNamespace(group_name="test"),
+        "cuda:0",
+    )
+
+    assert communicator.disabled
+
+
+def test_rocm_null_peer_pointer_disables_communicator(monkeypatch):
+    monkeypatch.setattr(symm_mem, "symm_mem_available", True)
+    monkeypatch.setattr(
+        symm_mem,
+        "current_platform",
+        SimpleNamespace(
+            is_cuda=lambda: False,
+            is_rocm=lambda: True,
+            get_device_capability=lambda: SimpleNamespace(
+                as_version_str=lambda: "12.0"
+            ),
+        ),
+    )
+    monkeypatch.setattr(symm_mem.torch.accelerator, "set_device_index", lambda _: None)
+    monkeypatch.setattr(symm_mem.dist, "get_world_size", lambda _: 2)
+    monkeypatch.setattr(symm_mem, "_rocm_group_can_use_global_heap", lambda *args: True)
+    monkeypatch.setattr(symm_mem, "_all_ranks_support", lambda _, value: value)
+    monkeypatch.setattr(symm_mem.torch_symm_mem, "is_nvshmem_available", lambda: True)
+    monkeypatch.setattr(symm_mem.torch_symm_mem, "get_backend", lambda _: "NVSHMEM")
+    monkeypatch.setattr(
+        symm_mem.torch_symm_mem, "empty", lambda *args, **kwargs: object()
+    )
+    monkeypatch.setattr(
+        symm_mem.torch_symm_mem,
+        "rendezvous",
+        lambda *args, **kwargs: SimpleNamespace(
+            multicast_ptr=0,
+            buffer_ptrs=[1, 0],
+            signal_pad_ptrs=[2, 3],
+        ),
+    )
+
+    communicator = SymmMemCommunicator(
+        SimpleNamespace(group_name="test"),
+        "cuda:0",
+    )
+
+    assert communicator.disabled
+    assert communicator.buffer is None
+
+
+def test_rocm_initialization_failure_is_not_rank_local_fallback(monkeypatch):
+    monkeypatch.setattr(symm_mem, "symm_mem_available", True)
+    monkeypatch.setattr(
+        symm_mem,
+        "current_platform",
+        SimpleNamespace(
+            is_cuda=lambda: False,
+            is_rocm=lambda: True,
+            get_device_capability=lambda: SimpleNamespace(
+                as_version_str=lambda: "12.0"
+            ),
+        ),
+    )
+    monkeypatch.setattr(symm_mem.torch.accelerator, "set_device_index", lambda _: None)
+    monkeypatch.setattr(symm_mem.dist, "get_world_size", lambda _: 2)
+    monkeypatch.setattr(symm_mem, "_rocm_group_can_use_global_heap", lambda *args: True)
+    monkeypatch.setattr(symm_mem, "_all_ranks_support", lambda _, value: value)
+    monkeypatch.setattr(symm_mem.torch_symm_mem, "is_nvshmem_available", lambda: True)
+    monkeypatch.setattr(symm_mem.torch_symm_mem, "get_backend", lambda _: "NVSHMEM")
+    monkeypatch.setattr(
+        symm_mem.torch_symm_mem,
+        "empty",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            RuntimeError("allocation failed")
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="All ranks must terminate"):
+        SymmMemCommunicator(
+            SimpleNamespace(group_name="test"),
+            "cuda:0",
+        )
+
+
+def test_rocm_symm_mem_all_reduce_uses_two_shot(monkeypatch):
+    communicator = object.__new__(SymmMemCommunicator)
+    communicator.disabled = False
+    communicator.dtype = torch.bfloat16
+    communicator.buffer = torch.empty(8, dtype=torch.bfloat16)
+    communicator.max_size = communicator.buffer.nbytes
+    communicator.world_size = 2
+    communicator.group = SimpleNamespace(group_name="test")
+    communicator.force_multimem = True
+    communicator.multimem_supported = False
+    calls = []
+
+    def two_shot(buffer, reduce_op, group_name):
+        calls.append((reduce_op, group_name))
+        buffer.add_(1)
+
+    monkeypatch.setattr(torch.ops.symm_mem, "two_shot_all_reduce_", two_shot)
+    monkeypatch.setattr(
+        torch.ops.symm_mem,
+        "multimem_all_reduce_",
+        lambda *args, **kwargs: pytest.fail("ROCm must not use multimem"),
+    )
+
+    output = communicator.all_reduce(torch.ones(8, dtype=torch.bfloat16))
+
+    assert calls == [("sum", "test")]
+    torch.testing.assert_close(output, torch.full((8,), 2, dtype=torch.bfloat16))
+
+
+def test_rocm_symm_mem_max_size_boundary():
+    communicator = object.__new__(SymmMemCommunicator)
+    communicator.disabled = False
+    communicator.dtype = torch.bfloat16
+    communicator.max_size = 4 * 1024 * 1024
+
+    assert communicator.should_use_symm_mem(
+        torch.empty(communicator.max_size // 2, dtype=torch.bfloat16)
+    )
+    assert not communicator.should_use_symm_mem(
+        torch.empty(communicator.max_size // 2 + 1, dtype=torch.bfloat16)
+    )
 
 
 def symm_mem_allreduce_worker(local_rank: int, world_size: int, q: mp.Queue):
@@ -95,12 +384,15 @@ def symm_mem_allreduce_worker(local_rank: int, world_size: int, q: mp.Queue):
 
 
 @pytest.mark.skipif(
-    not current_platform.is_cuda(),
-    reason="SymmMemAllreduce is only available for CUDA platforms.",
+    not (current_platform.is_cuda() or current_platform.is_rocm()),
+    reason="SymmMemAllreduce requires a CUDA or ROCm platform.",
 )
 @pytest.mark.parametrize("tp_size", [2])
 @pytest.mark.parametrize("pipeline_parallel_size", [1])
-@pytest.mark.skipif(envs.VLLM_TARGET_DEVICE not in ["cuda"], reason="Only test on CUDA")
+@pytest.mark.skipif(
+    envs.VLLM_TARGET_DEVICE not in ["cuda", "rocm"],
+    reason="Only test on CUDA or ROCm",
+)
 def test_symm_mem_allreduce(
     monkeypatch: pytest.MonkeyPatch, tp_size, pipeline_parallel_size
 ):
@@ -116,14 +408,19 @@ def test_symm_mem_allreduce(
     finally:
         cleanup_dist_env_and_memory()
         if val is not None:
+            if current_platform.is_rocm():
+                pytest.fail(val)
             pytest.skip(val)
 
 
 @pytest.mark.skipif(
-    not current_platform.is_cuda(),
-    reason="SymmMemAllreduce is only available for CUDA platforms.",
+    not (current_platform.is_cuda() or current_platform.is_rocm()),
+    reason="SymmMemAllreduce requires a CUDA or ROCm platform.",
 )
-@pytest.mark.skipif(envs.VLLM_TARGET_DEVICE not in ["cuda"], reason="Only test on CUDA")
+@pytest.mark.skipif(
+    envs.VLLM_TARGET_DEVICE not in ["cuda", "rocm"],
+    reason="Only test on CUDA or ROCm",
+)
 def test_dp_with_symm_mem_allreduce(monkeypatch: pytest.MonkeyPatch):
     world_size = 4
     if world_size > torch.accelerator.device_count():
