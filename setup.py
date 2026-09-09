@@ -334,7 +334,11 @@ class cmake_build_ext(build_ext):
         targets = []
 
         def target_name(s: str) -> str:
-            return s.removeprefix("vllm.").removeprefix("vllm_flash_attn.")
+            return (
+                s.removeprefix("vllm.")
+                .removeprefix("vllm_flash_attn.")
+                .removeprefix("vllm_xpu_kernels.")
+            )
 
         # Build all the extensions
         for ext in self.extensions:
@@ -1355,6 +1359,16 @@ if _is_cuda() or _is_hip():
 if not _is_xpu():
     ext_modules.append(CMakeExtension(name="vllm.spinloop"))
     ext_modules.append(CMakeExtension(name="vllm.fs_io_C"))
+else:
+    ext_modules.extend(
+        [
+            CMakeExtension(name="vllm_xpu_kernels._C"),
+            CMakeExtension(name="vllm_xpu_kernels._vllm_fa2_C"),
+            CMakeExtension(name="vllm_xpu_kernels._moe_C"),
+            CMakeExtension(name="vllm_xpu_kernels._xpu_C"),
+            CMakeExtension(name="vllm_xpu_kernels.xpumem_allocator"),
+        ]
+    )
 
 if _is_hip():
     ext_modules.append(CMakeExtension(name="vllm._rocm_C"))

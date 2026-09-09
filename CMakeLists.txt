@@ -171,6 +171,8 @@ if (NOT VLLM_TARGET_DEVICE STREQUAL "cuda" AND
     NOT VLLM_TARGET_DEVICE STREQUAL "rocm")
     if (VLLM_TARGET_DEVICE STREQUAL "cpu")
         include(${CMAKE_CURRENT_LIST_DIR}/cmake/cpu_extension.cmake)
+    elseif(VLLM_TARGET_DEVICE STREQUAL "xpu")
+        include(${CMAKE_CURRENT_LIST_DIR}/cmake/external_projects/vllm_xpu_kernels.cmake)
     else()
         return()
     endif()
