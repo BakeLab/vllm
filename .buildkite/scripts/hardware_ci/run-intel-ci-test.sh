@@ -5,11 +5,30 @@ set -euo pipefail
 test_suite="${1:-}"
 
 if [[ -z "${test_suite}" ]]; then
-  echo "Usage: $0 <example|w8a8-fp8-linear|v1|server|quantization|compressed-tensors-fp8|graph>" >&2
+  echo "Usage: $0 <bmg-smoke|example|w8a8-fp8-linear|v1|server|quantization|compressed-tensors-fp8|graph>" >&2
   exit 1
 fi
 
 case "${test_suite}" in
+  bmg-smoke)
+    python3 - <<'PY'
+import torch
+
+if not torch.xpu.is_available():
+    raise RuntimeError("XPU device is not available")
+
+device_name = torch.xpu.get_device_name(0)
+x = torch.randn(32, 32, device="xpu")
+torch.testing.assert_close((x @ x).cpu(), x.cpu() @ x.cpu())
+print(f"XPU smoke device: {device_name}")
+PY
+
+    python3 examples/basic/offline_inference/generate.py \
+      --model Qwen/Qwen3-0.6B \
+      --max-model-len 128 \
+      --max-tokens 1 \
+      --enforce-eager
+    ;;
   example)
     pip install tblib==3.1.0
 

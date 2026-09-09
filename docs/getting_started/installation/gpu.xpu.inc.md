@@ -51,15 +51,28 @@ uv pip install vllm --extra-index-url https://wheels.vllm.ai/${VLLM_COMMIT}/xpu 
 ```bash
 git clone https://github.com/vllm-project/vllm.git
 cd vllm
-pip install --upgrade pip
-pip install -v -r requirements/xpu.txt
+uv venv --python 3.12
+source .venv/bin/activate
+export PYTORCH_INDEX_URL=https://download.pytorch.org/whl/xpu
+export PYTORCH_VERSION=2.13.0
+export XPU_RUNTIME_INDEX_URL=https://download.pytorch.org/whl/xpu
+uv pip install --index-url "${PYTORCH_INDEX_URL}" "torch==${PYTORCH_VERSION}"
+uv pip install -v -r requirements/xpu.txt \
+    --extra-index-url "${PYTORCH_INDEX_URL}" \
+    --extra-index-url "${XPU_RUNTIME_INDEX_URL}" \
+    --index-strategy unsafe-best-match
 ```
 
 - Then, install vLLM XPU backend:
 
 ```bash
-VLLM_TARGET_DEVICE=xpu pip install --no-build-isolation -e . -v
+VLLM_TARGET_DEVICE=xpu uv pip install --no-build-isolation -e . -v
 ```
+
+Set `PYTORCH_INDEX_URL` and `PYTORCH_VERSION` to use a compatible custom XPU
+PyTorch build. `XPU_RUNTIME_INDEX_URL` remains the source for packages such as
+`triton-xpu`. The XPU Dockerfile and release jobs accept the same values as
+build arguments.
 
 !!! note
     `requirements/xpu.txt` pins `triton==3.7.2+xpu`, a compatibility shim

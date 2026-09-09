@@ -170,7 +170,7 @@ steps:
         agents:
           queue: cpu_queue_release
         commands:
-          - "DOCKER_BUILDKIT=1 docker build --build-arg max_jobs=16 --build-arg GIT_REPO_CHECK=1 --tag vllm-ci:build-image --target vllm-build --progress plain -f docker/Dockerfile.xpu ."
+          - "DOCKER_BUILDKIT=1 docker build --build-arg max_jobs=16 --build-arg GIT_REPO_CHECK=1 --build-arg PYTORCH_INDEX_URL=\"$${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/xpu}\" --build-arg PYTORCH_VERSION=\"$${PYTORCH_VERSION:-2.13.0}\" --build-arg XPU_RUNTIME_INDEX_URL=\"$${XPU_RUNTIME_INDEX_URL:-https://download.pytorch.org/whl/xpu}\" --tag vllm-ci:build-image --target vllm-build --progress plain -f docker/Dockerfile.xpu ."
           - "mkdir artifacts"
           - "docker run --rm -v $(pwd)/artifacts:/artifacts_host vllm-ci:build-image bash -c 'cp -r dist /artifacts_host && chmod -R a+rw /artifacts_host'"
           - "bash .buildkite/scripts/upload-nightly-wheels.sh"
@@ -431,6 +431,9 @@ steps:
             DOCKER_BUILDKIT=1 docker build \
               $(bash .buildkite/scripts/docker-build-metadata-args.sh xpu) \
               --build-arg GIT_REPO_CHECK=1 \
+              --build-arg PYTORCH_INDEX_URL="$${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/xpu}" \
+              --build-arg PYTORCH_VERSION="$${PYTORCH_VERSION:-2.13.0}" \
+              --build-arg XPU_RUNTIME_INDEX_URL="$${XPU_RUNTIME_INDEX_URL:-https://download.pytorch.org/whl/xpu}" \
               --target vllm-openai \
               --progress plain \
               -f docker/Dockerfile.xpu .

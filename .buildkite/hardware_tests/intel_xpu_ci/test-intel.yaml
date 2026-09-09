@@ -1,5 +1,28 @@
 group: Intel
 steps:
+  - label: "XPU BMG smoke test"
+    key: xpu-bmg-smoke-test
+    depends_on:
+      - image-build-xpu
+    timeout_in_minutes: 20
+    optional: true
+    device: intel_gpu
+    agent_tags:
+      label: production
+      gpu: 1+
+      mem: 16+
+    no_plugin: true
+    env:
+      REGISTRY: "public.ecr.aws/q9t5s3a7"
+      REPO: "vllm-ci-test-repo"
+    source_file_dependencies:
+      - .buildkite/hardware_tests/intel_xpu_ci/test-intel.yaml
+      - .buildkite/scripts/hardware_ci/run-intel-ci-test.sh
+      - requirements/xpu.txt
+    commands:
+      - >-
+        bash .buildkite/scripts/hardware_ci/run-intel-test.sh
+        'bash .buildkite/scripts/hardware_ci/run-intel-ci-test.sh bmg-smoke'
   - label: ":docker: Build XPU image"
     soft_fail: true
     optional: true

@@ -7,6 +7,9 @@ from typing import TYPE_CHECKING
 
 import torch
 
+if "ONEAPI_ROOT" not in os.environ and os.path.isdir("/opt/intel/oneapi"):
+    os.environ["ONEAPI_ROOT"] = "/opt/intel/oneapi"
+
 # import custom ops, trigger op registration
 import vllm_xpu_kernels._C  # noqa
 import vllm_xpu_kernels._moe_C  # noqa

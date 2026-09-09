@@ -25,6 +25,9 @@ else
     --file docker/Dockerfile.xpu \
     --build-arg max_jobs=16 \
     --build-arg buildkite_commit="$BUILDKITE_COMMIT" \
+    --build-arg PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/xpu}" \
+    --build-arg PYTORCH_VERSION="${PYTORCH_VERSION:-2.13.0}" \
+    --build-arg XPU_RUNTIME_INDEX_URL="${XPU_RUNTIME_INDEX_URL:-https://download.pytorch.org/whl/xpu}" \
     --tag "$IMAGE" \
     --progress plain .
   # push
