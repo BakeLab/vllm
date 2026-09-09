@@ -34,6 +34,34 @@ set(VLLM_TARGET_DEVICE "cuda" CACHE STRING "Target device backend for vLLM")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Target device: ${VLLM_TARGET_DEVICE}")
 
+include(CheckCXXCompilerFlag)
+set(_vllm_x86_baseline_default "")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(AMD64|x86_64)$" AND
+   NOT CMAKE_CROSSCOMPILING)
+  cmake_host_system_information(
+      RESULT _vllm_processor_description QUERY PROCESSOR_DESCRIPTION)
+  if(_vllm_processor_description MATCHES "(^| )AMD( |$)")
+    set(_vllm_x86_baseline_default "znver4")
+  endif()
+  unset(_vllm_processor_description)
+endif()
+set(VLLM_X86_BASELINE "${_vllm_x86_baseline_default}" CACHE STRING
+    "-march baseline for x86 builds")
+if(VLLM_X86_BASELINE)
+  check_cxx_compiler_flag(
+      "-march=${VLLM_X86_BASELINE}" VLLM_COMPILER_SUPPORTS_X86_BASELINE)
+  if(NOT VLLM_COMPILER_SUPPORTS_X86_BASELINE)
+    message(FATAL_ERROR
+        "Compiler does not support -march=${VLLM_X86_BASELINE}")
+  endif()
+  string(APPEND CMAKE_CXX_FLAGS " -march=${VLLM_X86_BASELINE}")
+  if(VLLM_TARGET_DEVICE STREQUAL "rocm")
+    string(APPEND CMAKE_HIP_FLAGS
+        " -Xarch_host -march=${VLLM_X86_BASELINE}")
+  endif()
+endif()
+unset(_vllm_x86_baseline_default)
+
 include(${CMAKE_CURRENT_LIST_DIR}/cmake/utils.cmake)
 
 # Suppress potential warnings about unused manually-specified variables
