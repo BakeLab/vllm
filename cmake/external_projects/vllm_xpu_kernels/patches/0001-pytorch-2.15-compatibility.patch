@@ -1,0 +1,278 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9cda28a..9d990b3 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -47 +47 @@ set(SYCL_SUPPORTED_ARCHS "intel_gpu_pvc;intel_gpu_bmg_g21;intel_gpu_bmg_g31")
+-set(TORCH_SUPPORTED_VERSION_XPU "2.13.0")
++set(TORCH_SUPPORTED_VERSION_XPU "2.15.0")
+@@ -288 +288,2 @@ if(VLLM_GPU_LANG STREQUAL "SYCL")
+-  set(SYCL_COMPILE_FLAGS ${SYCL_COMPILE_FLAGS} "-O3" "-DNDEBUG")
++  set(SYCL_COMPILE_FLAGS ${SYCL_COMPILE_FLAGS} "-O3" "-DNDEBUG"
++                         "-std=gnu++23")
+diff --git a/csrc/activation.cpp b/csrc/activation.cpp
+index 5395206..9771f03 100644
+--- a/csrc/activation.cpp
++++ b/csrc/activation.cpp
+@@ -8,2 +8,2 @@
+-#include <c10/util/Float8_e4m3fn.h>
+-#include <c10/util/Float8_e5m2.h>
++#include <torch/headeronly/util/Float8_e4m3fn.h>
++#include <torch/headeronly/util/Float8_e5m2.h>
+diff --git a/csrc/layernorm_quant.cpp b/csrc/layernorm_quant.cpp
+index 74fffd3..a10fb43 100644
+--- a/csrc/layernorm_quant.cpp
++++ b/csrc/layernorm_quant.cpp
+@@ -8,2 +8,2 @@
+-#include <c10/util/Float8_e4m3fn.h>
+-#include <c10/util/Float8_e5m2.h>
++#include <torch/headeronly/util/Float8_e4m3fn.h>
++#include <torch/headeronly/util/Float8_e5m2.h>
+diff --git a/csrc/moe/moe_ops.h b/csrc/moe/moe_ops.h
+index 9d85185..137f2a4 100755
+--- a/csrc/moe/moe_ops.h
++++ b/csrc/moe/moe_ops.h
+@@ -79,4 +79,4 @@ void topk_softplus_sqrt(
+-    const c10::optional<torch::Tensor>& correction_bias,
+-    const c10::optional<torch::Tensor>& input_ids,
+-    const c10::optional<torch::Tensor>& tid2eid,
+-    const c10::optional<torch::Tensor>& is_padding);
++    const std::optional<torch::Tensor>& correction_bias,
++    const std::optional<torch::Tensor>& input_ids,
++    const std::optional<torch::Tensor>& tid2eid,
++    const std::optional<torch::Tensor>& is_padding);
+@@ -99 +99 @@ void remap_hidden_states(
+-    const c10::optional<torch::Tensor>& hidden_states_scales,
++    const std::optional<torch::Tensor>& hidden_states_scales,
+@@ -101,2 +101,2 @@ void remap_hidden_states(
+-    const c10::optional<torch::Tensor>& remapped_hidden_states_scales,
+-    const c10::optional<torch::Tensor>& expert_map,
++    const std::optional<torch::Tensor>& remapped_hidden_states_scales,
++    const std::optional<torch::Tensor>& expert_map,
+diff --git a/csrc/moe/remap_hidden_states.cpp b/csrc/moe/remap_hidden_states.cpp
+index 19bb60f..e923b2b 100644
+--- a/csrc/moe/remap_hidden_states.cpp
++++ b/csrc/moe/remap_hidden_states.cpp
+@@ -417 +417 @@ void remap_hidden_states(
+-    const c10::optional<torch::Tensor>&
++    const std::optional<torch::Tensor>&
+@@ -421 +421 @@ void remap_hidden_states(
+-    const c10::optional<torch::Tensor>&
++    const std::optional<torch::Tensor>&
+@@ -424 +424 @@ void remap_hidden_states(
+-    const c10::optional<torch::Tensor>& expert_map,  // [total_experts_num]
++    const std::optional<torch::Tensor>& expert_map,  // [total_experts_num]
+diff --git a/csrc/moe/topk_softplus_sqrt_kernels.cpp b/csrc/moe/topk_softplus_sqrt_kernels.cpp
+index 4e70f13..caaaf0c 100644
+--- a/csrc/moe/topk_softplus_sqrt_kernels.cpp
++++ b/csrc/moe/topk_softplus_sqrt_kernels.cpp
+@@ -627,4 +627,4 @@ void dispatch_topk_softplus_sqrt_launch(
+-    const c10::optional<torch::Tensor>& correction_bias,
+-    const c10::optional<torch::Tensor>& input_ids,
+-    const c10::optional<torch::Tensor>& tid2eid,
+-    const c10::optional<torch::Tensor>& is_padding,
++    const std::optional<torch::Tensor>& correction_bias,
++    const std::optional<torch::Tensor>& input_ids,
++    const std::optional<torch::Tensor>& tid2eid,
++    const std::optional<torch::Tensor>& is_padding,
+@@ -749,4 +749,4 @@ void topk_softplus_sqrt(
+-    const c10::optional<torch::Tensor>& correction_bias,
+-    const c10::optional<torch::Tensor>& input_ids,
+-    const c10::optional<torch::Tensor>& tid2eid,
+-    const c10::optional<torch::Tensor>& is_padding) {
++    const std::optional<torch::Tensor>& correction_bias,
++    const std::optional<torch::Tensor>& input_ids,
++    const std::optional<torch::Tensor>& tid2eid,
++    const std::optional<torch::Tensor>& is_padding) {
+diff --git a/csrc/quantization/fp8/fp8_quant.h b/csrc/quantization/fp8/fp8_quant.h
+index 2b36089..72aa761 100644
+--- a/csrc/quantization/fp8/fp8_quant.h
++++ b/csrc/quantization/fp8/fp8_quant.h
+@@ -6,2 +6,2 @@
+-#include <c10/util/Float8_e4m3fn.h>
+-#include <c10/util/Float8_e5m2.h>
++#include <torch/headeronly/util/Float8_e4m3fn.h>
++#include <torch/headeronly/util/Float8_e5m2.h>
+diff --git a/csrc/quantization/fp8/quant_utils.h b/csrc/quantization/fp8/quant_utils.h
+index 7b214c0..eee858a 100644
+--- a/csrc/quantization/fp8/quant_utils.h
++++ b/csrc/quantization/fp8/quant_utils.h
+@@ -5,2 +5,2 @@
+-#include <c10/util/Float8_e4m3fn.h>
+-#include <c10/util/Float8_e5m2.h>
++#include <torch/headeronly/util/Float8_e4m3fn.h>
++#include <torch/headeronly/util/Float8_e5m2.h>
+diff --git a/csrc/sycl_first.h b/csrc/sycl_first.h
+index 6b8f7d4..8eed648 100644
+--- a/csrc/sycl_first.h
++++ b/csrc/sycl_first.h
+@@ -1,0 +2,2 @@
++
++#include <optional>
+diff --git a/csrc/utils/mem_cpy.cpp b/csrc/utils/mem_cpy.cpp
+index b49a482..ca7ef0e 100644
+--- a/csrc/utils/mem_cpy.cpp
++++ b/csrc/utils/mem_cpy.cpp
+@@ -1 +1 @@
+-#include <ATen/xpu/CachingHostAllocator.h>
++#include <ATen/core/CachingHostAllocator.h>
+diff --git a/csrc/xpu/grouped_gemm/grouped_gemm_interface.cpp b/csrc/xpu/grouped_gemm/grouped_gemm_interface.cpp
+index 4faaddc..a09a1bf 100644
+--- a/csrc/xpu/grouped_gemm/grouped_gemm_interface.cpp
++++ b/csrc/xpu/grouped_gemm/grouped_gemm_interface.cpp
+@@ -14 +14 @@ torch::Tensor cutlass_grouped_gemm_interface(
+-    const c10::optional<at::Tensor>& ptr_A_scale,
++    const std::optional<at::Tensor>& ptr_A_scale,
+@@ -16,2 +16,2 @@ torch::Tensor cutlass_grouped_gemm_interface(
+-    const c10::optional<at::Tensor>& ptr_B_scale,
+-    const c10::optional<at::Tensor>& ptr_bias,
++    const std::optional<at::Tensor>& ptr_B_scale,
++    const std::optional<at::Tensor>& ptr_bias,
+diff --git a/csrc/xpu/grouped_gemm/grouped_gemm_interface.h b/csrc/xpu/grouped_gemm/grouped_gemm_interface.h
+index c820fed..240091c 100644
+--- a/csrc/xpu/grouped_gemm/grouped_gemm_interface.h
++++ b/csrc/xpu/grouped_gemm/grouped_gemm_interface.h
+@@ -5 +5 @@ torch::Tensor cutlass_grouped_gemm_interface(
+-    const c10::optional<at::Tensor>& ptr_A_scale,
++    const std::optional<at::Tensor>& ptr_A_scale,
+@@ -7,2 +7,2 @@ torch::Tensor cutlass_grouped_gemm_interface(
+-    const c10::optional<at::Tensor>& ptr_B_scale,
+-    const c10::optional<at::Tensor>& ptr_bias,
++    const std::optional<at::Tensor>& ptr_B_scale,
++    const std::optional<at::Tensor>& ptr_bias,
+diff --git a/csrc/xpu/grouped_gemm/xe_2/grouped_gemm_xe2.cpp b/csrc/xpu/grouped_gemm/xe_2/grouped_gemm_xe2.cpp
+index 364b29a..420896b 100644
+--- a/csrc/xpu/grouped_gemm/xe_2/grouped_gemm_xe2.cpp
++++ b/csrc/xpu/grouped_gemm/xe_2/grouped_gemm_xe2.cpp
+@@ -8,2 +8,2 @@ torch::Tensor cutlass_grouped_gemm_xe2(
+-    const c10::optional<at::Tensor>& ptr_scales,
+-    const c10::optional<at::Tensor>& ptr_bias,
++    const std::optional<at::Tensor>& ptr_scales,
++    const std::optional<at::Tensor>& ptr_bias,
+diff --git a/csrc/xpu/grouped_gemm/xe_2/grouped_gemm_xe2.h b/csrc/xpu/grouped_gemm/xe_2/grouped_gemm_xe2.h
+index e37a5a3..e29f9e3 100644
+--- a/csrc/xpu/grouped_gemm/xe_2/grouped_gemm_xe2.h
++++ b/csrc/xpu/grouped_gemm/xe_2/grouped_gemm_xe2.h
+@@ -6,2 +6,2 @@ torch::Tensor cutlass_grouped_gemm_xe2(
+-    const c10::optional<at::Tensor>& ptr_scales,
+-    const c10::optional<at::Tensor>& ptr_bias,
++    const std::optional<at::Tensor>& ptr_scales,
++    const std::optional<at::Tensor>& ptr_bias,
+diff --git a/csrc/xpu/grouped_gemm/xe_2/grouped_gemm_xe2_interface.hpp b/csrc/xpu/grouped_gemm/xe_2/grouped_gemm_xe2_interface.hpp
+index c8ded43..6f55515 100644
+--- a/csrc/xpu/grouped_gemm/xe_2/grouped_gemm_xe2_interface.hpp
++++ b/csrc/xpu/grouped_gemm/xe_2/grouped_gemm_xe2_interface.hpp
+@@ -180,2 +180,2 @@ at::Tensor cutlass_grouped_gemm_xe2_impl(
+-    const c10::optional<at::Tensor>& ptr_scales,
+-    const c10::optional<at::Tensor>& ptr_bias,
++    const std::optional<at::Tensor>& ptr_scales,
++    const std::optional<at::Tensor>& ptr_bias,
+@@ -405,2 +405,2 @@ at::Tensor cutlass_grouped_gemm_xe2_impl(
+-    c10::optional<at::Tensor> scales_opt = scales_nk;
+-    const c10::optional<at::Tensor>& ptr_scales_mx = scales_opt;
++    std::optional<at::Tensor> scales_opt = scales_nk;
++    const std::optional<at::Tensor>& ptr_scales_mx = scales_opt;
+diff --git a/csrc/xpu/grouped_gemm/xe_default/grouped_gemm.hpp b/csrc/xpu/grouped_gemm/xe_default/grouped_gemm.hpp
+index 6286a09..2b1df13 100644
+--- a/csrc/xpu/grouped_gemm/xe_default/grouped_gemm.hpp
++++ b/csrc/xpu/grouped_gemm/xe_default/grouped_gemm.hpp
+@@ -35 +35 @@ at::Tensor grouped_gemm_func(
+-    const c10::optional<at::Tensor>& ptr_bias,
++    const std::optional<at::Tensor>& ptr_bias,
+diff --git a/csrc/xpu/grouped_gemm/xe_default/grouped_gemm_xe_default.cpp b/csrc/xpu/grouped_gemm/xe_default/grouped_gemm_xe_default.cpp
+index bf57202..1182108 100644
+--- a/csrc/xpu/grouped_gemm/xe_default/grouped_gemm_xe_default.cpp
++++ b/csrc/xpu/grouped_gemm/xe_default/grouped_gemm_xe_default.cpp
+@@ -8 +8 @@ torch::Tensor cutlass_grouped_gemm_xe_default(
+-    const c10::optional<at::Tensor>& ptr_bias,
++    const std::optional<at::Tensor>& ptr_bias,
+diff --git a/csrc/xpu/grouped_gemm/xe_default/grouped_gemm_xe_default.h b/csrc/xpu/grouped_gemm/xe_default/grouped_gemm_xe_default.h
+index a1acccf..f22595e 100644
+--- a/csrc/xpu/grouped_gemm/xe_default/grouped_gemm_xe_default.h
++++ b/csrc/xpu/grouped_gemm/xe_default/grouped_gemm_xe_default.h
+@@ -6 +6 @@ torch::Tensor cutlass_grouped_gemm_xe_default(
+-    const c10::optional<at::Tensor>& ptr_bias,
++    const std::optional<at::Tensor>& ptr_bias,
+diff --git a/csrc/xpu/mqa_logits/mqa_logits_interface.cpp b/csrc/xpu/mqa_logits/mqa_logits_interface.cpp
+index 148406c..acf8859 100644
+--- a/csrc/xpu/mqa_logits/mqa_logits_interface.cpp
++++ b/csrc/xpu/mqa_logits/mqa_logits_interface.cpp
+@@ -159 +159 @@ torch::Tensor fp8_paged_mqa_logits(
+-    const c10::optional<at::Tensor>& schedule_metadata,
++    const std::optional<at::Tensor>& schedule_metadata,
+diff --git a/csrc/xpu/mqa_logits/mqa_logits_interface.h b/csrc/xpu/mqa_logits/mqa_logits_interface.h
+index b365c61..73f0c25 100644
+--- a/csrc/xpu/mqa_logits/mqa_logits_interface.h
++++ b/csrc/xpu/mqa_logits/mqa_logits_interface.h
+@@ -19 +19 @@ torch::Tensor fp8_paged_mqa_logits(
+-    const c10::optional<at::Tensor>& schedule_metadata,
++    const std::optional<at::Tensor>& schedule_metadata,
+diff --git a/csrc/xpu/onednn/fp4_gemm_w4a4.h b/csrc/xpu/onednn/fp4_gemm_w4a4.h
+index 167597e..29e76dc 100644
+--- a/csrc/xpu/onednn/fp4_gemm_w4a4.h
++++ b/csrc/xpu/onednn/fp4_gemm_w4a4.h
+@@ -161 +161 @@ static inline void dnnl_matmul_w4a4_fp4(
+-      {scratchpad_size}, mat1.options().dtype(at::kByte), c10::nullopt);
++      {scratchpad_size}, mat1.options().dtype(at::kByte), std::nullopt);
+diff --git a/csrc/xpu/onednn/fp8_gemm_w8a16.h b/csrc/xpu/onednn/fp8_gemm_w8a16.h
+index 7f8f387..1789b1f 100644
+--- a/csrc/xpu/onednn/fp8_gemm_w8a16.h
++++ b/csrc/xpu/onednn/fp8_gemm_w8a16.h
+@@ -148 +148 @@ static inline void dnnl_matmul_w8a16_fp8(
+-      {scratchpad_size}, mat1.options().dtype(at::kByte), c10::nullopt);
++      {scratchpad_size}, mat1.options().dtype(at::kByte), std::nullopt);
+diff --git a/csrc/xpu/onednn/fp8_gemm_w8a8.h b/csrc/xpu/onednn/fp8_gemm_w8a8.h
+index ec3b833..95bcefa 100644
+--- a/csrc/xpu/onednn/fp8_gemm_w8a8.h
++++ b/csrc/xpu/onednn/fp8_gemm_w8a8.h
+@@ -187 +187 @@ static inline void dnnl_matmul_w8a8_fp8(
+-      {scratchpad_size}, mat1.options().dtype(at::kByte), c10::nullopt);
++      {scratchpad_size}, mat1.options().dtype(at::kByte), std::nullopt);
+@@ -439 +439 @@ static inline void dnnl_batch_matmul_w8a8_fp8(
+-      {scratchpad_size}, mat1.options().dtype(at::kByte), c10::nullopt);
++      {scratchpad_size}, mat1.options().dtype(at::kByte), std::nullopt);
+diff --git a/csrc/xpu/onednn/int4_gemm_w4a16.h b/csrc/xpu/onednn/int4_gemm_w4a16.h
+index 88cff6b..de21207 100644
+--- a/csrc/xpu/onednn/int4_gemm_w4a16.h
++++ b/csrc/xpu/onednn/int4_gemm_w4a16.h
+@@ -156 +156 @@ static inline void dnnl_matmul_w4a16_int4(
+-      {scratchpad_size}, mat1.options().dtype(at::kByte), c10::nullopt);
++      {scratchpad_size}, mat1.options().dtype(at::kByte), std::nullopt);
+diff --git a/csrc/xpu/onednn/int4_gemm_w4a8.h b/csrc/xpu/onednn/int4_gemm_w4a8.h
+index 726f665..4a05e39 100644
+--- a/csrc/xpu/onednn/int4_gemm_w4a8.h
++++ b/csrc/xpu/onednn/int4_gemm_w4a8.h
+@@ -200 +200 @@ static inline void dnnl_matmul_w4a8_int4(
+-      {scratchpad_size}, mat1.options().dtype(at::kByte), c10::nullopt);
++      {scratchpad_size}, mat1.options().dtype(at::kByte), std::nullopt);
+diff --git a/csrc/xpu/ops.h b/csrc/xpu/ops.h
+index d025b81..e2c035a 100644
+--- a/csrc/xpu/ops.h
++++ b/csrc/xpu/ops.h
+@@ -79 +79 @@ torch::Tensor cutlass_grouped_gemm_interface(
+-    const c10::optional<at::Tensor>& ptr_A_scale,
++    const std::optional<at::Tensor>& ptr_A_scale,
+@@ -81,2 +81,2 @@ torch::Tensor cutlass_grouped_gemm_interface(
+-    const c10::optional<at::Tensor>& ptr_B_scale,
+-    const c10::optional<at::Tensor>& ptr_bias,
++    const std::optional<at::Tensor>& ptr_B_scale,
++    const std::optional<at::Tensor>& ptr_bias,
+@@ -94 +94 @@ std::tuple<at::Tensor, at::Tensor> deepseek_scaling_rope(
+-    const c10::optional<at::Tensor>& offsets_opt,
++    const std::optional<at::Tensor>& offsets_opt,
+@@ -373 +373 @@ torch::Tensor fp8_paged_mqa_logits(
+-    const c10::optional<at::Tensor>& schedule_metadata,
++    const std::optional<at::Tensor>& schedule_metadata,
+diff --git a/csrc/xpu/sycl/deepseek_scaling_rope.cpp b/csrc/xpu/sycl/deepseek_scaling_rope.cpp
+index 227064e..f465ce5 100644
+--- a/csrc/xpu/sycl/deepseek_scaling_rope.cpp
++++ b/csrc/xpu/sycl/deepseek_scaling_rope.cpp
+@@ -277 +277 @@ std::tuple<torch::Tensor, torch::Tensor> deepseek_scaling_rope(
+-    const c10::optional<torch::Tensor>& offsets_opt,
++    const std::optional<torch::Tensor>& offsets_opt,
+diff --git a/csrc/xpu/sycl/fused_kv_compress_norm_rope_insert_sparse_attn.cpp b/csrc/xpu/sycl/fused_kv_compress_norm_rope_insert_sparse_attn.cpp
+index 3905d1b..11a737d 100644
+--- a/csrc/xpu/sycl/fused_kv_compress_norm_rope_insert_sparse_attn.cpp
++++ b/csrc/xpu/sycl/fused_kv_compress_norm_rope_insert_sparse_attn.cpp
+@@ -17 +17 @@
+-#include <c10/util/Float8_e4m3fn.h>
++#include <torch/headeronly/util/Float8_e4m3fn.h>

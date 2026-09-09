@@ -1,0 +1,44 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9cda28a..3900916 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -445 +445 @@ if(BUILD_SYCL_TLA_KERNELS)
+-    include_directories(${CMAKE_SOURCE_DIR}/csrc)
++    include_directories(${PROJECT_SOURCE_DIR}/csrc)
+@@ -469 +469 @@ if(BUILD_SYCL_TLA_KERNELS)
+-    include_directories(${CMAKE_SOURCE_DIR}/csrc)
++    include_directories(${PROJECT_SOURCE_DIR}/csrc)
+diff --git a/cmake/utils.cmake b/cmake/utils.cmake
+index 710f2be..244d9da 100644
+--- a/cmake/utils.cmake
++++ b/cmake/utils.cmake
+@@ -85 +85 @@ function(hipify_sources_target OUT_SRCS NAME ORIG_SRCS)
+-    COMMAND ${CMAKE_SOURCE_DIR}/cmake/hipify.py -p ${CMAKE_SOURCE_DIR}/csrc -o
++    COMMAND ${PROJECT_SOURCE_DIR}/cmake/hipify.py -p ${PROJECT_SOURCE_DIR}/csrc -o
+@@ -87 +87 @@ function(hipify_sources_target OUT_SRCS NAME ORIG_SRCS)
+-    DEPENDS ${CMAKE_SOURCE_DIR}/cmake/hipify.py ${SRCS}
++    DEPENDS ${PROJECT_SOURCE_DIR}/cmake/hipify.py ${SRCS}
+@@ -576 +576 @@ function(add_xe2_kernel_library LIBRARY_NAME)
+-    target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_SOURCE_DIR})
++    target_include_directories(${LIBRARY_NAME} PUBLIC ${PROJECT_SOURCE_DIR})
+@@ -594 +594 @@ function(add_xe2_kernel_library LIBRARY_NAME)
+-      "Setting library output directory for target '${LIBRARY_NAME}' to '${CMAKE_BINARY_DIR}/'."
++      "Setting library output directory for target '${LIBRARY_NAME}' to '${PROJECT_BINARY_DIR}/'."
+@@ -597 +597 @@ function(add_xe2_kernel_library LIBRARY_NAME)
+-                                                   "${CMAKE_BINARY_DIR}/")
++                                                   "${PROJECT_BINARY_DIR}/")
+@@ -656 +656 @@ function(add_xe3_kernel_library LIBRARY_NAME)
+-    target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_SOURCE_DIR})
++    target_include_directories(${LIBRARY_NAME} PUBLIC ${PROJECT_SOURCE_DIR})
+@@ -687 +687 @@ function(add_xe3_kernel_library LIBRARY_NAME)
+-      "Setting library output directory for target '${LIBRARY_NAME}' to '${CMAKE_BINARY_DIR}/'."
++      "Setting library output directory for target '${LIBRARY_NAME}' to '${PROJECT_BINARY_DIR}/'."
+@@ -690 +690 @@ function(add_xe3_kernel_library LIBRARY_NAME)
+-                                                   "${CMAKE_BINARY_DIR}/")
++                                                   "${PROJECT_BINARY_DIR}/")
+@@ -747 +747 @@ function(add_xe_default_kernel_library LIBRARY_NAME)
+-    target_include_directories(${LIBRARY_NAME} PUBLIC ${CMAKE_SOURCE_DIR})
++    target_include_directories(${LIBRARY_NAME} PUBLIC ${PROJECT_SOURCE_DIR})
+@@ -764 +764 @@ function(add_xe_default_kernel_library LIBRARY_NAME)
+-                                                   "${CMAKE_BINARY_DIR}/")
++                                                   "${PROJECT_BINARY_DIR}/")
