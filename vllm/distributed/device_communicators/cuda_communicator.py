@@ -110,7 +110,9 @@ class CudaCommunicator(DeviceCommunicatorBase):
         self.fi_pcie_ipc_ar_comm: FlashInferPcieIpcAllReduce | None = None
         self.aiter_ar_comm: AiterCustomAllreduce | None = None
 
-        if use_torch_symm_mem and current_platform.is_cuda():
+        if use_torch_symm_mem and (
+            current_platform.is_cuda() or current_platform.is_rocm()
+        ):
             self.symm_mem_comm = SymmMemCommunicator(
                 group=self.cpu_group,
                 device=self.device,
