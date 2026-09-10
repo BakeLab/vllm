@@ -58,7 +58,7 @@ cmd = [
     os.environ.get("CXX", "g++"),
     "-shared",
     "-fPIC",
-    "-std=c++20",
+    "-std=c++26",
     "-O3",
     "-g0",
     "-Wno-psabi",
