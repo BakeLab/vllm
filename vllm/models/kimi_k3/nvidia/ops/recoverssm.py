@@ -13,6 +13,12 @@ from vllm.triton_utils import tl, triton
 from vllm.v1.attention.backends.utils import NULL_BLOCK_ID
 
 
+def _signed_data_ptr(tensor: torch.Tensor) -> int:
+    """Preserve a uint64 device pointer's bit pattern in a signed int64 value."""
+    ptr = tensor.data_ptr()
+    return ptr if ptr < (1 << 63) else ptr - (1 << 64)
+
+
 @triton.jit
 def _kda_gate(
     raw_g,
@@ -854,7 +860,7 @@ class KDARecoverSSMCommitContext:
 
         def _base_addrs(tensors: Sequence[torch.Tensor]) -> torch.Tensor:
             return torch.tensor(
-                [tensor.data_ptr() for tensor in tensors],
+                [_signed_data_ptr(tensor) for tensor in tensors],
                 dtype=torch.int64,
                 device=device,
             )
