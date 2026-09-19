@@ -977,18 +977,29 @@ HAS_OPAQUE_TYPE = is_torch_equal_or_newer("2.11.0.dev")
 _USE_LAYERNAME = HAS_OPAQUE_TYPE and envs.VLLM_USE_LAYERNAME
 
 if HAS_OPAQUE_TYPE:
-    from torch._opaque_base import OpaqueBase
+    try:
+        from torch._custom_class_base import CustomClassBase
+        from torch._library.opaque_object import register_custom_class
+
+        _LAYER_NAME_TYPE = "constant"
+    except ImportError:
+        # Compatibility with PyTorch releases before the custom-class API.
+        from torch._opaque_base import OpaqueBase as CustomClassBase
+        from torch._library.opaque_object import register_opaque_type
+
+        register_custom_class = register_opaque_type
+        _LAYER_NAME_TYPE = "value"
 else:
-    OpaqueBase = object  # type: ignore[misc, assignment]
+    CustomClassBase = object  # type: ignore[misc, assignment]
 
 
-class LayerName(OpaqueBase):  # type: ignore[misc]
+class LayerName(CustomClassBase):  # type: ignore[misc]
     """Wraps a module name string for use as a torch opaque type.
 
-    When torch >= 2.11, this is registered as a hoisted value-type opaque
-    object so that torch.compile lifts it as a graph input instead of baking
-    it as a constant.  This avoids per-layer recompilation for custom ops
-    that accept layer name strings (attention, MOE, KV cache, etc.).
+    When supported by PyTorch, this is registered as a hoisted constant-type
+    custom class so torch.compile lifts it as a graph input instead of baking
+    it as a constant. This avoids per-layer recompilation for custom ops that
+    accept layer name strings (attention, MOE, KV cache, etc.).
     """
 
     def __init__(self, value: str):
@@ -1005,9 +1016,7 @@ class LayerName(OpaqueBase):  # type: ignore[misc]
 
 
 if HAS_OPAQUE_TYPE:
-    from torch._library.opaque_object import register_opaque_type
-
-    register_opaque_type(LayerName, typ="value", hoist=True)
+    register_custom_class(LayerName, typ=_LAYER_NAME_TYPE, hoist=True)
 
 # On torch >= 2.11 (with VLLM_USE_LAYERNAME enabled), custom op
 # layer_name parameters use LayerName; otherwise they remain plain str.

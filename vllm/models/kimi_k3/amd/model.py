@@ -231,13 +231,17 @@ class KimiK3ForConditionalGeneration(
     @classmethod
     def get_mamba_state_dtype_from_config(cls, vllm_config: VllmConfig):
         text_config = vllm_config.model_config.hf_config.text_config
-        temp_vllm_config = vllm_config.with_hf_config(text_config)
+        temp_vllm_config = vllm_config.with_hf_config(
+            text_config, architectures=["KimiLinearForCausalLM"]
+        )
         return KimiLinearForCausalLM.get_mamba_state_dtype_from_config(temp_vllm_config)
 
     @classmethod
     def get_mamba_state_shape_from_config(cls, vllm_config: VllmConfig):
         text_config = vllm_config.model_config.hf_config.text_config
-        temp_vllm_config = vllm_config.with_hf_config(text_config)
+        temp_vllm_config = vllm_config.with_hf_config(
+            text_config, architectures=["KimiLinearForCausalLM"]
+        )
         return KimiLinearForCausalLM.get_mamba_state_shape_from_config(temp_vllm_config)
 
     @classmethod
