@@ -6,7 +6,7 @@ set(
   CACHE STRING "vLLM XPU kernels Git repository")
 set(
   VLLM_XPU_KERNELS_GIT_TAG
-  "3b7906dadf1e106d03716134348f26de49943e81"
+  "4bba2156ecc0fcaf2fcd77acb2d05adc168e81be"
   CACHE STRING "vLLM XPU kernels Git revision")
 
 if(DEFINED ENV{VLLM_XPU_KERNELS_SRC_DIR})

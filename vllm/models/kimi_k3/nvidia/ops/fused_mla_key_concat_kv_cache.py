@@ -252,6 +252,25 @@ def fused_mla_decode_q_concat_kv_cache_insert(
     if b == 0:
         return mqa_q
 
+    if ql_nope.device.type == "xpu":
+        if ds_mla or fp8_q:
+            raise NotImplementedError(
+                "XPU Kimi-K3 decode currently supports BF16 KV cache only"
+            )
+        torch.ops._xpu_C.fused_kimi_k3_mla_decode_q_concat_kv_cache_insert(
+            ql_nope,
+            q_pe,
+            kv_c_normed,
+            k_pe,
+            mqa_q,
+            kv_cache,
+            slot_mapping,
+            kv_cache.shape[1],
+            positions,
+            cos_sin_cache,
+        )
+        return mqa_q
+
     if ds_mla:
         cache = (
             kv_cache if kv_cache.dtype == torch.uint8 else kv_cache.view(torch.uint8)
