@@ -2,11 +2,11 @@ include(FetchContent)
 
 set(
   VLLM_XPU_KERNELS_GIT_REPOSITORY
-  "https://github.com/vllm-project/vllm-xpu-kernels.git"
+  "https://github.com/BakeLab/vllm-xpu-kernels.git"
   CACHE STRING "vLLM XPU kernels Git repository")
 set(
   VLLM_XPU_KERNELS_GIT_TAG
-  "7e85c904edd4eecc34f5c8ceea43aacdfbfd3a8a"
+  "3b7906dadf1e106d03716134348f26de49943e81"
   CACHE STRING "vLLM XPU kernels Git revision")
 
 if(DEFINED ENV{VLLM_XPU_KERNELS_SRC_DIR})
@@ -29,14 +29,6 @@ else()
     GIT_SHALLOW FALSE
     GIT_PROGRESS TRUE)
 endif()
-
-execute_process(
-  COMMAND
-    "${CMAKE_COMMAND}"
-    "-DSOURCE_DIR=${vllm_xpu_kernels_SOURCE_DIR}"
-    "-DPATCH_DIR=${CMAKE_CURRENT_LIST_DIR}/vllm_xpu_kernels/patches"
-    -P "${CMAKE_CURRENT_LIST_DIR}/vllm_xpu_kernels/ApplyPatches.cmake"
-  COMMAND_ERROR_IS_FATAL ANY)
 
 set(VLLM_XPU_ENABLE_XE_DEFAULT OFF CACHE BOOL "" FORCE)
 set(VLLM_XPU_ENABLE_XE3P OFF CACHE BOOL "" FORCE)

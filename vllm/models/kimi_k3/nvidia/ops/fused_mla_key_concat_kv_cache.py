@@ -48,7 +48,12 @@ def fused_mla_key_concat_kv_cache_insert(
     )
     if tp == 0:
         return k_out
-    torch.ops._C.fused_kimi_k3_mla_key_concat_kv_cache_insert(
+    op = (
+        torch.ops._xpu_C.fused_kimi_k3_mla_key_concat_kv_cache_insert
+        if q.device.type == "xpu"
+        else torch.ops._C.fused_kimi_k3_mla_key_concat_kv_cache_insert
+    )
+    op(
         q,
         k_nope,
         k_pe,

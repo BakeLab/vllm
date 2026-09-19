@@ -14,6 +14,7 @@ from vllm.platforms import current_platform
 HIDDEN_SIZE = 7168
 MAX_BLOCKS = 8
 EPS = 1e-5
+DEVICE = current_platform.device_type
 attn_res_module = importlib.import_module("vllm.models.kimi_k3.nvidia.ops.attn_res")
 
 
@@ -21,7 +22,7 @@ def _randn_with_row_padding(*shape: int, padding: int = 0) -> torch.Tensor:
     storage = torch.randn(
         *shape[:-1],
         shape[-1] + padding,
-        device="cuda",
+        device=DEVICE,
         dtype=torch.bfloat16,
     )
     return storage[..., : shape[-1]]
@@ -90,13 +91,13 @@ def test_attn_res(
         num_tokens, MAX_BLOCKS, HIDDEN_SIZE, padding=row_padding
     )
     norm_weight = 1 + 0.1 * torch.randn(
-        HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16
+        HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16
     )
     qk_weight = (
-        torch.randn(HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16) / HIDDEN_SIZE**0.5
+        torch.randn(HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16) / HIDDEN_SIZE**0.5
     )
     output_norm_weight = 1 + 0.1 * torch.randn(
-        HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16
+        HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16
     )
     original_blocks = blocks.clone()
     expected, expected_prefix = _reference(
@@ -133,13 +134,13 @@ def test_attn_res(
 
 @pytest.mark.parametrize("num_blocks", range(MAX_BLOCKS + 1))
 def test_attn_res_block_counts(num_blocks: int):
-    prefix = torch.randn(1, HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16)
+    prefix = torch.randn(1, HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16)
     blocks = torch.randn(
-        1, MAX_BLOCKS, HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16
+        1, MAX_BLOCKS, HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16
     )
-    norm_weight = torch.ones(HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16)
+    norm_weight = torch.ones(HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16)
     qk_weight = (
-        torch.randn(HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16) / HIDDEN_SIZE**0.5
+        torch.randn(HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16) / HIDDEN_SIZE**0.5
     )
     output_norm_weight = torch.ones_like(norm_weight)
     expected, _ = _reference(
@@ -169,14 +170,14 @@ def test_attn_res_block_counts(num_blocks: int):
 
 
 def test_attn_res_without_output_norm():
-    prefix = torch.randn(7, HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16)
+    prefix = torch.randn(7, HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16)
     delta = torch.randn_like(prefix)
     blocks = torch.randn(
-        7, MAX_BLOCKS, HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16
+        7, MAX_BLOCKS, HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16
     )
-    norm_weight = torch.randn(HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16)
+    norm_weight = torch.randn(HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16)
     qk_weight = (
-        torch.randn(HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16) / HIDDEN_SIZE**0.5
+        torch.randn(HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16) / HIDDEN_SIZE**0.5
     )
     expected, _ = _reference(
         prefix.clone(), delta, blocks, norm_weight, qk_weight, None, MAX_BLOCKS
@@ -224,12 +225,12 @@ def test_sm100_variants_do_not_fall_back_to_triton(
             raise AssertionError(f"unexpected Triton launch with grid {grid}")
 
     monkeypatch.setattr(attn_res_module, "_attn_res_kernel", FailingKernel())
-    prefix = torch.randn(1, HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16)
+    prefix = torch.randn(1, HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16)
     delta = torch.zeros_like(prefix) if has_delta else None
     blocks = torch.randn(
-        1, MAX_BLOCKS, HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16
+        1, MAX_BLOCKS, HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16
     )
-    norm_weight = torch.ones(HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16)
+    norm_weight = torch.ones(HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16)
     qk_weight = torch.randn_like(norm_weight) / HIDDEN_SIZE**0.5
     output_norm_weight = torch.ones_like(norm_weight) if has_output_norm else None
 
@@ -249,13 +250,13 @@ def test_sm100_variants_do_not_fall_back_to_triton(
 
 @pytest.mark.parametrize("num_tokens", [0, 1, 17])
 def test_fused_mtp_input(num_tokens: int):
-    positions = torch.arange(num_tokens, device="cuda")
+    positions = torch.arange(num_tokens, device=DEVICE)
     inputs_embeds = _randn_with_row_padding(num_tokens, HIDDEN_SIZE, padding=7)
     previous_hidden_states = _randn_with_row_padding(
         num_tokens, HIDDEN_SIZE, padding=11
     )
-    enorm_weight = torch.randn(HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16)
-    hnorm_weight = torch.randn(HIDDEN_SIZE, device="cuda", dtype=torch.bfloat16)
+    enorm_weight = torch.randn(HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16)
+    hnorm_weight = torch.randn(HIDDEN_SIZE, device=DEVICE, dtype=torch.bfloat16)
 
     masked_inputs_embeds = torch.where(positions.unsqueeze(-1) == 0, 0, inputs_embeds)
     expected = torch.cat(

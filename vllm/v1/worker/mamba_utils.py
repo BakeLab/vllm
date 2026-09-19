@@ -1099,9 +1099,16 @@ class MambaSpecDecodeGPUContext:
     ) -> torch.Tensor:
         """compute every Mamba group's aligned physical state IDs in one launch."""
         assert self.is_initialized
-        assert seq_lens.is_cuda
         assert 0 <= num_reqs <= seq_lens.shape[0]
         assert self.aligned_state_indices is not None
+        assert seq_lens.device == self.aligned_state_indices.device, (
+            f"seq_lens is on {seq_lens.device}, but aligned state indices are on "
+            f"{self.aligned_state_indices.device}"
+        )
+        assert seq_lens.device == self.block_table_ptrs.device, (
+            f"seq_lens is on {seq_lens.device}, but block table pointers are on "
+            f"{self.block_table_ptrs.device}"
+        )
         assert num_reqs <= self.aligned_state_indices.shape[1]
         if num_reqs == 0:
             return self.aligned_state_indices[:, :0]
