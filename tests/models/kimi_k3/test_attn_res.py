@@ -14,6 +14,7 @@ from vllm.platforms import current_platform
 HIDDEN_SIZE = 7168
 MAX_BLOCKS = 8
 EPS = 1e-5
+DEVICE = current_platform.device_type
 attn_res_module = importlib.import_module("vllm.models.kimi_k3.nvidia.ops.attn_res")
 
 
