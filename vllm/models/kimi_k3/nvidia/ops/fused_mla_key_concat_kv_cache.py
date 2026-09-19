@@ -190,7 +190,10 @@ def fused_mla_kv_concat(
     k_pe = k_pe.reshape(k_pe.shape[0], k_pe.shape[-1])
     k = _empty_full_key(k_nope, k_pe, k_nope.dtype)
     if k.shape[0]:
-        torch.ops._C.fused_kimi_k3_mla_kv_concat(k_nope, k_pe, k)
+        if k_nope.device.type == "xpu":
+            torch.ops._xpu_C.fused_kimi_k3_mla_kv_concat(k_nope, k_pe, k)
+        else:
+            torch.ops._C.fused_kimi_k3_mla_kv_concat(k_nope, k_pe, k)
     return k
 
 
