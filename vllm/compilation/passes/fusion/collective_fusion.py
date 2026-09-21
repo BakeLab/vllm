@@ -9,7 +9,12 @@ import torch._inductor.pattern_matcher as pm
 import torch.distributed.distributed_c10d as c10d
 import torch.fx as fx
 from torch._inductor.pattern_matcher import PatternMatcherPass
-from torch.distributed._symmetric_memory import enable_symm_mem_for_group
+try:
+    from torch.distributed._symmetric_memory import enable_symm_mem_for_group
+except ImportError:
+    # Recent PyTorch versions enable symmetric memory automatically when the
+    # backend is initialized, so the explicit opt-in API is no longer needed.
+    enable_symm_mem_for_group = None
 
 from vllm.config import VllmConfig
 from vllm.config.utils import Range
@@ -902,7 +907,8 @@ class AsyncTPPass(VllmFusionPatternMatcherPass):
     def __init__(self, config: VllmConfig) -> None:
         super().__init__(config, pass_name="async_tp_pass")
 
-        enable_symm_mem_for_group(get_tp_group().device_group.group_name)
+        if enable_symm_mem_for_group is not None:
+            enable_symm_mem_for_group(get_tp_group().device_group.group_name)
         GEMMReduceScatterPattern(self.model_dtype, self.device).register(self.pm_pass)
 
         AllGatherGEMMPattern(self.model_dtype, self.device).register(self.pm_pass)
