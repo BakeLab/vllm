@@ -6,6 +6,7 @@
 # but implemented by the Phi-Speech team
 #!/usr/bin/env python3
 import math
+from typing import Final
 
 import torch
 import torch.nn.functional as F
@@ -1653,10 +1654,10 @@ class MultiHeadedAttention(nn.Module):
 
     """
 
-    inv_sqrt_d_k: torch.jit.Final[float]
-    h: torch.jit.Final[int]
-    h_k: torch.jit.Final[int]
-    g: torch.jit.Final[int]
+    inv_sqrt_d_k: Final[float]
+    h: Final[int]
+    h_k: Final[int]
+    g: Final[int]
 
     def __init__(
         self,
@@ -1697,9 +1698,7 @@ class MultiHeadedAttention(nn.Module):
         if use_pt_scaled_dot_product_attention and group_size > 1:
             raise ValueError("Cannot use PT Scaled Attention with GQA")
 
-        # Torchscript eager quantization.  Note that these functions below are
-        # NOOPs and have very little impact on performance unless quantization
-        # is enabled.
+        # These are no-ops unless quantization is enabled.
         self.quant_q = torch.ao.quantization.QuantStub()
         self.quant_x = torch.ao.quantization.QuantStub()
         self.dequant = torch.ao.quantization.DeQuantStub()
@@ -1736,13 +1735,13 @@ class MultiHeadedAttention(nn.Module):
         v = self.linear_v(value).view(n_batch, -1, self.h_k, self.d_k)
         q = (
             q.transpose(1, 2)
-            if self.use_pt_scaled_dot_product_attention and not torch.jit.is_scripting()
+            if self.use_pt_scaled_dot_product_attention
             else q.transpose(1, 2) * self.inv_sqrt_d_k
         )
         k = k.transpose(1, 2)  # (batch, head_k, time2, d_k)
         v = v.transpose(1, 2)  # (batch, head_k, time2, d_k)
 
-        if self.use_pt_scaled_dot_product_attention and not torch.jit.is_scripting():
+        if self.use_pt_scaled_dot_product_attention:
             attn_mask = None
             if mask is not None:
                 mask = mask.unsqueeze(1)
@@ -1824,7 +1823,6 @@ class MultiHeadedAttention(nn.Module):
 class MultiSequential(torch.nn.Sequential):
     """Multi-input multi-output torch.nn.Sequential."""
 
-    @torch.jit.ignore
     def forward(self, *args) -> tuple:
         """Forward method implementation."""
         for m in self:
