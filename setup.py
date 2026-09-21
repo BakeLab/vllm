@@ -1022,7 +1022,6 @@ class precompiled_wheel_utils:
                             "vllm/_flashkda_C.abi3.so",
                             "vllm/_sparse_flashmla_C.abi3.so",
                             "vllm/vllm_flash_attn/_vllm_fa2_C.abi3.so",
-                            "vllm/vllm_flash_attn/_vllm_fa3_C.abi3.so",
                             "vllm/cumem_allocator.abi3.so",
                             "vllm/spinloop.abi3.so",
                             "vllm/fs_io_C.abi3.so",
@@ -1378,8 +1377,6 @@ if _is_hip():
 
 if _is_cuda():
     ext_modules.append(CMakeExtension(name="vllm.vllm_flash_attn._vllm_fa2_C"))
-    if USE_PRECOMPILED_EXTENSIONS or CUDA_HOME:
-        ext_modules.append(CMakeExtension(name="vllm.vllm_flash_attn._vllm_fa3_C"))
     # FA4 CuteDSL - Python-only component for FA4's cute DSL support
     # Optional since this doesn't produce a .so file, just copies Python files
     ext_modules.append(

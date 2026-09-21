@@ -17,7 +17,7 @@ endif()
 # They should be identical but if they aren't, this is a massive footgun.
 #
 # The vllm-flash-attn install rules are nested under vllm to make sure the library gets installed in the correct place.
-# To only install vllm-flash-attn, use --component _vllm_fa2_C (for FA2), --component _vllm_fa3_C (for FA3),
+# To only install vllm-flash-attn, use --component _vllm_fa2_C (for FA2)
 # or --component _vllm_fa4_cutedsl_C (for FA4 CuteDSL Python files).
 # If no component is specified, vllm-flash-attn is still installed.
 
@@ -108,8 +108,8 @@ message(STATUS "vllm-flash-attn is available at ${vllm-flash-attn_SOURCE_DIR}")
 install(CODE "set(CMAKE_INSTALL_PREFIX \"\${OLD_CMAKE_INSTALL_PREFIX}\")" ALL_COMPONENTS)
 install(CODE "set(CMAKE_INSTALL_LOCAL_ONLY TRUE)" ALL_COMPONENTS)
 
-# Install shared Python files for both FA2 and FA3 components
-foreach(_FA_COMPONENT _vllm_fa2_C _vllm_fa3_C)
+# Install shared Python files for the FA2 fallback component.
+foreach(_FA_COMPONENT _vllm_fa2_C)
   # Ensure the vllm/vllm_flash_attn directory exists before installation
   install(CODE "file(MAKE_DIRECTORY \"\${CMAKE_INSTALL_PREFIX}/vllm/vllm_flash_attn\")"
     COMPONENT ${_FA_COMPONENT})
