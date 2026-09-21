@@ -296,7 +296,10 @@ class cmake_build_ext(build_ext):
         if nvcc_threads:
             cmake_args += ["-DNVCC_THREADS={}".format(nvcc_threads)]
 
-        if is_ninja_available():
+        cmake_generator = os.environ.get("CMAKE_GENERATOR")
+        if cmake_generator:
+            build_tool = ["-G", cmake_generator]
+        elif is_ninja_available():
             build_tool = ["-G", "Ninja"]
             cmake_args += [
                 "-DCMAKE_JOB_POOL_COMPILE:STRING=compile",
@@ -619,10 +622,10 @@ class precompiled_wheel_utils:
 
         if cuda_version:
             major, minor = (int(x) for x in cuda_version.split(".")[:2])
-            if (major, minor) < (13, 3):
+            if (major, minor) < (13, 4):
                 msg = (
                     f"CUDA {cuda_version} detected; this tree only supports "
-                    "CUDA >= 13.3."
+                    "CUDA >= 13.4."
                 )
                 raise RuntimeError(msg)
         else:

@@ -58,6 +58,23 @@ else()
   message(STATUS "DeepGEMM is available at ${deepgemm_SOURCE_DIR}")
 endif()
 
+# PyTorch trim builds split cuBLASLt handle declarations out of
+# CUDAContextLight.h. DeepGEMM still relies on the old transitive include, so
+# add the dedicated header before building its Python binding.
+set(_deepgemm_runtime_header
+  "${deepgemm_SOURCE_DIR}/csrc/jit/device_runtime.hpp")
+if(EXISTS "${_deepgemm_runtime_header}")
+  file(READ "${_deepgemm_runtime_header}" _deepgemm_runtime_contents)
+  if(NOT _deepgemm_runtime_contents MATCHES
+      "ATen/cuda/CUDABlasLtHandle\\.h")
+    string(REPLACE
+      "#include <ATen/cuda/CUDAContext.h>"
+      "#include <ATen/cuda/CUDAContext.h>\n#include <ATen/cuda/CUDABlasLtHandle.h>"
+      _deepgemm_runtime_contents "${_deepgemm_runtime_contents}")
+    file(WRITE "${_deepgemm_runtime_header}" "${_deepgemm_runtime_contents}")
+  endif()
+endif()
+
 # CUDA 13+ uses the family-specific SM12x arch.
 set(DEEPGEMM_SUPPORT_ARCHS "9.0a" "10.0f" "12.0f")
 if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.4)

@@ -71,10 +71,9 @@ set(ignoreMe "${VLLM_PYTHON_PATH}")
 install(CODE "set(CMAKE_INSTALL_LOCAL_ONLY TRUE)" ALL_COMPONENTS)
 
 #
-# Supported python versions.  These versions will be searched in order, the
-# first match will be selected.  These should be kept in sync with setup.py.
+# Minimum supported Python version. Keep in sync with pyproject.toml.
 #
-set(PYTHON_SUPPORTED_VERSIONS "3.10" "3.11" "3.12" "3.13" "3.14")
+set(PYTHON_MINIMUM_VERSION "3.14")
 
 # Supported AMD GPU architectures.
 set(HIP_SUPPORTED_ARCHS "gfx906;gfx908;gfx90a;gfx942;gfx950;gfx1250;gfx1030;gfx1100;gfx1101;gfx1102;gfx1103;gfx1150;gfx1151;gfx1152;gfx1153;gfx1200;gfx1201")
@@ -113,7 +112,7 @@ endif()
 # `VLLM_PYTHON_EXECUTABLE` and is one of the supported versions.
 #
 if (VLLM_PYTHON_EXECUTABLE)
-  find_python_from_executable(${VLLM_PYTHON_EXECUTABLE} "${PYTHON_SUPPORTED_VERSIONS}")
+  find_python_from_executable(${VLLM_PYTHON_EXECUTABLE} "${PYTHON_MINIMUM_VERSION}")
 else()
   message(FATAL_ERROR
     "Please set VLLM_PYTHON_EXECUTABLE to the path of the desired python version"
@@ -139,12 +138,19 @@ endif()
 #
 find_package(Torch REQUIRED)
 
+# PyTorch's CMake package exposes CUDAToolkit_FOUND; older cached builds may
+# also define CUDA_FOUND via FindCUDA. Keep the legacy vLLM checks working on
+# clean configurations that have no FindCUDA cache entries.
+if(CUDAToolkit_FOUND)
+  set(CUDA_FOUND TRUE)
+endif()
+
 # Supported NVIDIA architectures.
 # This check must happen after find_package(Torch) because that's when CMAKE_CUDA_COMPILER_VERSION gets defined
 if(DEFINED CMAKE_CUDA_COMPILER_VERSION AND
-   CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 13.3)
+   CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 13.4)
   message(FATAL_ERROR
-    "CUDA >= 13.3 is required to build vLLM "
+    "CUDA >= 13.4 is required to build vLLM "
     "(found ${CMAKE_CUDA_COMPILER_VERSION}).")
 endif()
 
@@ -152,12 +158,12 @@ if(DEFINED CMAKE_CUDA_COMPILER_VERSION AND
    CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 13.4)
   # Rubin (10.7) can run SM100 family code, but CUDA 13.4 also supports
   # targeting it directly.
-  set(CUDA_SUPPORTED_ARCHS "7.5;8.0;8.6;8.7;8.9;9.0;10.0;10.7;11.0;12.0")
+  set(CUDA_SUPPORTED_ARCHS "10.0;10.7;11.0;12.0")
 else()
    # starting from CUDA 12.9 and Blackwell (10.0), we use family-specific targets (10.0f, 12.0f, etc)
    # to support the whole generation without specifying all sub-architectures
    # see: https://developer.nvidia.com/blog/nvidia-blackwell-and-nvidia-cuda-12-9-introduce-family-specific-architecture-features/
-  set(CUDA_SUPPORTED_ARCHS "7.5;8.0;8.6;8.7;8.9;9.0;10.0;11.0;12.0")
+  set(CUDA_SUPPORTED_ARCHS "10.0;10.7;11.0;12.0")
 endif()
 
 #
@@ -297,7 +303,7 @@ if(NVCC_THREADS AND VLLM_GPU_LANG STREQUAL "CUDA")
 endif()
 
 #
-# Set compression mode (CUDA >= 13.3 is enforced above).
+# Set compression mode (CUDA >= 13.4 is enforced above).
 #
 if(VLLM_GPU_LANG STREQUAL "CUDA")
   list(APPEND VLLM_GPU_FLAGS "--compress-mode=size")

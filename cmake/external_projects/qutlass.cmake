@@ -53,6 +53,34 @@ if(NOT qutlass_SOURCE_DIR)
 endif()
 message(STATUS "[QUTLASS] QuTLASS is available at ${qutlass_SOURCE_DIR}")
 
+# QuTLASS' PTX-asm conversion helpers are device-only. Mark them accordingly
+# so the host compiler does not try to parse CUDA inline-asm constraints.
+set(_qutlass_asm_headers
+  "${qutlass_SOURCE_DIR}/qutlass/csrc/include/cutlass_extensions/epilogue/threadblock/epilogue_quant.h"
+  "${qutlass_SOURCE_DIR}/qutlass/csrc/include/cutlass_extensions/epilogue/fusion/sm100_visitor_store_tma_warpspecialized.hpp")
+foreach(_qutlass_asm_header IN LISTS _qutlass_asm_headers)
+  if(EXISTS "${_qutlass_asm_header}")
+    file(READ "${_qutlass_asm_header}" _qutlass_asm_contents)
+    string(REPLACE
+      "CUTLASS_HOST_DEVICE\nstatic uint32_t fp32_vec_to_e2m1"
+      "CUTLASS_DEVICE\nstatic uint32_t fp32_vec_to_e2m1"
+      _qutlass_asm_contents "${_qutlass_asm_contents}")
+    string(REPLACE
+      "CUTLASS_HOST_DEVICE\nstatic uint8_t f32_to_e4m3_hi"
+      "CUTLASS_DEVICE\nstatic uint8_t f32_to_e4m3_hi"
+      _qutlass_asm_contents "${_qutlass_asm_contents}")
+    string(REPLACE
+      "CUTLASS_HOST_DEVICE\nstatic float e4m3_to_f32"
+      "CUTLASS_DEVICE\nstatic float e4m3_to_f32"
+      _qutlass_asm_contents "${_qutlass_asm_contents}")
+    string(REPLACE
+      "CUTLASS_HOST_DEVICE\nstatic float reciprocal_approximate_ftz"
+      "CUTLASS_DEVICE\nstatic float reciprocal_approximate_ftz"
+      _qutlass_asm_contents "${_qutlass_asm_contents}")
+    file(WRITE "${_qutlass_asm_header}" "${_qutlass_asm_contents}")
+  endif()
+endforeach()
+
 cuda_archs_loose_intersection(QUTLASS_SM120_ARCHS "12.0f" "${CUDA_ARCHS}")
 if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.4)
   cuda_archs_loose_intersection(QUTLASS_SM100_ARCHS "10.0f;10.7f" "${CUDA_ARCHS}")
