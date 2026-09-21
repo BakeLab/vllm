@@ -1263,7 +1263,7 @@ torchcodec==0.14.0+cu130
     # via
     #   -c requirements/cuda.txt
     #   -r requirements/test/cuda.in
-torchvision==0.28.0+cu130
+torchvision>=0.30.0.dev0
     # via
     #   -c requirements/cuda.txt
     #   -r requirements/test/cuda.in

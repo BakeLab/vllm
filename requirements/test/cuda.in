@@ -33,7 +33,7 @@ torchaudio==2.11.0
 # Python 3.14 removed subprocess._USE_VFORK, which multiprocess releases
 # before 0.70.19 accessed internally when vLLM launches distributed workers.
 multiprocess==0.70.19
-torchvision==0.28.0
+torchvision>=0.30.0.dev0
 transformers_stream_generator # required for qwen-vl test
 matplotlib # required for qwen-vl test
 mistral_common[image,audio] >= 1.11.6 # required for voxtral test
