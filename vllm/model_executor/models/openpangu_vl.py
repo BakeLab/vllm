@@ -576,7 +576,7 @@ class OpenPanguVisionTransformer(nn.Module):
         cu_window_seqlens = torch.tensor(
             cu_window_seqlens,
             device=x.device,
-            dtype=grid_thw.dtype if torch.jit.is_tracing() else torch.int32,
+            dtype=torch.int32,
         )
         cu_window_seqlens = torch.unique_consecutive(cu_window_seqlens)
         seq_len, _ = x.size()
