@@ -501,7 +501,7 @@ class Siglip2Encoder(nn.Module):
         cu_window_seqlens = torch.tensor(
             cu_window_seqlens,
             device=inputs_embeds.device,
-            dtype=grid_thws.dtype if torch.jit.is_tracing() else torch.int32,
+            dtype=torch.int32,
         )
         cu_window_seqlens = torch.unique_consecutive(cu_window_seqlens)
 
@@ -529,7 +529,7 @@ class Siglip2Encoder(nn.Module):
             #    same dtype as grid_thw
             # See https://github.com/huggingface/transformers/pull/34852
             # for more information
-            dtype=grid_thws.dtype if torch.jit.is_tracing() else torch.int32,
+            dtype=torch.int32,
         )
         cu_seqlens = torch.cat([cu_seqlens.new_zeros(1), cu_seqlens])
 

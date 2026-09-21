@@ -978,7 +978,7 @@ class Qwen3Omni_VisionTransformer(nn.Module):
                 grid_thw[:, 1] * grid_thw[:, 2], grid_thw[:, 0]
             ).cumsum(
                 dim=0,
-                dtype=grid_thw.dtype if torch.jit.is_tracing() else torch.int32,
+                dtype=torch.int32,
             )
             cu_seqlens = F.pad(cu_seqlens, (1, 0), value=0)
         except RuntimeError:
@@ -998,7 +998,7 @@ class Qwen3Omni_VisionTransformer(nn.Module):
             )
             cu_seqlens = values[indices].cumsum(
                 dim=0,
-                dtype=grid_thw.dtype if torch.jit.is_tracing() else torch.int32,
+                dtype=torch.int32,
             )
             cu_seqlens = F.pad(cu_seqlens, (1, 0), value=0)
 

@@ -245,7 +245,6 @@ class EuclideanCodebook(nn.Module):
         self.register_buffer("embed", embed)
         self.register_buffer("embed_avg", embed.clone())
 
-    @torch.jit.ignore
     def init_embed_(self, data):
         if self.inited:
             return

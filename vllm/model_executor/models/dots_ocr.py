@@ -563,7 +563,7 @@ class DotsVisionTransformer(nn.Module):
             grid_thw_tensor[:, 1] * grid_thw_tensor[:, 2], grid_thw_tensor[:, 0]
         ).cumsum(
             dim=0,
-            dtype=grid_thw_tensor.dtype if torch.jit.is_tracing() else torch.int32,
+            dtype=torch.int32,
         )
         cu_seqlens = torch.cat([cu_seqlens.new_zeros(1), cu_seqlens])
 

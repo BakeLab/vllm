@@ -93,7 +93,7 @@ class InternS1VisionEmbeddings(nn.Module):
     ) -> torch.Tensor:
         """
         This method allows to interpolate the pre-trained position encodings, to be able to use the model on higher resolution
-        images. This method is also adapted to support torch.jit tracing.
+        images.
 
         Adapted from:
         - https://github.com/facebookresearch/dino/blob/de9ee3df6cf39fac952ab558447af1fa1365362a/vision_transformer.py#L174-L194, and
@@ -103,13 +103,7 @@ class InternS1VisionEmbeddings(nn.Module):
         num_patches = embeddings.shape[1] - 1
         num_positions = self.position_embeddings.shape[1] - 1
 
-        # always interpolate when tracing to ensure the exported model
-        # works for dynamic input shapes
-        if (
-            not torch.jit.is_tracing()
-            and num_patches == num_positions
-            and height == width
-        ):
+        if num_patches == num_positions and height == width:
             return self.position_embeddings
 
         class_pos_embed = self.position_embeddings[:, :1]

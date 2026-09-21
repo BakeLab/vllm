@@ -418,10 +418,8 @@ class TransformerEncoderBase(abc.ABC, nn.Module):
         """feature_lens: int
         return updated feature lens.
 
-        This used to return a different lambda function for each case that
-        computed the right thing.  That does not work within Torchscript.
-        If you really need this to be faster, create nn.Module()-s for all
-        the cases and return one of them.  Torchscript does support that.
+        This uses explicit branches rather than returning a different lambda
+        function for each case, keeping the behavior easy to inspect.
         """
         if self.input_layer == "nemo_conv":
             assert self.nemo_conv_settings is not None
@@ -971,7 +969,6 @@ class ConformerEncoder(TransformerEncoderBase):
         pad_mask = pad_mask & enc_streaming_mask
         return pad_mask
 
-    @torch.jit.ignore
     def forward(
         self, xs_pad: torch.Tensor, masks: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
