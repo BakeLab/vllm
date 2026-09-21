@@ -29,10 +29,7 @@ from vllm.logger import init_logger
 from vllm.model_executor.layers.attention import Attention
 from vllm.platforms import current_platform
 from vllm.utils.math_utils import cdiv
-from vllm.utils.torch_utils import (
-    async_tensor_h2d,
-    is_torch_equal_or_newer,
-)
+from vllm.utils.torch_utils import (async_tensor_h2d, is_torch_equal_or_newer, is_quantized_kv_cache)
 from vllm.v1.attention.backend import (
     AttentionBackend,
     AttentionCGSupport,
@@ -800,9 +797,7 @@ class FlexAttentionMetadata:
             "mask_mod": self.mask_mod,
         }
 
-        # compute_q_blocks parameter is available in PyTorch 2.9+
-        if is_torch_equal_or_newer("2.9.0.dev0"):
-            block_mask_kwargs["compute_q_blocks"] = False
+        block_mask_kwargs["compute_q_blocks"] = False
         return BlockMask.from_kv_blocks(**block_mask_kwargs)
 
     def build_block_mask(self) -> BlockMask:
@@ -855,7 +850,7 @@ class FlexAttentionMetadataBuilder(AttentionMetadataBuilder[FlexAttentionMetadat
         self.headdim = self.model_config.get_head_size()
         self.block_size = kv_cache_spec.block_size
         self.kv_cache_spec = kv_cache_spec
-        supports_small_blocks = is_torch_equal_or_newer("2.9.0.dev0")
+        supports_small_blocks = True
         uses_paged_kv = not isinstance(kv_cache_spec, EncoderOnlyAttentionSpec)
         self.direct_build: bool = supports_small_blocks
 

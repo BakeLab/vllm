@@ -1109,8 +1109,7 @@ tokenizers==0.23.2
     #   -r requirements/test/../common.txt
     #   cohere
     #   transformers
-torch==2.14.0+xpu
-    # via
+torch>=2.15.0.dev0    # via
     #   -c requirements/xpu.txt
     #   accelerate
     #   compressed-tensors
