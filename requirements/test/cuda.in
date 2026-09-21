@@ -51,6 +51,7 @@ tritonclient>=2.51.0
 # The version of gRPC libraries should be consistent with each other
 grpcio==1.78.0
 grpcio-reflection==1.78.0
+-r arctic-build.in
 
 arctic-inference == 0.1.1; platform_machine == "x86_64" # Required for suffix decoding test
 numba == 0.65.0 # Required for N-gram speculative decoding

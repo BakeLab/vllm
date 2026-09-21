@@ -301,10 +301,13 @@ grpcio==1.78.0
     # via
     #   -r requirements/test/cuda.in
     #   grpcio-reflection
+    #   grpcio-tools
     #   opentelemetry-exporter-otlp-proto-grpc
     #   ray
 grpcio-reflection==1.78.0
     # via -r requirements/test/cuda.in
+grpcio-tools==1.78.0
+    # via -r requirements/test/arctic-build.in
 h11==0.16.0
     # via
     #   httpcore
@@ -520,6 +523,8 @@ multiprocess==0.70.16
     #   evaluate
 mypy-extensions==1.0.0
     # via black
+nanobind==2.9.2
+    # via -r requirements/test/arctic-build.in
 networkx==3.2.1
     # via
     #   scikit-image
@@ -740,6 +745,7 @@ protobuf==6.33.6
     #   google-api-core
     #   googleapis-common-protos
     #   grpcio-reflection
+    #   grpcio-tools
     #   opentelemetry-proto
     #   proto-plus
     #   ray

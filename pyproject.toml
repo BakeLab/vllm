@@ -192,4 +192,4 @@ WHT = "WHT"
 CANN = "CANN"
 
 [tool.uv]
-no-build-isolation-package = ["torch"]
+no-build-isolation-package = ["torch", "arctic-inference"]
