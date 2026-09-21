@@ -1918,7 +1918,24 @@ def spawn_new_process_for_each_test[**P](f: Callable[P, None]) -> Callable[P, No
 
             repo_root = str(VLLM_PATH.resolve())
             env = os.environ.copy()
-            env["PYTHONPATH"] = repo_root + os.pathsep + env.get("PYTHONPATH", "")
+            # Prefer the CMake/setuptools build tree for vLLM itself so the
+            # child can import compiled extensions. Keep the source root next
+            # so it can resolve the tests package.
+            build_package = next(
+                (VLLM_PATH / "build").glob(
+                    "lib.*/vllm/_C_stable_libtorch*.so"
+                ),
+                None,
+            )
+            pythonpath = []
+            if build_package is not None:
+                pythonpath.append(str(build_package.parent.parent))
+            else:
+                imported_package = Path(envs.__file__).resolve().parent
+                if next(imported_package.glob("_C_stable_libtorch*.so"), None):
+                    pythonpath.append(str(imported_package.parent))
+            pythonpath.extend((repo_root, env.get("PYTHONPATH", "")))
+            env["PYTHONPATH"] = os.pathsep.join(path for path in pythonpath if path)
             env[_SPAWN_CHILD_ENV] = "1"
 
             result = subprocess.run(
