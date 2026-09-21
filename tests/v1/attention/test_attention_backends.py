@@ -30,7 +30,6 @@ from vllm.utils.math_utils import cdiv
 from vllm.utils.torch_utils import (
     STR_DTYPE_TO_TORCH_DTYPE,
     is_quantized_kv_cache,
-    is_torch_equal_or_newer,
     nvfp4_kv_cache_full_dim,
     set_random_seed,
 )
@@ -304,7 +303,7 @@ def run_attention_backend(
     layer_v_scale: float = 1.0,
 ) -> torch.Tensor:
     """Run attention computation using the specified backend's AttentionImpl."""
-    use_direct_block_mask = is_torch_equal_or_newer("2.9.0.dev0")
+    use_direct_block_mask = True
     if backend == "FLEX_ATTENTION_SLOW":
         use_direct_block_mask = False
     backend = _actual_backend(backend)
@@ -809,11 +808,7 @@ def test_causal_backend_correctness(
         return (q_idx + context_len) >= kv_idx
 
     batch_spec = BATCH_SPECS[batch_spec_name]
-    LARGE_BLOCK_BACKENDS = (
-        [AttentionBackendEnum.FLEX_ATTENTION]
-        if is_torch_equal_or_newer("2.9.0.dev0")
-        else []
-    )
+    LARGE_BLOCK_BACKENDS = [AttentionBackendEnum.FLEX_ATTENTION]
 
     if current_platform.is_rocm():
         SMALL_BLOCK_BACKENDS = [
@@ -1855,11 +1850,7 @@ def test_sliding_window_backend_correctness(
         sliding_window_mask_mod, sliding_window=sliding_window
     )
 
-    LARGE_BLOCK_BACKENDS = (
-        [AttentionBackendEnum.FLEX_ATTENTION]
-        if is_torch_equal_or_newer("2.9.0.dev0")
-        else []
-    )
+    LARGE_BLOCK_BACKENDS = [AttentionBackendEnum.FLEX_ATTENTION]
     SMALL_BLOCK_BACKENDS = [
         x for x in SLIDING_WINDOW_BACKENDS_TO_TEST if x not in LARGE_BLOCK_BACKENDS
     ]
@@ -2010,11 +2001,7 @@ def test_non_causal_backend_correctness(
         return q_idx >= 0  # Always True
 
     batch_spec = BATCH_SPECS[batch_spec_name]
-    LARGE_BLOCK_BACKENDS = (
-        [AttentionBackendEnum.FLEX_ATTENTION]
-        if is_torch_equal_or_newer("2.9.0.dev0")
-        else []
-    )
+    LARGE_BLOCK_BACKENDS = [AttentionBackendEnum.FLEX_ATTENTION]
 
     SMALL_BLOCK_BACKENDS = [
         x for x in NON_CAUSAL_BACKENDS_TO_TEST if x not in LARGE_BLOCK_BACKENDS

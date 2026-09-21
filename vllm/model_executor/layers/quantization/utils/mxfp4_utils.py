@@ -4,14 +4,10 @@ from typing import Any
 
 import torch
 
-from vllm.logger import init_logger
 from vllm.platforms import current_platform
 from vllm.triton_utils import tl, triton
 from vllm.utils.import_utils import get_triton_kernels_version, has_triton_kernels
-from vllm.utils.torch_utils import direct_register_custom_op, is_torch_equal_or_newer
-
-logger = init_logger(__name__)
-
+from vllm.utils.torch_utils import direct_register_custom_op
 
 def should_use_cdna4_mx_scale_swizzle() -> bool:
     """Whether to use the CDNA4 swizzled scale layout for mxfp4 on gfx950.
@@ -61,21 +57,8 @@ def _swizzle_mxfp4(quant_tensor, scale, num_warps=8):
     value_layout_opts: dict[str, Any] = {}
     scale_layout_opts: dict[str, Any] = {}
 
-    if (
-        current_platform.is_cuda()
-        and current_platform.is_device_capability(90)
-        and not is_torch_equal_or_newer("2.8.1")
-    ):
-        logger.warning_once(
-            "Mxfp4 on hopper is running on torch < 2.8.1, "
-            "this cause swizling to be disabled, which may "
-            "cause performance degradation. Please upgrade to torch nightly"
-        )
-        value_layout = StridedLayout
-        scale_layout = StridedLayout
-    elif current_platform.is_rocm() and get_triton_kernels_version() == "3.8":
-        # StridedLayout(-2) is triton_kernels' default CDNA mxfp4 weight layout
-        # (make_default_matmul_mxfp4_w_layout); 3.8 wants layout instances.
+    if current_platform.is_rocm() and get_triton_kernels_version() == "3.8":
+        # triton_kernels 3.8 uses layout instances for CDNA4 MX scale swizzling.
         from triton_kernels.tensor_details.layout import CDNA4MXScaleLayout
 
         value_layout = StridedLayout(-2)
