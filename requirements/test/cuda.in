@@ -30,6 +30,9 @@ tblib # for pickling test exceptions
 timm >=1.0.17 # required for internvl and gemma3n-mm test
 torch>=2.15.0.dev0
 torchaudio==2.11.0
+# Python 3.14 removed subprocess._USE_VFORK, which multiprocess releases
+# before 0.70.19 accessed internally when vLLM launches distributed workers.
+multiprocess==0.70.19
 torchvision==0.28.0
 transformers_stream_generator # required for qwen-vl test
 matplotlib # required for qwen-vl test
