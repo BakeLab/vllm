@@ -16,12 +16,6 @@ from torch.library import Library, infer_schema
 import vllm.envs as envs
 from vllm.logger import init_logger
 from vllm.utils.platform_utils import is_pin_memory_available
-from vllm.utils.torch_version import (  # noqa: F401
-    _is_torch_equal,
-    _is_torch_equal_or_newer,
-    is_torch_equal,
-    is_torch_equal_or_newer,
-)
 
 if TYPE_CHECKING:
     from vllm.config import ModelConfig
@@ -56,9 +50,6 @@ STR_DTYPE_TO_TORCH_DTYPE = {
     "turboquant_4bit_nc": torch.uint8,
     "turboquant_k3v4_nc": torch.uint8,
     "turboquant_3bit_nc": torch.uint8,
-    "octave_k3v4": torch.uint8,
-    "octave_k3v3": torch.uint8,
-    "octave_k3v3_compact": torch.uint8,
     "ultraquant_4bit": torch.uint8,
     "nvfp4": torch.uint8,
     "nvfp4_4over6": torch.uint8,
@@ -80,6 +71,17 @@ MODELOPT_TO_VLLM_KV_CACHE_DTYPE_MAP = {
 }
 
 T = TypeVar("T")
+
+
+if TYPE_CHECKING:
+    PIN_MEMORY: bool
+
+
+def __getattr__(name: str) -> Any:
+    # Lazy so that importing this module does not resolve current_platform.
+    if name == "PIN_MEMORY":
+        return is_pin_memory_available()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def is_meta_module(module: torch.nn.Module) -> bool:
@@ -711,13 +713,15 @@ def async_tensor_h2d(
         data = torch.from_numpy(data)
     if isinstance(data, torch.Tensor):
         t = data
-        if PIN_MEMORY and not t.is_pinned():
+        if is_pin_memory_available() and not t.is_pinned():
             # Stage in pinned, contiguous buffer to ensure fully async copy.
             t = torch.empty(
                 t.shape, dtype=dtype or t.dtype, device="cpu", pin_memory=True
             ).copy_(t)
     else:
-        t = torch.tensor(data, dtype=dtype, pin_memory=PIN_MEMORY, device="cpu")
+        t = torch.tensor(
+            data, dtype=dtype, pin_memory=is_pin_memory_available(), device="cpu"
+        )
     assert t.is_cpu
 
     if out is not None:
@@ -729,7 +733,7 @@ def async_tensor_h2d(
 
 def np_to_pinned_tensor(array: np.ndarray) -> torch.Tensor:
     t = torch.from_numpy(array)
-    return t.pin_memory() if PIN_MEMORY else t
+    return t.pin_memory() if is_pin_memory_available() else t
 
 
 def make_ndarray_with_pad(
@@ -929,34 +933,17 @@ def get_accelerator_view_from_cpu_tensor(cpu_tensor: torch.Tensor) -> torch.Tens
         )
 
 
-HAS_OPAQUE_TYPE = is_torch_equal_or_newer("2.11.0.dev")
+# The trim PyTorch branch provides the opaque custom-class API unconditionally.
+from torch._custom_class_base import CustomClassBase
+from torch._library.opaque_object import register_custom_class
 
-# Allow toggling LayerName usage via environment variable.
-# Defaults to True on torch >= 2.11, False otherwise.
-# Set VLLM_USE_LAYERNAME=0 to disable even on torch >= 2.11.
-_USE_LAYERNAME = HAS_OPAQUE_TYPE and envs.VLLM_USE_LAYERNAME
-
-if HAS_OPAQUE_TYPE:
-    try:
-        from torch._custom_class_base import CustomClassBase
-        from torch._library.opaque_object import register_custom_class
-
-        _LAYER_NAME_TYPE = "constant"
-    except ImportError:
-        # Compatibility with PyTorch releases before the custom-class API.
-        from torch._opaque_base import OpaqueBase as CustomClassBase
-        from torch._library.opaque_object import register_opaque_type
-
-        register_custom_class = register_opaque_type
-        _LAYER_NAME_TYPE = "value"
-else:
-    CustomClassBase = object  # type: ignore[misc, assignment]
+_USE_LAYERNAME = envs.VLLM_USE_LAYERNAME
 
 
-class LayerName(CustomClassBase):  # type: ignore[misc]
-    """Wraps a module name string for use as a torch opaque type.
+class LayerName(CustomClassBase):
+    """Wrap a module name string as a hoisted opaque constant type.
 
-    When supported by PyTorch, this is registered as a hoisted constant-type
+    It is registered as a hoisted constant-type
     custom class so torch.compile lifts it as a graph input instead of baking
     it as a constant. This avoids per-layer recompilation for custom ops that
     accept layer name strings (attention, MOE, KV cache, etc.).
@@ -975,11 +962,9 @@ class LayerName(CustomClassBase):  # type: ignore[misc]
         return (f"LayerName({self.value!r})", {"LayerName": LayerName})
 
 
-if HAS_OPAQUE_TYPE:
-    register_custom_class(LayerName, typ=_LAYER_NAME_TYPE, hoist=True)
+register_custom_class(LayerName, typ="constant", hoist=True)
 
-# On torch >= 2.11 (with VLLM_USE_LAYERNAME enabled), custom op
-# layer_name parameters use LayerName; otherwise they remain plain str.
+# Custom-op layer_name parameters use LayerName when the feature is enabled.
 if TYPE_CHECKING:
     from typing import TypeAlias
 
@@ -996,11 +981,6 @@ def _resolve_layer_name(layer_name: str | LayerName) -> str:
 def _encode_layer_name(layer_name: str) -> str | LayerName:
     """Wrap a str layer name as LayerName when enabled."""
     return LayerName(layer_name) if _USE_LAYERNAME else layer_name
-
-
-# Supports XPU Graph with PyTorch versions >= 2.11.0.dev for XPU platform
-def supports_xpu_graph() -> bool:
-    return is_torch_equal_or_newer("2.11.0.dev")
 
 
 # create a library to hold the custom op
@@ -1045,9 +1025,3 @@ def direct_register_custom_op(
     my_lib.impl(op_name, op_func, dispatch_key=dispatch_key)
     if fake_impl is not None:
         my_lib._register_fake(op_name, fake_impl)
-
-
-# Keep this at the end of the module: it resolves current_platform, which can
-# load platform plugins that import from this (then partially initialized)
-# module, so everything else here must already be defined.
-PIN_MEMORY = is_pin_memory_available()

@@ -54,13 +54,10 @@ if TYPE_CHECKING:
     VLLM_CPU_ATTN_SPLIT_KV: bool = True
     VLLM_ZENTORCH_WEIGHT_PREPACK: bool = True
     VLLM_CPU_INT4_W4A8: bool = True
-    VLLM_XLA_CACHE_PATH: str = os.path.join(VLLM_CACHE_ROOT, "xla_cache")
-    VLLM_XLA_CHECK_RECOMPILATION: bool = False
     VLLM_SPARSE_INDEXER_MAX_LOGITS_MB: int = 512
     VLLM_ADAPTIVE_VERIFICATION_PROFILE_CONTEXT_LEN: int = 8192
     VLLM_XPU_PP_MICROBATCH: bool = True
     VLLM_DISTRIBUTED_USE_SPLIT_GROUP: bool = False
-    VLLM_XLA_USE_SPMD: bool = False
     VLLM_WORKER_MULTIPROC_METHOD: Literal["fork", "spawn"] = "fork"
     VLLM_ASSETS_CACHE: str = os.path.join(VLLM_CACHE_ROOT, "assets")
     VLLM_ASSETS_CACHE_MODEL_CLEAN: bool = False
@@ -105,7 +102,6 @@ if TYPE_CHECKING:
     VERBOSE: bool = False
     VLLM_ALLOW_LONG_MAX_MODEL_LEN: bool = False
     VLLM_HTTP_TIMEOUT_KEEP_ALIVE: int = 5  # seconds
-    VLLM_HTTP_MAX_REQUEST_BODY_SIZE: int = 32 * 1024 * 1024  # bytes
     VLLM_MAX_N_SEQUENCES: int = 16384
     VLLM_MAX_COMPLETION_PROMPTS: int = 1024
     VLLM_MAX_STOP_STRINGS: int = 4
@@ -135,7 +131,6 @@ if TYPE_CHECKING:
     VLLM_ROCM_USE_AITER: bool = False
     VLLM_ROCM_USE_AITER_CUSTOM_AR: bool = True
     VLLM_ROCM_MUSE_MOE_REDUCE_DTYPE: str = "fp32"
-    VLLM_ROCM_MUSE_MOE_ONLINE_QUANT: str = ""
     VLLM_ROCM_USE_AITER_LINEAR: bool = True
     VLLM_ROCM_USE_AITER_LINEAR_HIPBMM: bool = False
     VLLM_ROCM_USE_AITER_MOE: bool = True
@@ -145,6 +140,7 @@ if TYPE_CHECKING:
     VLLM_ROCM_USE_AITER_RMSNORM: bool = True
     VLLM_ROCM_USE_AITER_MLA: bool = True
     VLLM_ROCM_AITER_MLA_ASM_PADDING: Literal["auto", "gluon", "asm"] = "auto"
+    VLLM_ROCM_AITER_MLA_DCP_VERIFY: Literal["auto", "asm", "segmented"] = "auto"
     VLLM_ROCM_USE_AITER_MHA: bool = True
     VLLM_ROCM_USE_AITER_TRITON_SPARSE_MLA: bool = False
     VLLM_ROCM_USE_AITER_TRITON_ROPE: bool = False
@@ -175,7 +171,6 @@ if TYPE_CHECKING:
     VLLM_DP_RANK_LOCAL: int = -1
     VLLM_DP_SIZE: int = 1
     VLLM_USE_STANDALONE_COMPILE: bool = True
-    VLLM_ENABLE_PREGRAD_PASSES: bool = True
     VLLM_USE_BREAKABLE_CUDAGRAPH: bool = False
     VLLM_DP_MASTER_IP: str = ""
     VLLM_DP_MASTER_PORT: int = 0
@@ -193,7 +188,6 @@ if TYPE_CHECKING:
     VLLM_B12X_MOE_FP4_FORCE_A16: bool = False
     VLLM_DEEPEPLL_NVFP4_DISPATCH: bool = False
     VLLM_V1_USE_OUTLINES_CACHE: bool = False
-    VLLM_TPU_USING_PATHWAYS: bool = False
     VLLM_USE_DEEP_GEMM: bool = True
     VLLM_MOE_USE_DEEP_GEMM: bool = True
     VLLM_USE_DEEP_GEMM_E8M0: bool = True
@@ -373,24 +367,12 @@ def disable_compile_cache() -> bool:
 
 
 def use_aot_compile() -> bool:
-    from vllm.utils.torch_version import is_torch_equal_or_newer
-
-    default_value = (
-        "1"
-        if is_torch_equal_or_newer("2.10.0") and not disable_compile_cache()
-        else "0"
-    )
-
+    default_value = "1" if not disable_compile_cache() else "0"
     return os.environ.get("VLLM_USE_AOT_COMPILE", default_value) == "1"
 
 
-def use_mega_aot_artifact():
-    from vllm.utils.torch_version import is_torch_equal_or_newer
-
-    default_value = (
-        "1" if is_torch_equal_or_newer("2.12.0.dev") and use_aot_compile() else "0"
-    )
-
+def use_mega_aot_artifact() -> bool:
+    default_value = "1" if use_aot_compile() else "0"
     return os.environ.get("VLLM_USE_MEGA_AOT_ARTIFACT", default_value) == "1"
 
 
@@ -756,8 +738,6 @@ environment_variables: dict[str, Callable[[], Any]] = {
         os.environ.get("VLLM_ROCM_SLEEP_MEM_CHUNK_SIZE", "256")
     ),
     # Feature flag to enable/disable Inductor standalone compile.
-    # In torch <= 2.7 we ignore this flag; in torch >= 2.9 this is
-    # enabled by default.
     "VLLM_USE_STANDALONE_COMPILE": lambda: (
         os.environ.get("VLLM_USE_STANDALONE_COMPILE", "1") == "1"
     ),
@@ -767,10 +747,6 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # Can remove this after the following issue gets fixed
     # TODO(luka): maybe_inplace requires this
     # https://github.com/pytorch/pytorch/issues/174502
-    "VLLM_ENABLE_PREGRAD_PASSES": lambda: (
-        os.environ.get("VLLM_ENABLE_PREGRAD_PASSES", "1") == "1"
-    ),
-    # Experimental: breakable cudagraph does not rely on torch.compile
     "VLLM_USE_BREAKABLE_CUDAGRAPH": lambda: (
         os.environ.get("VLLM_USE_BREAKABLE_CUDAGRAPH", "0") == "1"
     ),
@@ -1068,7 +1044,6 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # imported at runtime.
     # If a non-existing backend is used, an AssertionError will be thrown.
     "VLLM_MEDIA_CONNECTOR": lambda: os.getenv("VLLM_MEDIA_CONNECTOR", "http"),
-
     # Maximum size (in MB) for logits tensor in sparse MLA indexer prefill chunks.
     # Bounds the [M, N] float32 logits tensor to prevent CUDA OOM.
     # Default: 512 MB
@@ -1114,12 +1089,6 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # Timeout in seconds for keeping HTTP connections alive in API server
     "VLLM_HTTP_TIMEOUT_KEEP_ALIVE": lambda: int(
         os.environ.get("VLLM_HTTP_TIMEOUT_KEEP_ALIVE", "5")
-    ),
-    # Maximum request body size in bytes accepted by the HTTP API server; 0
-    # removes the limit. Only enforced by the Rust frontend; the Python
-    # frontend has no limit.
-    "VLLM_HTTP_MAX_REQUEST_BODY_SIZE": lambda: int(
-        os.environ.get("VLLM_HTTP_MAX_REQUEST_BODY_SIZE", str(32 * 1024 * 1024))
     ),
     # Maximum allowed value for the `n` sampling parameter (number of output
     # sequences per request). Limits resource consumption to prevent
@@ -1256,11 +1225,6 @@ environment_variables: dict[str, Callable[[], Any]] = {
     "VLLM_ROCM_MUSE_MOE_REDUCE_DTYPE": lambda: os.getenv(
         "VLLM_ROCM_MUSE_MOE_REDUCE_DTYPE", "fp32"
     ).lower(),
-    # Muse Spark on ROCm: online-quantize routed experts ("" or "mxfp4"; first
-    # and last layer stay BF16).
-    "VLLM_ROCM_MUSE_MOE_ONLINE_QUANT": lambda: os.getenv(
-        "VLLM_ROCM_MUSE_MOE_ONLINE_QUANT", ""
-    ).lower(),
     # use aiter linear op if aiter ops are enabled
     # The following list of related ops
     # - scaled_mm (per-tensor / rowwise)
@@ -1310,6 +1274,16 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # By default is enabled.
     "VLLM_ROCM_USE_AITER_MLA": lambda: (
         os.getenv("VLLM_ROCM_USE_AITER_MLA", "True").lower() in ("true", "1")
+    ),
+    # Kernel for causal multi-token (spec-decode) verify steps under decode
+    # context parallelism: "asm" uses AITER's round-robin ASM decode (gfx950),
+    # "segmented" the Triton segmented MLA path. "auto" (default) takes "asm"
+    # wherever it can serve the shape and "segmented" otherwise.
+    "VLLM_ROCM_AITER_MLA_DCP_VERIFY": env_with_choices(
+        "VLLM_ROCM_AITER_MLA_DCP_VERIFY",
+        "auto",
+        ["auto", "asm", "segmented"],
+        case_sensitive=False,
     ),
     # Small-head (<16) AITER MLA decode kernel selection. Small head counts
     # (e.g. Kimi-K3: 12 heads/rank at TP8, 6 at TP16) can decode either through
@@ -1429,7 +1403,7 @@ environment_variables: dict[str, Callable[[], Any]] = {
     ),
     "VLLM_DISABLE_COMPILE_CACHE": disable_compile_cache,
     # If set to "0", disable LayerName opaque type for layer_name
-    # parameters in custom ops.  Defaults to enabled on torch >= 2.11.
+    # parameters in custom ops.
     "VLLM_USE_LAYERNAME": lambda: bool(int(os.getenv("VLLM_USE_LAYERNAME", "1"))),
     # If set, use the Rust frontend binary instead of the Python API server
     # process(es).
@@ -1571,10 +1545,6 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # an environment with potentially malicious users.
     "VLLM_V1_USE_OUTLINES_CACHE": lambda: (
         os.environ.get("VLLM_V1_USE_OUTLINES_CACHE", "0") == "1"
-    ),
-    # Whether using Pathways
-    "VLLM_TPU_USING_PATHWAYS": lambda: bool(
-        "proxy" in os.getenv("JAX_PLATFORMS", "").lower()
     ),
     # Allow use of DeepGemm kernels for fused moe ops.
     "VLLM_USE_DEEP_GEMM": lambda: bool(int(os.getenv("VLLM_USE_DEEP_GEMM", "1"))),
@@ -2344,7 +2314,6 @@ def compile_factors() -> dict[str, object]:
         # HOME or the XDG roots silently invalidates every compile cache
         # (VLLM_CACHE_ROOT above and VLLM_FLASHINFER_AUTOTUNE_CACHE_DIR below
         # are already ignored for the same reason).
-        "VLLM_XLA_CACHE_PATH",
         "VLLM_CONFIG_ROOT",
         "LD_LIBRARY_PATH",
         "VLLM_SERVER_DEV_MODE",
@@ -2375,7 +2344,6 @@ def compile_factors() -> dict[str, object]:
         "VLLM_FLASHINFER_AUTOTUNE_CACHE_DIR",
         "VLLM_FLASHINFER_AUTOTUNE_SKIP_OPS",
         "VLLM_HTTP_TIMEOUT_KEEP_ALIVE",
-        "VLLM_HTTP_MAX_REQUEST_BODY_SIZE",
         "VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS",
         "VLLM_WORKER_SHUTDOWN_TIMEOUT_SECONDS",
         "VLLM_KEEP_ALIVE_ON_ENGINE_DEATH",
@@ -2445,7 +2413,6 @@ def compile_factors() -> dict[str, object]:
         # https://github.com/ray-project/ray/blob/b97d21dab233c2bd8ed7db749a82a1e594222b5c/python/ray/_private/accelerators/amd_gpu.py#L10
         # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/npu.py#L12
         # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/neuron.py#L14
-        # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/tpu.py#L38
         # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/intel_gpu.py#L10
         # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/rbln.py#L10
         "RAY_EXPERIMENTAL_NOSET_CUDA_VISIBLE_DEVICES",
@@ -2453,7 +2420,6 @@ def compile_factors() -> dict[str, object]:
         "RAY_EXPERIMENTAL_NOSET_HIP_VISIBLE_DEVICES",
         "RAY_EXPERIMENTAL_NOSET_ASCEND_RT_VISIBLE_DEVICES",
         "RAY_EXPERIMENTAL_NOSET_NEURON_RT_VISIBLE_CORES",
-        "RAY_EXPERIMENTAL_NOSET_TPU_VISIBLE_CHIPS",
         "RAY_EXPERIMENTAL_NOSET_ONEAPI_DEVICE_SELECTOR",
         "RAY_EXPERIMENTAL_NOSET_RBLN_RT_VISIBLE_DEVICES",
     ]

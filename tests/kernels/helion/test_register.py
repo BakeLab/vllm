@@ -956,7 +956,7 @@ class TestKernelRegistry:
         assert registered["disabled_kernel"] is wrapper
 
 
-@pytest.mark.skipif(not _HOP_AVAILABLE, reason="Requires PyTorch >= 2.11 for HOP")
+@pytest.mark.skipif(not _HOP_AVAILABLE, reason="Helion HOP path is disabled due to a performance regression")
 class TestTorchCompileHOP:
     """Test that HelionKernelWrapper emits the correct HOP under torch.compile."""
 
