@@ -15,6 +15,8 @@ pytest-shard
 absl-py
 accelerate
 arctic-inference
+-r arctic-build.in
+-r arctic-build.in
 lm_eval[api]>=0.4.12
 nltk>=3.10.3 # pin transitive rouge-score/lm-eval dep for known GHSAs
 modelscope<1.38
