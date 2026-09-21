@@ -1,0 +1,3 @@
+# Build requirements for arctic-inference when using the installed trim-branch torch.
+grpcio-tools
+nanobind==2.9.2

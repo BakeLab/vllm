@@ -268,7 +268,11 @@ gpt-oss==0.0.9
 graphql-core==3.2.11
     # via hypothesis-graphql
 grpcio==1.83.0
-    # via opentelemetry-exporter-otlp-proto-grpc
+    # via
+    #   grpcio-tools
+    #   opentelemetry-exporter-otlp-proto-grpc
+grpcio-tools==1.83.0
+    # via -r requirements/test/arctic-build.in
 h11==0.16.0
     # via
     #   httpcore
@@ -515,6 +519,8 @@ msgpack==1.2.1
     # via
     #   -r requirements/test/xpu.in
     #   librosa
+nanobind==2.9.2
+    # via -r requirements/test/arctic-build.in
 msgspec==0.21.1
     # via -r requirements/test/../common.txt
 mteb==2.19.4
@@ -740,6 +746,7 @@ protobuf==7.35.1
     #   -r requirements/test/../common.txt
     #   google-api-core
     #   googleapis-common-protos
+    #   grpcio-tools
     #   opentelemetry-proto
     #   proto-plus
     #   tensorizer
