@@ -22,7 +22,6 @@ from vllm.logger import init_logger
 from vllm.platforms import current_platform
 from vllm.utils.import_utils import resolve_obj_by_qualname
 from vllm.utils.math_utils import round_up
-from vllm.utils.torch_utils import is_torch_equal_or_newer
 
 if TYPE_CHECKING:
     from vllm.config import VllmConfig
@@ -380,7 +379,7 @@ class DynamicShapesConfig:
     assume_32_bit_indexing: bool = False
     """
     whether all tensor sizes can use 32 bit indexing.
-    `True` requires PyTorch 2.10+
+    `True` requires the vLLM trim PyTorch branch
     """
 
     def compute_hash(self) -> str:
@@ -910,10 +909,7 @@ class CompilationConfig:
         return handler(value)
 
     def __post_init__(self) -> None:
-        # TODO(zou3519/luka): There are 2 issues with auto-functionalization V2:
-        # 1. A bug in PyTorch, fixed in 2.7:
-        #    https://github.com/pytorch/pytorch/issues/147924
-        # 2. Custom passes (fusion) rely on auto-functionalization V1 and don't
+        # Custom passes (fusion) rely on auto-functionalization V1 and don't
         #    work with V2. Addressing this will take extra engineering effort
         #    and it is not yet a priority. RFC here:
         #    https://github.com/vllm-project/vllm/issues/14703
@@ -921,25 +917,6 @@ class CompilationConfig:
         KEY = "enable_auto_functionalized_v2"
         if KEY not in self.inductor_compile_config:
             self.inductor_compile_config[KEY] = False
-
-        # Tie inductor runtime assertions to debug logging mode.
-        # These assertions add ~2ms overhead per forward pass on large
-        # models (e.g., DeepSeek-R1 671B: ~340 assert_size_stride + ~60
-        # assert_alignment calls per forward). PyTorch >= 2.12 has a
-        # native fix (assert-once), so we only apply this workaround on
-        # older versions. On torch < 2.12, enable asserts only when
-        # VLLM_LOGGING_LEVEL=DEBUG. Users can still override explicitly
-        # via --compilation-config '{"inductor_compile_config":
-        # {"size_asserts": true, ...}}'.
-        # See: https://github.com/pytorch/pytorch/issues/177719
-        if not is_torch_equal_or_newer("2.12.0.dev"):
-            enable_asserts = envs.VLLM_LOGGING_LEVEL == "DEBUG"
-            for key in (
-                "size_asserts",
-                "alignment_asserts",
-                "scalar_asserts",
-            ):
-                self.inductor_compile_config.setdefault(key, enable_asserts)
 
         for k, v in self.inductor_passes.items():
             if not isinstance(v, str):
@@ -981,8 +958,7 @@ class CompilationConfig:
             self.custom_ops.append("+rotary_embedding")
 
         if (
-            is_torch_equal_or_newer("2.9.0.dev")
-            and "combo_kernels" not in self.inductor_compile_config
+            "combo_kernels" not in self.inductor_compile_config
             and "benchmark_combo_kernel" not in self.inductor_compile_config
             # (fixme @boyuan) combo kernel does not support cpu yet.
             and not current_platform.is_cpu()
@@ -991,15 +967,6 @@ class CompilationConfig:
             # qk-rope when query and key have different shapes.
             self.inductor_compile_config["combo_kernels"] = True
             self.inductor_compile_config["benchmark_combo_kernel"] = True
-
-        if self.use_inductor_graph_partition and not is_torch_equal_or_newer(
-            "2.9.0.dev"
-        ):
-            raise ValueError(
-                "use_inductor_graph_partition is only "
-                "supported with torch>=2.9.0.dev. Set "
-                "use_inductor_graph_partition=False instead."
-            )
 
         for op in self.custom_ops:
             if op not in {"all", "none"} and (len(op) < 2 or op[0] not in {"+", "-"}):

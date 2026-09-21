@@ -17,7 +17,6 @@ from vllm.platforms import current_platform
 from vllm.triton_utils import tl, triton
 from vllm.utils.mem_utils import get_max_shared_memory_bytes
 from vllm.utils.platform_utils import num_compute_units
-from vllm.utils.torch_utils import is_torch_equal_or_newer
 
 
 def _matmul_launch_metadata(
@@ -1117,17 +1116,15 @@ def enable_batch_invariant_mode():
         _batch_invariant_LIB.impl("aten::softmax", softmax_batch_invariant, key)
         _batch_invariant_LIB.impl("aten::_softmax", softmax_batch_invariant, key)
         _batch_invariant_LIB.impl("aten::mean.dim", mean_batch_invariant, key)
-        # torch 2.12+ registers a built-in Triton bmm kernel for CUDA
-        # (torch._native.ops.bmm_outer_product), so we need allow_override
-        # to replace it at the dispatcher level.
+        # The trim PyTorch branch registers a built-in Triton bmm kernel for
+        # CUDA (torch._native.ops.bmm_outer_product), so allow_override is
+        # needed to replace it at the dispatcher level.
         _batch_invariant_LIB.impl(
             "aten::bmm", bmm_batch_invariant, key, allow_override=True
         )
         torch.bmm = bmm_batch_invariant
 
-    reduced_precision_val = (
-        (False, False) if is_torch_equal_or_newer("2.10.0") else False
-    )
+    reduced_precision_val = (False, False)
     torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = (
         reduced_precision_val
     )

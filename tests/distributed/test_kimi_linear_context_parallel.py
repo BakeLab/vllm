@@ -13,7 +13,6 @@ from vllm import SamplingParams, TokensPrompt
 from vllm.config import CUDAGraphMode
 from vllm.platforms import current_platform
 from vllm.transformers_utils.configs.kimi_k3 import KimiK3Config
-from vllm.utils.torch_utils import supports_xpu_graph
 
 MODEL = "moonshotai/Kimi-Linear-48B-A3B-Instruct"
 
@@ -222,7 +221,7 @@ def test_kimi_k3_dcp_partial_prefix_reuse(
     if num_gpus_available < 2:
         pytest.skip("Need at least 2 GPUs")
 
-    if current_platform.is_xpu() and supports_xpu_graph():
+    if current_platform.is_xpu():
         os.environ["VLLM_XPU_ENABLE_XPU_GRAPH"] = "1"
 
     model_name = _make_tiny_k3_config(tmp_path / "tiny-kimi-k3")

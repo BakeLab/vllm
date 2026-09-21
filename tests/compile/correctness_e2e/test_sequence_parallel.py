@@ -19,7 +19,6 @@ from vllm.config.compilation import CompilationMode
 from vllm.config.model import RunnerOption
 from vllm.logger import init_logger
 from vllm.platforms import current_platform
-from vllm.utils.torch_utils import is_torch_equal_or_newer
 
 from ...models.registry import HF_EXAMPLE_MODELS, _HfExamplesInfo
 from ...utils import compare_all_settings, create_new_process_for_each_test
@@ -301,9 +300,7 @@ def test_tp_sp_generation(
     if "fp8" in model_id.lower() and capability is not None and capability < (9, 0):
         pytest.skip("FP8 reduction support begins with sm90 capable devices.")
 
-    graph_partition_options = [False]
-    if is_torch_equal_or_newer("2.9.0.dev"):
-        graph_partition_options.append(True)
+    graph_partition_options = [False, True]
 
     comparisons = []
     for _, parallel_setup, backend, runner, test_options in settings.iter_params(
@@ -348,9 +345,7 @@ def test_tp_sp_generation_prompt_embeds(
     num_gpus_available,
 ):
     model_id = "hmellor/tiny-random-LlamaForCausalLM"
-    graph_partition_options = [False]
-    if is_torch_equal_or_newer("2.9.0.dev"):
-        graph_partition_options.append(True)
+    graph_partition_options = [False, True]
 
     comparisons = []
     for parallel_setup in SP_PROMPT_EMBEDS_PARALLEL_SETUPS:

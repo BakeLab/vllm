@@ -54,7 +54,7 @@ class AttnFp8StaticQuantPattern(VllmPatternReplacement[..., torch.Tensor]):
 
     @property
     def pattern(self) -> Callable[..., torch.Tensor]:
-        # When _USE_LAYERNAME is enabled (torch >= 2.11), layer_name is
+        # When _USE_LAYERNAME is enabled, layer_name is
         # passed as an explicit pattern input so the pattern matcher
         # treats it as a wildcard matching hoisted LayerName placeholders.
         # Otherwise it stays as a closure constant (original behavior).

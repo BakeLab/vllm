@@ -35,7 +35,6 @@ from vllm.logging_utils import lazy
 from vllm.platforms import current_platform
 from vllm.tracing import instrument, instrument_manual
 from vllm.utils.import_utils import resolve_obj_by_qualname
-from vllm.utils.torch_utils import is_torch_equal_or_newer
 
 from .compiler_interface import (
     CompilerInterface,
@@ -597,8 +596,7 @@ def split_graph(
     # the semantics of the graph will change when we
     # have mutations in the graph
     with _use_lazy_graph_module(True):
-        has_tuple_return = is_torch_equal_or_newer("2.12.0.dev")
-        tuple_return_kwarg = {"tuple_return": True} if has_tuple_return else {}
+        tuple_return_kwarg = {"tuple_return": True}
         split_gm = torch.fx.passes.split_module.split_module(
             graph,
             None,

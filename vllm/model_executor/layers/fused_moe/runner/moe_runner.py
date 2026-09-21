@@ -87,7 +87,7 @@ def get_layer_from_name(layer_name: str) -> MoERunnerInterface:
     return layer
 
 
-# On torch >= 2.11, layer_name is a hoisted LayerName opaque object;
+# When enabled, layer_name is a hoisted LayerName opaque object;
 # on older versions it remains a plain str.
 if TYPE_CHECKING:
     from typing import TypeAlias

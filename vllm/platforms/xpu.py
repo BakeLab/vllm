@@ -289,16 +289,7 @@ class XPUPlatform(Platform):
         if compilation_config.compile_sizes is None:
             compilation_config.compile_sizes = []
 
-        # lazy import to avoid circular import
-        from vllm.utils.torch_utils import supports_xpu_graph
-
-        if not supports_xpu_graph():
-            compilation_config.cudagraph_mode = CUDAGraphMode.NONE
-            logger.warning_once(
-                "XPU Graph is not supported in the current PyTorch version, "
-                "disabling cudagraph_mode."
-            )
-        elif not envs.VLLM_XPU_ENABLE_XPU_GRAPH:
+        if not envs.VLLM_XPU_ENABLE_XPU_GRAPH:
             compilation_config.cudagraph_mode = CUDAGraphMode.NONE
             logger.warning_once(
                 "XPU Graph is disabled by environment variable, "
@@ -467,7 +458,6 @@ class XPUPlatform(Platform):
     @classmethod
     def get_device_communicator_cls(cls) -> str:
         if not torch.distributed.is_xccl_available():
-            # Supports xccl with PyTorch versions >= 2.8.0.dev for XPU platform
             logger.warning(
                 "xccl is not enabled in this torch build, communication"
                 " is not available."

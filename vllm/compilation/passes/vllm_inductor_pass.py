@@ -204,9 +204,6 @@ class VllmPatternReplacement(ABC, Generic[P, R]):
     with `replacement`.
     """
 
-    # TODO(Badr): bound methods work for pattern registration since
-    # PyTorch 2.10. Once vLLM requires torch>=2.11, replace these properties
-    # with plain methods and drop the closure indirection.
     @property
     @abstractmethod
     def pattern(self) -> Callable[P, R]:

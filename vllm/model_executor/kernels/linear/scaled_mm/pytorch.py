@@ -117,10 +117,6 @@ class PerTensorTorchFP8ScaledMMLinearKernel(TorchFP8ScaledMMLinearKernel):
         output = torch._scaled_mm(
             A, B, out_dtype=out_dtype, scale_a=As, scale_b=Bs, bias=bias
         )
-        # A fix for discrepancy in scaled_mm which returns tuple
-        # for torch < 2.5 and a single value in torch >= 2.5
-        if type(output) is tuple and len(output) == 2:
-            output = output[0]
 
         num_tokens = _get_num_tokens(output_shape)
         return torch.narrow(output, 0, 0, num_tokens).view(*output_shape)
@@ -249,10 +245,6 @@ class ChannelWiseTorchFP8ScaledMMLinearKernel(TorchFP8ScaledMMLinearKernel):
             scale_b=dummy_tensor,
             out_dtype=torch.float32,
         )
-        # A fix for discrepancy in scaled_mm which returns tuple
-        # for torch < 2.5 and a single value in torch >= 2.5
-        if type(output) is tuple and len(output) == 2:
-            output = output[0]
 
         # Unpad (undo num_token_padding)
         num_tokens = _get_num_tokens(output_shape)

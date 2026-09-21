@@ -16,7 +16,6 @@ from torch._dynamo.utils import counters
 import vllm.envs as envs
 from vllm.compilation.counter import compilation_counter
 from vllm.config import CompilationConfig, CompilationMode, CUDAGraphMode, PassConfig
-from vllm.utils.torch_utils import is_torch_equal_or_newer
 
 from ...utils import fork_new_process_for_each_test
 
@@ -77,9 +76,7 @@ def test_moe_startup(monkeypatch, vllm_runner, fresh_vllm_cache, mega_aot_artifa
         num_compiled_artifacts_saved=0,
     ):
         _run_vllm(vllm_runner)
-    mega_aot_active = envs.VLLM_USE_MEGA_AOT_ARTIFACT and is_torch_equal_or_newer(
-        "2.10.0"
-    )
+    mega_aot_active = envs.VLLM_USE_MEGA_AOT_ARTIFACT
     if mega_aot_active:
         # MEGA_AOT_ARTIFACT is enabled, so we expect no aot_autograd running on
         # subgraphs.
@@ -138,8 +135,8 @@ MODEL_SPECS = [
             hf_overrides={"text_config": _SMALL_MOE_OVERRIDES},
             cold_artifacts_saved=4,
             # https://github.com/vllm-project/vllm/issues/38051
-            warm_artifacts_saved=0 if is_torch_equal_or_newer("2.12.0") else 4,
-            warm_artifacts_loaded=4 if is_torch_equal_or_newer("2.12.0") else 0,
+            warm_artifacts_saved=0,
+            warm_artifacts_loaded=4,
         ),
         id="kimi_k2.5",
     ),

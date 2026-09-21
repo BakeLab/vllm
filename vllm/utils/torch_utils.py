@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 import contextlib
-import importlib.metadata
 import os
 import random
 import sys
@@ -12,8 +11,6 @@ from typing import TYPE_CHECKING, Any, TypeVar
 import numpy as np
 import numpy.typing as npt
 import torch
-from packaging import version
-from packaging.version import Version
 from torch.library import Library, infer_schema
 
 import vllm.envs as envs
@@ -921,82 +918,17 @@ def get_accelerator_view_from_cpu_tensor(cpu_tensor: torch.Tensor) -> torch.Tens
         )
 
 
-# Helper function used in testing.
-def _is_torch_equal_or_newer(torch_version: str, target: str) -> bool:
-    return version.parse(torch_version) >= version.parse(target)
+# The trim PyTorch branch provides the opaque custom-class API unconditionally.
+from torch._custom_class_base import CustomClassBase
+from torch._library.opaque_object import register_custom_class
+
+_USE_LAYERNAME = envs.VLLM_USE_LAYERNAME
 
 
-def is_torch_equal_or_newer(target: str) -> bool:
-    """Check if the installed torch version is >= the target version.
+class LayerName(CustomClassBase):
+    """Wrap a module name string as a hoisted opaque constant type.
 
-    Args:
-        target: a version string, like "2.6.0".
-
-    Returns:
-        Whether the condition meets.
-    """
-    try:
-        return _is_torch_equal_or_newer(str(torch.__version__), target)
-    except Exception:
-        # Fallback to PKG-INFO to load the package info, needed by the doc gen.
-        return Version(importlib.metadata.version("torch")) >= Version(target)
-
-
-def _is_torch_equal(target: str) -> bool:
-    assert target.count(".") == 2
-    torch_version = str(torch.__version__)
-    torch_version = version.parse(torch_version)
-    # torch version is like "2.6.0.dev20240101" or "2.6.0.dev20240101+cpu"
-    # or "2.6.0+cu128" but never "2.6.0.1"
-    return (
-        torch_version >= version.parse(target)
-        and version.parse(target + ".1") > torch_version
-    )
-
-
-def is_torch_equal(target: str) -> bool:
-    """Check if the installed torch version is == the target version.
-
-    Args:
-        target: a version string, like "2.6.0".
-
-    Returns:
-        Whether the condition meets.
-    """
-    try:
-        return _is_torch_equal(target)
-    except Exception:
-        return Version(importlib.metadata.version("torch")) == Version(target)
-
-
-HAS_OPAQUE_TYPE = is_torch_equal_or_newer("2.11.0.dev")
-
-# Allow toggling LayerName usage via environment variable.
-# Defaults to True on torch >= 2.11, False otherwise.
-# Set VLLM_USE_LAYERNAME=0 to disable even on torch >= 2.11.
-_USE_LAYERNAME = HAS_OPAQUE_TYPE and envs.VLLM_USE_LAYERNAME
-
-if HAS_OPAQUE_TYPE:
-    try:
-        from torch._custom_class_base import CustomClassBase
-        from torch._library.opaque_object import register_custom_class
-
-        _LAYER_NAME_TYPE = "constant"
-    except ImportError:
-        # Compatibility with PyTorch releases before the custom-class API.
-        from torch._opaque_base import OpaqueBase as CustomClassBase
-        from torch._library.opaque_object import register_opaque_type
-
-        register_custom_class = register_opaque_type
-        _LAYER_NAME_TYPE = "value"
-else:
-    CustomClassBase = object  # type: ignore[misc, assignment]
-
-
-class LayerName(CustomClassBase):  # type: ignore[misc]
-    """Wraps a module name string for use as a torch opaque type.
-
-    When supported by PyTorch, this is registered as a hoisted constant-type
+    It is registered as a hoisted constant-type
     custom class so torch.compile lifts it as a graph input instead of baking
     it as a constant. This avoids per-layer recompilation for custom ops that
     accept layer name strings (attention, MOE, KV cache, etc.).
@@ -1015,11 +947,9 @@ class LayerName(CustomClassBase):  # type: ignore[misc]
         return (f"LayerName({self.value!r})", {"LayerName": LayerName})
 
 
-if HAS_OPAQUE_TYPE:
-    register_custom_class(LayerName, typ=_LAYER_NAME_TYPE, hoist=True)
+register_custom_class(LayerName, typ="constant", hoist=True)
 
-# On torch >= 2.11 (with VLLM_USE_LAYERNAME enabled), custom op
-# layer_name parameters use LayerName; otherwise they remain plain str.
+# Custom-op layer_name parameters use LayerName when the feature is enabled.
 if TYPE_CHECKING:
     from typing import TypeAlias
 
@@ -1036,11 +966,6 @@ def _resolve_layer_name(layer_name: str | LayerName) -> str:
 def _encode_layer_name(layer_name: str) -> str | LayerName:
     """Wrap a str layer name as LayerName when enabled."""
     return LayerName(layer_name) if _USE_LAYERNAME else layer_name
-
-
-# Supports XPU Graph with PyTorch versions >= 2.11.0.dev for XPU platform
-def supports_xpu_graph() -> bool:
-    return is_torch_equal_or_newer("2.11.0.dev")
 
 
 # create a library to hold the custom op
