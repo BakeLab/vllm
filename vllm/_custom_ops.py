@@ -2989,9 +2989,14 @@ def cp_gather_cache(
     batch_size: int,
     seq_starts: torch.Tensor | None = None,
 ) -> None:
-    torch.ops._C_cache_ops.cp_gather_cache(
-        src_cache, dst, block_table, cu_seq_lens, batch_size, seq_starts
-    )
+    if src_cache.device.type == "xpu":
+        torch.ops._xpu_C.cp_gather_cache(
+            src_cache, dst, block_table, cu_seq_lens, batch_size, seq_starts
+        )
+    else:
+        torch.ops._C_cache_ops.cp_gather_cache(
+            src_cache, dst, block_table, cu_seq_lens, batch_size, seq_starts
+        )
 
 
 def cp_gather_and_upconvert_fp8_kv_cache(
