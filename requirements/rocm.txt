@@ -23,4 +23,5 @@ tilelang==0.1.10
 apache-tvm-ffi==0.1.10 
 # Required for faster safetensors model loading
 fastsafetensors >= 0.3.3
-torchvision
+# torchvision is supplied by the ROCm wheel pipeline; do not resolve the PyPI
+# package here, since it pulls the CUDA/NVIDIA runtime into the ROCm test env.
