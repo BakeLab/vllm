@@ -15,7 +15,7 @@ index a7dd915..4de3bbd 100644
 +set(CUDA_SUPPORTED_ARCHS "10.0;11.0;12.0")
 @@ -140 +135 @@ if (FA2_ENABLED)
 -        cuda_archs_loose_intersection(FA2_ARCHS "8.0+PTX" "${CUDA_ARCHS}")
-+        cuda_archs_loose_intersection(FA2_ARCHS "10.0+PTX" "${CUDA_ARCHS}")
++        cuda_archs_loose_intersection(FA2_ARCHS "10.0+PTX;${CUDA_SUPPORTED_ARCHS}" "${CUDA_ARCHS}")
 diff --git a/cmake/utils.cmake b/cmake/utils.cmake
 index ed41ab4..d8815eb 100644
 --- a/cmake/utils.cmake
