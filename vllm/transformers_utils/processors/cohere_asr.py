@@ -8,8 +8,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torchaudio.functional import melscale_fbanks
 from transformers import AutoFeatureExtractor, AutoProcessor, BatchFeature
+from transformers.audio_utils import mel_filter_bank
 from transformers.feature_extraction_sequence_utils import (
     SequenceFeatureExtractor,
 )
@@ -129,15 +129,16 @@ class FilterbankFeatures(nn.Module):
         self.pad_min_duration = 0.0
         self.pad_direction = "both"
 
-        filterbanks = melscale_fbanks(
-            n_freqs=self.n_fft // 2 + 1,
-            f_min=lowfreq,
-            f_max=highfreq,
-            n_mels=nfilt,
-            sample_rate=sample_rate,
+        filterbanks = mel_filter_bank(
+            num_frequency_bins=self.n_fft // 2 + 1,
+            num_mel_filters=nfilt,
+            min_frequency=lowfreq,
+            max_frequency=highfreq,
+            sampling_rate=sample_rate,
             norm=mel_norm,
             mel_scale="slaney",
-        ).T.unsqueeze(0)
+        )
+        filterbanks = torch.from_numpy(filterbanks.T.copy()).unsqueeze(0)
         self.register_buffer("fb", filterbanks)
 
         # Calculate maximum sequence length
