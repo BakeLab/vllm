@@ -31,9 +31,9 @@ from typing import Annotated, TypeAlias, cast
 import numpy as np
 import torch
 import torch.nn as nn
-import torchaudio.functional as F
 from torch.nn.functional import scaled_dot_product_attention
 from transformers import BatchFeature
+from transformers.audio_utils import mel_filter_bank
 
 from vllm.config import VllmConfig
 from vllm.config.multimodal import MultiModalDummyOptions
@@ -308,43 +308,36 @@ class DashengFrontend(nn.Module):
         )
         self.spectrogram_window: torch.Tensor
 
-        melscale_fbanks = F.melscale_fbanks(
-            n_freqs=self.config.n_fft // 2 + 1,
-            f_min=self.config.f_min,
-            f_max=self.config.f_max,
-            n_mels=self.config.n_mels,
-            sample_rate=self.config.sample_rate,
+        melscale_fbanks = mel_filter_bank(
+            num_frequency_bins=self.config.n_fft // 2 + 1,
+            num_mel_filters=self.config.n_mels,
+            min_frequency=self.config.f_min,
+            max_frequency=self.config.f_max,
+            sampling_rate=self.config.sample_rate,
+            norm=None,
+            mel_scale="htk",
         )
+        melscale_fbanks = torch.from_numpy(melscale_fbanks.copy())
         self.register_buffer("melscale_fbanks", melscale_fbanks, persistent=False)
         self.melscale_fbanks: torch.Tensor
 
     def forward(self, waveform: torch.Tensor) -> torch.Tensor:
-        spectrogram = F.spectrogram(
-            waveform=waveform.to(torch.float32),
-            pad=0,
-            window=self.spectrogram_window,
+        spectrogram = torch.stft(
+            waveform.to(torch.float32),
             n_fft=self.config.n_fft,
             hop_length=self.config.hop_length,
             win_length=self.config.win_length,
-            power=2,
-            normalized=False,
+            window=self.spectrogram_window.to(device=waveform.device),
             center=self.config.center,
-        )
+            return_complex=True,
+        ).abs().square()
         mel_spectrogram = (spectrogram.mT @ self.melscale_fbanks.to(torch.float32)).mT
         # x has shape [batch, freq, time].
-        # F.amplitude_to_DB accepts inputs shaped as:
-        #   - [freq, time]
-        #   - [channel, freq, time]
-        #   - [..., channel, freq, time]
-        # Here we insert a channel dimension of size 1 before calling it,
-        # then remove that extra dimension afterward.
-        log_mel_spectrogram = F.amplitude_to_DB(
-            mel_spectrogram.unsqueeze(1),
-            multiplier=10,
-            amin=1e-10,
-            db_multiplier=0,
-            top_db=120,
-        ).squeeze(1)
+        log_mel_spectrogram = 10 * torch.log10(mel_spectrogram.clamp_min(1e-10))
+        max_per_sample = log_mel_spectrogram.amax(dim=(-2, -1), keepdim=True)
+        log_mel_spectrogram = torch.maximum(
+            log_mel_spectrogram, max_per_sample - 120
+        )
         return log_mel_spectrogram.to(waveform.dtype)
 
 

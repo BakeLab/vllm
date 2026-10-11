@@ -9,7 +9,6 @@ Ported from SGLang's MiMoV2OmniProcessor / MiMoVLProcessor implementations.
 import contextlib
 import logging
 import math
-from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from typing import Any, Literal
@@ -20,19 +19,49 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 from transformers import BatchFeature, TensorType
+from transformers.audio_utils import mel_filter_bank
 from transformers.processing_utils import ProcessorMixin
-
-try:
-    import torchaudio
-    from torchaudio.transforms import MelSpectrogram as _MelSpectrogram
-
-    _HAS_TORCHAUDIO = True
-except ImportError:
-    torchaudio = None  # type: ignore[assignment]
-    _MelSpectrogram = None  # type: ignore[assignment,misc]
-    _HAS_TORCHAUDIO = False
+from vllm.multimodal.audio import resample_audio_torch
 
 logger = logging.getLogger(__name__)
+
+
+class _MelSpectrogram(torch.nn.Module):
+    def __init__(self, **kwargs: Any):
+        super().__init__()
+        self.n_fft = kwargs["n_fft"]
+        self.hop_length = kwargs["hop_length"]
+        self.win_length = kwargs["win_length"]
+        self.power = kwargs["power"]
+        self.center = kwargs["center"]
+        self.register_buffer("window", torch.hann_window(self.win_length))
+        filterbank = mel_filter_bank(
+            num_frequency_bins=self.n_fft // 2 + 1,
+            num_mel_filters=kwargs["n_mels"],
+            min_frequency=kwargs["f_min"],
+            max_frequency=kwargs["f_max"] or kwargs["sample_rate"] / 2,
+            sampling_rate=kwargs["sample_rate"],
+            norm=None,
+            mel_scale="htk",
+        )
+        self.register_buffer("filterbank", torch.from_numpy(filterbank))
+
+    def forward(self, waveform: torch.Tensor) -> torch.Tensor:
+        spectrum = torch.stft(
+            waveform,
+            n_fft=self.n_fft,
+            hop_length=self.hop_length,
+            win_length=self.win_length,
+            window=self.window.to(device=waveform.device, dtype=waveform.dtype),
+            center=self.center,
+            return_complex=True,
+        ).abs()
+        if self.power != 1.0:
+            spectrum = spectrum.pow(self.power)
+        return torch.matmul(
+            self.filterbank.to(device=waveform.device, dtype=waveform.dtype).T,
+            spectrum,
+        )
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -332,8 +361,6 @@ class MiMoVLProcessor:
             center=True,
         )
         self._mel_spectrogram: Any | None = None
-        self._resamplers: OrderedDict = OrderedDict()
-        self._resamplers_max = 16
 
         if isinstance(audio_zeroemb_idx, int):
             self.audio_zeroemb_idxs = torch.tensor(
@@ -365,11 +392,6 @@ class MiMoVLProcessor:
     @property
     def mel_spectrogram(self) -> Any:
         if self._mel_spectrogram is None:
-            if _MelSpectrogram is None:
-                raise RuntimeError(
-                    "torchaudio is required for audio. "
-                    "Install with: pip install torchaudio"
-                )
             self._mel_spectrogram = _MelSpectrogram(**self._mel_spec_kwargs)
         return self._mel_spectrogram
 
@@ -422,16 +444,14 @@ class MiMoVLProcessor:
                 "resolution is handled upstream in vLLM's media pipeline."
             )
         waveform, original_sr = audio
+        waveform = torch.as_tensor(waveform, dtype=torch.float32)
 
         if original_sr != self.audio_sampling_rate:
-            if original_sr not in self._resamplers:
-                if len(self._resamplers) >= self._resamplers_max:
-                    self._resamplers.popitem(last=False)
-                self._resamplers[original_sr] = torchaudio.transforms.Resample(
-                    orig_freq=original_sr, new_freq=self.audio_sampling_rate
-                )
-            self._resamplers.move_to_end(original_sr)
-            waveform = self._resamplers[original_sr](waveform)
+            waveform = resample_audio_torch(
+                waveform,
+                orig_sr=original_sr,
+                target_sr=self.audio_sampling_rate,
+            )
 
         if waveform.ndim == 2:
             waveform = waveform.mean(dim=0)
