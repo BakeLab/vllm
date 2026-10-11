@@ -297,7 +297,7 @@ def _to_exact_int(value: float, name: str, tolerance: float = 1e-6) -> int:
 
 
 def _hz_to_mel(frequencies: np.ndarray) -> np.ndarray:
-    """Slaney mel scale, matching the librosa/torchaudio convention."""
+    """Slaney mel scale, matching the common librosa convention."""
     frequencies = np.asarray(frequencies, dtype=np.float64)
     f_sp = 200.0 / 3.0
     min_log_hz = 1000.0

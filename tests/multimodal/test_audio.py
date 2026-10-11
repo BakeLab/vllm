@@ -14,11 +14,10 @@ from vllm.multimodal.audio import (
     AudioResampler,
     AudioSpec,
     ChannelReduction,
-    _get_torchaudio_resampler,
     normalize_audio,
     resample_audio_pyav,
     resample_audio_scipy,
-    resample_audio_torchaudio,
+    resample_audio_torch,
     split_audio,
 )
 
@@ -78,19 +77,19 @@ def test_resample_audio_scipy_resamples_last_axis_for_multichannel():
     assert np.isfinite(out).all()
 
 
-def test_resample_audio_torchaudio(dummy_audio):
-    out_down = resample_audio_torchaudio(dummy_audio, orig_sr=4, target_sr=2)
-    out_up = resample_audio_torchaudio(dummy_audio, orig_sr=2, target_sr=4)
-    out_same = resample_audio_torchaudio(dummy_audio, orig_sr=4, target_sr=4)
+def test_resample_audio_torch(dummy_audio):
+    out_down = resample_audio_torch(dummy_audio, orig_sr=4, target_sr=2)
+    out_up = resample_audio_torch(dummy_audio, orig_sr=2, target_sr=4)
+    out_same = resample_audio_torch(dummy_audio, orig_sr=4, target_sr=4)
 
     assert len(out_down) == 3
     assert len(out_up) == 10
     assert np.all(out_same == dummy_audio)
 
 
-def test_resample_audio_torchaudio_non_divisible_sample_rates():
+def test_resample_audio_torch_non_divisible_sample_rates():
     audio = np.arange(441, dtype=float)
-    out = resample_audio_torchaudio(audio, orig_sr=44100, target_sr=16000)
+    out = resample_audio_torch(audio, orig_sr=44100, target_sr=16000)
 
     expected_len = math.ceil(len(audio) * 16000 / 44100)
     assert len(out) == expected_len
@@ -99,20 +98,19 @@ def test_resample_audio_torchaudio_non_divisible_sample_rates():
     assert np.isfinite(out).all()
 
 
-def test_resample_audio_torchaudio_resamples_last_axis_for_multichannel():
+def test_resample_audio_torch_resamples_last_axis_for_multichannel():
     audio = np.arange(2 * 441, dtype=float).reshape(2, 441)
-    out = resample_audio_torchaudio(audio, orig_sr=44100, target_sr=16000)
+    out = resample_audio_torch(audio, orig_sr=44100, target_sr=16000)
 
     expected_len = math.ceil(audio.shape[-1] * 16000 / 44100)
     assert out.shape == (2, expected_len)
     assert np.isfinite(out).all()
 
 
-def test_resample_audio_torchaudio_short_input_needs_no_padding():
-    # Unlike the PyAV resampler, torchaudio produces output for inputs
-    # shorter than libswresample's minimum frame size.
+def test_resample_audio_torch_short_input_needs_no_padding():
+    # The built-in resampler handles inputs shorter than a normal audio frame.
     audio = np.arange(8, dtype=float)
-    out = resample_audio_torchaudio(audio, orig_sr=44100, target_sr=16000)
+    out = resample_audio_torch(audio, orig_sr=44100, target_sr=16000)
 
     assert len(out) == math.ceil(len(audio) * 16000 / 44100)
     assert np.isfinite(out).all()
@@ -140,8 +138,8 @@ def test_audio_resampler_scipy_calls_resample(dummy_audio):
         assert np.all(out == dummy_audio)
 
 
-def test_audio_resampler_torchaudio(dummy_audio):
-    resampler = AudioResampler(target_sr=22050, method="torchaudio")
+def test_audio_resampler_torch(dummy_audio):
+    resampler = AudioResampler(target_sr=22050, method="torch")
     out_down = resampler.resample(dummy_audio, orig_sr=44100)
 
     expected_len = math.ceil(len(dummy_audio) * 22050 / 44100)
@@ -149,30 +147,13 @@ def test_audio_resampler_torchaudio(dummy_audio):
     assert np.isfinite(out_down).all()
 
 
-def test_resample_audio_torchaudio_caches_kernel():
-    # The sinc kernel is rebuilt per (orig_sr, target_sr) pair; repeated
-    # requests at the same pair must reuse the cached one.
-    _get_torchaudio_resampler.cache_clear()
-    audio = np.arange(441, dtype=float)
-
-    resample_audio_torchaudio(audio, orig_sr=44100, target_sr=16000)
-    resample_audio_torchaudio(audio, orig_sr=44100, target_sr=16000)
-    resample_audio_torchaudio(audio, orig_sr=48000, target_sr=16000)
-
-    info = _get_torchaudio_resampler.cache_info()
-    assert info.misses == 2
-    assert info.hits == 1
-
-
-def test_audio_resampler_default_is_torchaudio():
-    # Deliberate behavior change: torchaudio is the default resampling backend
-    # for both AudioResampler and the data parser that wraps it.
-    assert AudioResampler(target_sr=16000).method == "torchaudio"
+def test_audio_resampler_default_is_torch():
+    assert AudioResampler(target_sr=16000).method == "torch"
 
     from vllm.multimodal.parse import MultiModalDataParser
 
     parser = MultiModalDataParser(target_sr=16000)
-    assert parser.audio_resampler.method == "torchaudio"
+    assert parser.audio_resampler.method == "torch"
 
 
 def test_audio_resampler_invalid_method(dummy_audio):
@@ -270,7 +251,7 @@ class TestNormalizeAudio:
         """Audio in (time, channels) format should be transposed to (channels, time).
 
         This handles the case where audio loaders like soundfile return
-        (time, channels) format instead of (channels, time) like torchaudio.
+        (time, channels) format instead of channel-first format.
         """
         # Create audio in (time, channels) format: 1000 samples, 2 channels
         audio_time_channels = np.array(
@@ -370,7 +351,7 @@ class TestMultiModalDataParserChannelNormalization:
             target_channels=1,
         )
 
-        # Create stereo audio (simulating torchaudio output)
+        # Create channel-first stereo audio.
         stereo_audio = np.array(
             [[1.0, 1.0, 1.0], [-1.0, -1.0, -1.0]],  # 2 channels, 3 samples
             dtype=np.float32,
@@ -474,16 +455,16 @@ class TestAudioPipelineE2E:
     """
 
     def test_stereo_audio_normalized_to_mono_e2e(self):
-        """Full pipeline: stereo audio (torchaudio format) → mono output."""
+        """Full pipeline: channel-first stereo audio → mono output."""
         from vllm.multimodal.parse import MultiModalDataParser
 
-        # Simulate torchaudio output: (channels, time) format
+        # Simulate channel-first audio: (channels, time) format.
         # Stereo audio with left channel = 1.0, right channel = -1.0
-        stereo_torchaudio = np.array(
+        stereo_channel_first = np.array(
             [[1.0] * 16000, [-1.0] * 16000],  # 2 channels, 1 second at 16kHz
             dtype=np.float32,
         )
-        assert stereo_torchaudio.shape == (2, 16000)
+        assert stereo_channel_first.shape == (2, 16000)
 
         # Create parser with mono normalization (like Whisper models)
         parser = MultiModalDataParser(
@@ -492,7 +473,7 @@ class TestAudioPipelineE2E:
         )
 
         # Process audio through the parser
-        result = parser._parse_audio_data((stereo_torchaudio, 16000))
+        result = parser._parse_audio_data((stereo_channel_first, 16000))
         assert result is not None
         audio_output = result.get(0)
 
@@ -601,7 +582,7 @@ class TestAudioPipelineE2E:
         """Full pipeline: torch.Tensor stereo input → mono numpy output."""
         from vllm.multimodal.parse import MultiModalDataParser
 
-        # Simulate torch tensor input (from torchaudio)
+        # Simulate channel-first torch tensor input.
         stereo_torch = torch.tensor(
             [[1.0] * 8000, [-1.0] * 8000],  # 2 channels
             dtype=torch.float32,
