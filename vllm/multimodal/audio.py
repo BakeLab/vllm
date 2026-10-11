@@ -175,6 +175,33 @@ def normalize_audio(
 # ============================================================
 
 
+@lru_cache(maxsize=32)
+def _get_torch_resample_kernel(
+    orig_sr: int, target_sr: int, device: torch.device
+) -> tuple[torch.Tensor, int, int, int]:
+    """Build a reusable windowed-sinc interpolation kernel."""
+    gcd = math.gcd(orig_sr, target_sr)
+    orig = orig_sr // gcd
+    target = target_sr // gcd
+    lowpass_filter_width = 6
+    base_freq = min(orig, target) * 0.99
+    width = math.ceil(lowpass_filter_width * orig / base_freq)
+    idx = torch.arange(
+        -width, width + orig, dtype=torch.float64, device=device
+    )[None, None, :] / orig
+    t = (
+        torch.arange(0, -target, -1, dtype=torch.float64, device=device)[:, None, None]
+        / target
+        + idx
+    )
+    t = (t * base_freq).clamp_(-lowpass_filter_width, lowpass_filter_width)
+    window = torch.cos(t * math.pi / lowpass_filter_width / 2).square()
+    t *= math.pi
+    kernel = torch.where(t == 0, torch.ones_like(t), t.sin() / t)
+    kernel *= window * (base_freq / orig)
+    return kernel.to(torch.float32), width, orig, target
+
+
 def resample_audio_pyav(
     audio: npt.NDArray[np.floating],
     *,
@@ -318,35 +345,16 @@ def resample_audio_torch(
         result = tensor
         return result if was_tensor else result.numpy()
 
-    # Build a low-pass sinc interpolation kernel. Widen its support when
-    # downsampling so frequencies above the target Nyquist rate are removed.
-    scale = orig_sr_int / target_sr_int
-    radius = math.ceil(16 * max(1.0, scale))
-    offsets = torch.arange(
-        -radius + 1, radius + 1, dtype=torch.float32, device=tensor.device
+    kernel, width, orig, target = _get_torch_resample_kernel(
+        orig_sr_int, target_sr_int, tensor.device
     )
-    positions = torch.arange(
-        output_length, dtype=torch.float32, device=tensor.device
-    ) * scale
-    centers = positions.floor().to(torch.int64)
-    distance = positions[:, None] - (centers[:, None] + offsets[None, :])
-    cutoff = min(1.0, target_sr_int / orig_sr_int)
-    scaled_distance = distance * cutoff
-    sinc = torch.sinc(scaled_distance) * cutoff
-    window = 0.5 * (1.0 + torch.cos(math.pi * distance / radius))
-    weights = sinc * window * (distance.abs() < radius)
-    indices = centers[:, None] + offsets.to(torch.int64)[None, :]
-    valid = (indices >= 0) & (indices < input_length)
-    weights = weights * valid
-    weights = weights / weights.sum(dim=-1, keepdim=True).clamp_min(1e-12)
-    indices = indices.clamp(0, input_length - 1)
-
     samples = tensor.unsqueeze(0) if tensor.ndim == 1 else tensor
-    samples = samples[:, indices]
+    samples = torch.nn.functional.pad(samples, (width, width + orig))
     # Keep this CPU preprocessing from touching OpenMP/oneDNN thread state,
     # which can poison subsequently forked engine-core processes.
     with set_default_torch_num_threads(1), torch.backends.mkldnn.flags(enabled=False):
-        result = (samples * weights).sum(dim=-1)
+        result = torch.nn.functional.conv1d(samples[:, None], kernel, stride=orig)
+    result = result.transpose(1, 2).reshape(samples.shape[0], -1)[..., :output_length]
     if tensor.ndim == 1:
         result = result.squeeze(0)
     return result if was_tensor else result.numpy()

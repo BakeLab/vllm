@@ -2,6 +2,9 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 
+import math
+from functools import lru_cache
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,11 +17,36 @@ from transformers import (
 from transformers.feature_extraction_sequence_utils import SequenceFeatureExtractor
 from transformers.processing_utils import ProcessorMixin
 from transformers.utils import TensorType
-from transformers.audio_utils import mel_filter_bank
 
 from vllm.logger import init_logger
 
 logger = init_logger(__name__)
+
+
+@lru_cache(maxsize=32)
+def _kaldi_mel_filters(
+    num_mel_bins: int, n_fft: int, sample_frequency: int, low_freq: float = 20.0
+) -> torch.Tensor:
+    """Create the triangular mel bank used by torchaudio's Kaldi fbank."""
+    high_freq = sample_frequency / 2
+
+    def mel_scale(freq: float) -> float:
+        return 1127.0 * math.log1p(freq / 700.0)
+
+    mel_low = mel_scale(low_freq)
+    mel_high = mel_scale(high_freq)
+    delta = (mel_high - mel_low) / (num_mel_bins + 1)
+    bins = torch.arange(num_mel_bins, dtype=torch.float32)[:, None]
+    left = mel_low + bins * delta
+    center = mel_low + (bins + 1) * delta
+    right = mel_low + (bins + 2) * delta
+    fft_bins = torch.arange(n_fft // 2, dtype=torch.float32) * (
+        sample_frequency / n_fft
+    )
+    mel = 1127.0 * torch.log1p(fft_bins / 700.0)[None, :]
+    up = (mel - left) / (center - left)
+    down = (right - mel) / (right - center)
+    return torch.minimum(up, down).clamp_min_(0).T.contiguous()
 
 
 def _kaldi_fbank(
@@ -32,24 +60,43 @@ def _kaldi_fbank(
     window_type: str,
     sample_frequency: int,
     snip_edges: bool,
+    preemphasis_coefficient: float = 0.97,
+    remove_dc_offset: bool = True,
+    raw_energy: bool = True,
+    use_energy: bool = False,
+    htk_compat: bool = False,
+    blackman_coeff: float = 0.42,
 ) -> torch.Tensor:
-    """Compute log Mel filterbank features using PyTorch operations."""
+    """Compute Kaldi-compatible log Mel filterbank features with PyTorch."""
     waveform = waveform.reshape(-1).to(torch.float32)
     frame_size = max(1, int(sample_frequency * frame_length / 1000))
     frame_step = max(1, int(sample_frequency * frame_shift / 1000))
-    if dither:
-        waveform = waveform + torch.randn_like(waveform) * dither
     if not snip_edges:
-        pad = frame_size // 2
-        waveform = torch.nn.functional.pad(waveform, (pad, pad))
+        frame_count = (waveform.numel() + frame_step // 2) // frame_step
+        pad = frame_size // 2 - frame_step // 2
+        if pad > 0:
+            reversed_waveform = waveform.flip(0)
+            waveform = torch.cat(
+                (reversed_waveform[-pad:], waveform, reversed_waveform)
+            )
+        else:
+            waveform = torch.cat((waveform[-pad:], waveform.flip(0)))
     if waveform.numel() < frame_size:
         return waveform.new_empty((0, num_mel_bins))
 
     frames = waveform.unfold(0, frame_size, frame_step)
-    frames = frames - frames.mean(dim=-1, keepdim=True)
-    emphasized = torch.cat(
-        (frames[:, :1], frames[:, 1:] - 0.97 * frames[:, :-1]), dim=-1
-    )
+    if not snip_edges:
+        frames = frames[:frame_count]
+    if dither:
+        frames = frames + torch.randn_like(frames) * dither
+    raw_log_energy = frames.square().sum(dim=-1).clamp_min(
+        torch.finfo(frames.dtype).eps
+    ).log()
+    if remove_dc_offset:
+        frames = frames - frames.mean(dim=-1, keepdim=True)
+    if preemphasis_coefficient:
+        previous = torch.nn.functional.pad(frames, (1, 0), mode="replicate")[:, :-1]
+        frames = frames - preemphasis_coefficient * previous
     window_name = window_type.lower()
     if window_name == "hamming":
         window = torch.hamming_window(frame_size, periodic=False)
@@ -59,25 +106,43 @@ def _kaldi_fbank(
         window = torch.hann_window(frame_size, periodic=False).pow(0.85)
     elif window_name == "rectangular":
         window = torch.ones(frame_size)
+    elif window_name == "blackman":
+        index = torch.arange(frame_size, dtype=torch.float32)
+        phase = 2 * math.pi * index / (frame_size - 1)
+        window = (
+            blackman_coeff
+            - 0.5 * torch.cos(phase)
+            + (0.5 - blackman_coeff) * torch.cos(2 * phase)
+        )
     else:
         raise ValueError(f"Unsupported Kaldi window type: {window_type}")
 
     n_fft = 1 << (frame_size - 1).bit_length()
-    spectrum = torch.fft.rfft(emphasized * window, n=n_fft).abs().square()
-    filters = mel_filter_bank(
-        num_frequency_bins=n_fft // 2 + 1,
-        num_mel_filters=num_mel_bins,
-        min_frequency=20.0,
-        max_frequency=sample_frequency / 2,
-        sampling_rate=sample_frequency,
-        norm=None,
-        mel_scale="htk",
-    )
-    filters = torch.from_numpy(filters).to(spectrum)
-    energies = spectrum @ filters
+    windowed = frames * window
+    if raw_energy:
+        log_energy = raw_log_energy
+    else:
+        log_energy = windowed.square().sum(dim=-1).clamp_min(
+            torch.finfo(windowed.dtype).eps
+        ).log()
+    spectrum = torch.fft.rfft(windowed, n=n_fft).abs().square()
+    filters = _kaldi_mel_filters(
+        num_mel_bins, n_fft, sample_frequency
+    ).to(spectrum)
+    # Kaldi omits the Nyquist column from its mel bank, equivalent to a zero
+    # padded final column in torchaudio.compliance.kaldi.fbank.
+    energies = (spectrum[:, :-1] @ filters).clamp_min(
+        torch.finfo(spectrum.dtype).eps
+    ).log()
     if energy_floor > 0:
-        energies = energies.clamp_min(energy_floor)
-    return energies.clamp_min(torch.finfo(energies.dtype).tiny).log()
+        log_floor = math.log(energy_floor)
+        log_energy = log_energy.clamp_min(log_floor)
+    if use_energy:
+        if htk_compat:
+            energies = torch.cat((energies, log_energy[:, None]), dim=1)
+        else:
+            energies = torch.cat((log_energy[:, None], energies), dim=1)
+    return energies
 
 
 def apply_cmvn(inputs, cmvn):  # noqa
