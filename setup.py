@@ -1727,7 +1727,6 @@ setup(
             "scipy",
             "soundfile",
             "soxr",
-            "torchaudio",
             "mistral_common[audio]",
         ],  # Required for audio processing
         "video": [],  # Kept for backwards compatibility

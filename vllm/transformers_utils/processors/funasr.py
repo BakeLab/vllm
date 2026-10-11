@@ -5,7 +5,6 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import torchaudio.compliance.kaldi as kaldi
 from torch.nn.utils.rnn import pad_sequence
 from transformers import (
     AutoFeatureExtractor,
@@ -15,10 +14,70 @@ from transformers import (
 from transformers.feature_extraction_sequence_utils import SequenceFeatureExtractor
 from transformers.processing_utils import ProcessorMixin
 from transformers.utils import TensorType
+from transformers.audio_utils import mel_filter_bank
 
 from vllm.logger import init_logger
 
 logger = init_logger(__name__)
+
+
+def _kaldi_fbank(
+    waveform: torch.Tensor,
+    *,
+    num_mel_bins: int,
+    frame_length: float,
+    frame_shift: int,
+    dither: float,
+    energy_floor: float,
+    window_type: str,
+    sample_frequency: int,
+    snip_edges: bool,
+) -> torch.Tensor:
+    """Compute log Mel filterbank features using PyTorch operations."""
+    waveform = waveform.reshape(-1).to(torch.float32)
+    frame_size = max(1, int(sample_frequency * frame_length / 1000))
+    frame_step = max(1, int(sample_frequency * frame_shift / 1000))
+    if dither:
+        waveform = waveform + torch.randn_like(waveform) * dither
+    if not snip_edges:
+        pad = frame_size // 2
+        waveform = torch.nn.functional.pad(waveform, (pad, pad))
+    if waveform.numel() < frame_size:
+        return waveform.new_empty((0, num_mel_bins))
+
+    frames = waveform.unfold(0, frame_size, frame_step)
+    frames = frames - frames.mean(dim=-1, keepdim=True)
+    emphasized = torch.cat(
+        (frames[:, :1], frames[:, 1:] - 0.97 * frames[:, :-1]), dim=-1
+    )
+    window_name = window_type.lower()
+    if window_name == "hamming":
+        window = torch.hamming_window(frame_size, periodic=False)
+    elif window_name in ("hann", "hanning"):
+        window = torch.hann_window(frame_size, periodic=False)
+    elif window_name == "povey":
+        window = torch.hann_window(frame_size, periodic=False).pow(0.85)
+    elif window_name == "rectangular":
+        window = torch.ones(frame_size)
+    else:
+        raise ValueError(f"Unsupported Kaldi window type: {window_type}")
+
+    n_fft = 1 << (frame_size - 1).bit_length()
+    spectrum = torch.fft.rfft(emphasized * window, n=n_fft).abs().square()
+    filters = mel_filter_bank(
+        num_frequency_bins=n_fft // 2 + 1,
+        num_mel_filters=num_mel_bins,
+        min_frequency=20.0,
+        max_frequency=sample_frequency / 2,
+        sampling_rate=sample_frequency,
+        norm=None,
+        mel_scale="htk",
+    )
+    filters = torch.from_numpy(filters).to(spectrum)
+    energies = spectrum @ filters
+    if energy_floor > 0:
+        energies = energies.clamp_min(energy_floor)
+    return energies.clamp_min(torch.finfo(energies.dtype).tiny).log()
 
 
 def apply_cmvn(inputs, cmvn):  # noqa
@@ -138,7 +197,7 @@ class WavFrontend(nn.Module):
             if self.upsacle_samples:
                 waveform = waveform * (1 << 15)
             waveform = waveform.unsqueeze(0)
-            mat = kaldi.fbank(
+            mat = _kaldi_fbank(
                 waveform,
                 num_mel_bins=self.n_mels,
                 frame_length=min(self.frame_length, waveform_length / self.fs * 1000),
