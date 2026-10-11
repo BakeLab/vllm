@@ -20,6 +20,7 @@ from vllm.multimodal.audio import (
     resample_audio_torch,
     split_audio,
 )
+from vllm.transformers_utils.processors.funasr import _kaldi_fbank
 
 
 @pytest.fixture
@@ -114,6 +115,26 @@ def test_resample_audio_torch_short_input_needs_no_padding():
 
     assert len(out) == math.ceil(len(audio) * 16000 / 44100)
     assert np.isfinite(out).all()
+
+
+def test_funasr_fbank_matches_torchaudio_kaldi():
+    torchaudio = pytest.importorskip("torchaudio")
+    waveform = torch.randn(1, 16000) * (1 << 15)
+    options = dict(
+        num_mel_bins=80,
+        frame_length=25,
+        frame_shift=10,
+        dither=0.0,
+        energy_floor=0.0,
+        window_type="hamming",
+        sample_frequency=16000,
+        snip_edges=True,
+    )
+
+    actual = _kaldi_fbank(waveform, **options)
+    expected = torchaudio.compliance.kaldi.fbank(waveform, **options)
+
+    torch.testing.assert_close(actual, expected, rtol=1e-4, atol=1e-4)
 
 
 def test_audio_resampler_pyav_calls_resample(dummy_audio):
