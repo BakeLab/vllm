@@ -1,5 +1,18 @@
 include(FetchContent)
 
+# DeepGEMM is on by default for compatibility. CUDA builds that do not need
+# its model/kernel coverage can opt out with
+# -DVLLM_BUILD_DEEP_GEMM=OFF (for example, through CMAKE_ARGS).
+option(VLLM_BUILD_DEEP_GEMM "Build and bundle the DeepGEMM backend" ON)
+if(NOT VLLM_BUILD_DEEP_GEMM)
+  message(STATUS
+    "DeepGEMM disabled by VLLM_BUILD_DEEP_GEMM=OFF; DeepGEMM-only model/kernel paths will be unavailable")
+  # setup.py still requests this optional extension target and install
+  # component, so keep the target present while omitting fetch/build/install.
+  add_custom_target(_deep_gemm_C)
+  return()
+endif()
+
 # If DEEPGEMM_SRC_DIR is set, DeepGEMM is built from that directory
 # instead of downloading.
 # It can be set as an environment variable or passed as a cmake argument.
@@ -119,9 +132,30 @@ if(DEEPGEMM_ARCHS)
 
   set(_dg_dir "${CMAKE_CURRENT_BINARY_DIR}/deepgemm_C")
   set(_dg_marker "${_dg_dir}/.built")
+  set(_dg_cc "${CMAKE_C_COMPILER}")
+  set(_dg_cxx "${CMAKE_CXX_COMPILER}")
+  if(CMAKE_C_COMPILER_LAUNCHER)
+    list(JOIN CMAKE_C_COMPILER_LAUNCHER " " _dg_c_launcher)
+    set(_dg_cc "${_dg_c_launcher} ${_dg_cc}")
+  endif()
+  if(CMAKE_CXX_COMPILER_LAUNCHER)
+    list(JOIN CMAKE_CXX_COMPILER_LAUNCHER " " _dg_cxx_launcher)
+    set(_dg_cxx "${_dg_cxx_launcher} ${_dg_cxx}")
+  endif()
+  set(_dg_compiler_env)
+  if(_dg_cc)
+    list(APPEND _dg_compiler_env "CC=${_dg_cc}")
+  endif()
+  if(_dg_cxx)
+    list(APPEND _dg_compiler_env "CXX=${_dg_cxx}")
+  endif()
   add_custom_command(
     OUTPUT "${_dg_marker}"
-    COMMAND "${Python_EXECUTABLE}"
+    # DeepGEMM invokes setuptools itself, so it does not inherit CMake's
+    # selected host compiler automatically. Pass the configured compilers
+    # through the environment; build_deepgemm_C.py may wrap them in ccache.
+    COMMAND "${CMAKE_COMMAND}" -E env ${_dg_compiler_env}
+            "${Python_EXECUTABLE}"
             "${CMAKE_SOURCE_DIR}/tools/build_deepgemm_C.py"
             "${deepgemm_SOURCE_DIR}" "${_dg_dir}"
     COMMAND "${CMAKE_COMMAND}" -E touch "${_dg_marker}"
