@@ -11,6 +11,7 @@ Usage: python build_deepgemm_C.py <DEEPGEMM_SRC_DIR> <OUTPUT_DIR>
 """
 
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -75,6 +76,24 @@ patch_for_trimmed_torch()
 # Avoid DeepGEMM's clean-git assertion when vendoring a local dirty tree.
 env = os.environ.copy()
 env.pop("DG_SKIP_CUDA_BUILD", None)
+
+# The nested setuptools build does not inherit CMake's compiler launcher.
+# Route its C/C++ compilations through ccache when it is available; this is
+# particularly useful when the same DeepGEMM binding is rebuilt for a new
+# vLLM wheel with unchanged compiler inputs.
+ccache = shutil.which("ccache")
+if ccache and env.get("CCACHE_DISABLE") != "1":
+    ccache_enabled = False
+    for compiler_var in ("CC", "CXX"):
+        compiler = env.get(compiler_var)
+        if not compiler:
+            continue
+        command = shlex.split(compiler)
+        if command and Path(command[0]).name not in {"ccache", "sccache"}:
+            env[compiler_var] = shlex.join([ccache, *command])
+            ccache_enabled = True
+    if ccache_enabled:
+        print("[build_deepgemm_C] using ccache for host compilation", flush=True)
 
 print(f"[build_deepgemm_C] building in {src} with {sys.executable}", flush=True)
 # CMake decides when to rebuild; setuptools would only check python_api.cpp.
