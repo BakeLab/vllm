@@ -1091,6 +1091,13 @@ def safetensors_weights_iterator(
     this rank are skipped **before** reading from disk, which drastically
     reduces storage I/O for MoE models under EP.
     """
+    if os.environ.get("BB_CUFILE_LOAD") == "1":
+        from vllm.model_executor.model_loader.cufile_compat import (
+            cufile_compat_weights_iterator,
+        )
+
+        yield from cufile_compat_weights_iterator(hf_weights_files, local_expert_ids)
+        return
     loading_desc = "Loading safetensors checkpoint shards"
     if safetensors_load_strategy == "eager":
         loading_desc += " (eager)"
