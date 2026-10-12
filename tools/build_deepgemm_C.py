@@ -30,6 +30,48 @@ if not (_pkg / "_C.py").is_file():
         "expected TORCH_LIBRARY migration layout"
     )
 
+
+def patch_for_trimmed_torch() -> None:
+    """Adapt the pinned DeepGEMM source to the trimmed PyTorch headers."""
+    setup = src / "setup.py"
+    setup_text = setup.read_text()
+    if "-std=c++20" in setup_text:
+        setup.write_text(setup_text.replace("-std=c++20", "-std=c++26"))
+    elif "-std=c++26" not in setup_text:
+        raise RuntimeError(f"Unsupported DeepGEMM C++ standard in {setup}")
+
+    for path in (src / "csrc").rglob("*"):
+        if path.suffix not in {".h", ".hpp", ".cpp", ".cc"}:
+            continue
+        text = path.read_text()
+        updated = text.replace("c10::optional", "std::optional")
+        updated = updated.replace("#include <c10/util/Optional.h>\n", "")
+        if (
+            updated != text
+            and "std::optional" in updated
+            and "#include <optional>" not in updated
+        ):
+            updated = updated.replace(
+                "#pragma once\n", "#pragma once\n\n#include <optional>\n", 1
+            )
+        if updated != text:
+            path.write_text(updated)
+
+    runtime = src / "csrc/runtime/runtime.hpp"
+    if runtime.is_file():
+        text = runtime.read_text()
+        include = "#include <ATen/cuda/CUDABlasLtHandle.h>"
+        if include not in text:
+            text = text.replace(
+                "#include <ATen/cuda/CUDAContext.h>\n",
+                "#include <ATen/cuda/CUDAContext.h>\n" + include + "\n",
+                1,
+            )
+            runtime.write_text(text)
+
+
+patch_for_trimmed_torch()
+
 # Avoid DeepGEMM's clean-git assertion when vendoring a local dirty tree.
 env = os.environ.copy()
 env.pop("DG_SKIP_CUDA_BUILD", None)
