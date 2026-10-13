@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-"""Opt-in safetensors loading through cuFile's CPU-buffered compatibility mode."""
+"""Opt-in safetensors loading through cuFile compatibility or PCI P2PDMA."""
 
 import json
 import math
@@ -10,25 +10,28 @@ from collections.abc import Generator
 
 import torch
 
+from vllm import envs
 from vllm.logger import init_logger
 
 logger = init_logger(__name__)
 
 
-def cufile_compat_weights_iterator(
+def cufile_weights_iterator(
     files: list[str], local_expert_ids: set[int] | None = None
-) -> Generator[tuple[str, torch.Tensor], None, None]:
+) -> Generator[tuple[str, torch.Tensor]]:
     """Read tensor payloads into the current CUDA device, one tensor at a time.
 
     Each TP rank reads the complete checkpoint. Expert filtering is unsupported.
-    Compatibility mode still stages data through CPU memory; this is not GDS DMA.
+    The selected mode is configured before CUDA/cuFile initialization.
     """
     if local_expert_ids is not None:
-        raise ValueError("cuFile compatibility loading requires TP without EP")
-    if os.environ.get("CUFILE_FORCE_COMPAT_MODE", "").lower() != "true":
-        raise ValueError("Set CUFILE_FORCE_COMPAT_MODE=true before starting vLLM")
-    if os.environ.get("CUFILE_ALLOW_COMPAT_MODE", "").lower() != "true":
-        raise ValueError("Set CUFILE_ALLOW_COMPAT_MODE=true before starting vLLM")
+        raise ValueError("cuFile loading requires TP without EP")
+    mode = envs.VLLM_CUFILE_MODE
+    required = "true" if mode == "compat" else "false"
+    for variable in ("CUFILE_FORCE_COMPAT_MODE", "CUFILE_ALLOW_COMPAT_MODE"):
+        if os.environ.get(variable, "").lower() != required:
+            raise ValueError(f"Set {variable}={required} before starting vLLM")
+    logger.info("cuFile loading mode=%s", mode)
 
     from torch.cuda.gds import GdsFile
 
@@ -58,7 +61,8 @@ def cufile_compat_weights_iterator(
                 raise ValueError(f"Truncated safetensors header: {path}")
             header = json.loads(source.read(header_size))
 
-        handle = GdsFile(path, os.O_RDONLY)
+        flags = os.O_RDONLY | (os.O_DIRECT if mode == "p2p" else 0)
+        handle = GdsFile(path, flags)
         started = time.monotonic()
         try:
             for name, info in header.items():
@@ -88,9 +92,10 @@ def cufile_compat_weights_iterator(
         finally:
             handle.close()
         logger.info(
-            "BB_CUFILE shard=%s seconds=%.2f cumulative_bytes=%d",
+            "cuFile mode=%s shard=%s seconds=%.2f cumulative_bytes=%d",
+            mode,
             path,
             time.monotonic() - started,
             total,
         )
-    logger.info("BB_CUFILE_COMPLETE bytes=%d", total)
+    logger.info("cuFile loading complete mode=%s bytes=%d", mode, total)
