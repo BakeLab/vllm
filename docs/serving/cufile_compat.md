@@ -23,8 +23,19 @@ cuFile runtime libraries. Unset `VLLM_CUFILE_LOAD` to restore normal loading.
 Unknown modes and conflicting compatibility environment flags are rejected.
 Deployments using the earlier `BB_CUFILE_LOAD` flag must switch to
 `VLLM_CUFILE_LOAD`; the old flag no longer selects this loader.
-The loader rejects expert-parallel filtering. Each tensor-parallel
-rank reads the full checkpoint, then vLLM applies its normal weight partitioning.
+The loader rejects expert-parallel filtering. With `--load-format safetensors`,
+each tensor-parallel rank reads the full checkpoint, then vLLM applies its normal
+weight partitioning. With host direct I/O, these repeated reads cannot rely on
+host page-cache reuse.
+
+For repeated starts, convert once using
+`examples/features/sharded_state/save_sharded_state_offline.py` with
+`VLLM_CUFILE_LOAD=0` and the intended `--tensor-parallel-size`. Then enable cuFile
+and serve the converted directory with `--load-format sharded_state` and the
+same tensor-parallel size. Each rank reads only its saved files through cuFile;
+replicated parameters remain in each rank's checkpoint. This avoids rereading
+the entire original checkpoint per rank. Conversion requires extra disk space
+and an initial model load; it does not accelerate unconverted checkpoints.
 Tensor payloads are allocated on the current CUDA device one at a time; allow
 space for the largest source tensor in addition to the model's resident weights.
 This path overrides the normal safetensors load strategy when enabled.

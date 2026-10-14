@@ -13,6 +13,7 @@ from typing import Any
 import torch
 from torch import nn
 
+from vllm import envs
 from vllm.config import ModelConfig
 from vllm.config.load import LoadConfig
 from vllm.logger import init_logger
@@ -244,10 +245,12 @@ class ShardedStateLoader(BaseModelLoader):
         if state_dict:
             raise ValueError(f"Missing keys {tuple(state_dict)} in loaded state!")
 
-    def iterate_over_files(
-        self, paths
-    ) -> Generator[tuple[str, torch.Tensor], None, None]:
-        if self.load_config.load_format == "runai_streamer_sharded":
+    def iterate_over_files(self, paths) -> Generator[tuple[str, torch.Tensor]]:
+        if envs.VLLM_CUFILE_LOAD:
+            from vllm.model_executor.model_loader.cufile import cufile_weights_iterator
+
+            yield from cufile_weights_iterator(paths)
+        elif self.load_config.load_format == "runai_streamer_sharded":
             yield from runai_safetensors_weights_iterator(paths, True)
         else:
             from safetensors.torch import safe_open

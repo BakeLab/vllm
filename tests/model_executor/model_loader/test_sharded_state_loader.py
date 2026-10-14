@@ -362,6 +362,39 @@ def test_save_model_rejects_bad_pattern_before_overwrite(monkeypatch, tmp_path):
     assert sorted(p.name for p in tmp_path.iterdir()) == before
 
 
+@pytest.mark.parametrize("rank", [0, 1])
+def test_cufile_loads_only_selected_rank(tmp_path, monkeypatch, rank):
+    """Other TP ranks' shards must never reach cuFile or overwrite local weights."""
+    from safetensors.torch import load_file, save_file
+
+    from vllm.config import LoadConfig, ModelConfig
+    from vllm.model_executor.model_loader import cufile
+
+    for saved_rank in range(2):
+        save_file(
+            {"weight": torch.full((2, 3), float(saved_rank + 1))},
+            str(tmp_path / f"model-rank-{saved_rank}-part-0.safetensors"),
+        )
+    reads = []
+
+    def read_files(paths):
+        for path in paths:
+            reads.append(os.path.basename(path))
+            yield from load_file(path).items()
+
+    monkeypatch.setenv("VLLM_CUFILE_LOAD", "1")
+    monkeypatch.setattr(cufile, "cufile_weights_iterator", read_files)
+    _mock_pp_group(monkeypatch, 1, tp_rank=rank)
+    model = torch.nn.Linear(3, 2, bias=False)
+    config = ModelConfig.__new__(ModelConfig)
+    config.model = str(tmp_path)
+    config.model_weights = None
+    loader = ShardedStateLoader(LoadConfig(load_format="sharded_state"))
+    loader.load_weights(model, config)
+    assert reads == [f"model-rank-{rank}-part-0.safetensors"]
+    torch.testing.assert_close(model.weight, torch.full((2, 3), float(rank + 1)))
+
+
 @pytest.fixture(scope="module")
 def llama_3p2_1b_files():
     input_dir = hf_api().snapshot_download(
