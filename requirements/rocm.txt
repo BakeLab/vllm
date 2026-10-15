@@ -23,3 +23,6 @@ tilelang
 fastsafetensors >= 0.3.3
 # torchvision is supplied by the ROCm wheel pipeline; do not resolve the PyPI
 # package here, since it pulls the CUDA/NVIDIA runtime into the ROCm test env.
+# ROCm gfx1201 MLA prefill uses the upstream Triton AMD implementation.
+amd-aiter
+flash-attn
