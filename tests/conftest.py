@@ -51,7 +51,6 @@ from vllm import LLM, SamplingParams, envs
 from vllm.assets.audio import AudioAsset
 from vllm.assets.image import ImageAsset
 from vllm.assets.video import VideoAsset
-from vllm.config.cache import CacheConfig
 from vllm.config.model import ConvertOption, RunnerOption, _get_and_verify_dtype
 from vllm.connections import global_http_connection
 from vllm.distributed import (
@@ -1012,10 +1011,10 @@ class VllmRunner:
         from vllm.platforms import current_platform
 
         if current_platform.is_rocm():
-            gpu_memory_utilization = kwargs.get(
-                "gpu_memory_utilization",
-                CacheConfig.gpu_memory_utilization,
-            )
+            # The test process can hold several GiB of VRAM before the engine
+            # starts. Leave enough headroom on 32 GiB ROCm CI devices.
+            kwargs.setdefault("gpu_memory_utilization", 0.8)
+            gpu_memory_utilization = kwargs["gpu_memory_utilization"]
             # V1 startup requires free_memory >= total * gpu_memory_utilization.
             # ROCm CI can hand a test a device that is still lazily releasing
             # VRAM from a previous process, so wait before constructing LLM.
