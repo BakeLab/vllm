@@ -110,3 +110,9 @@ rapidfuzz
 # quarantine reason as terratorch above. Restore once the quarantine clears.
 # torchgeo==0.7.0
 multiprocess==0.70.16
+
+# Used only by tests; not runtime dependencies of vLLM.
+lark
+jsonschema
+anthropic
+six
