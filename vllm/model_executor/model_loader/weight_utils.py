@@ -641,7 +641,7 @@ def _normalize_module_prefixes(
     return tuple(n if n.endswith(".") else f"{n}." for n in names)
 
 
-def _mapped_weight_name(weights_mapper: "WeightsMapper | None", key: str) -> str | None:
+def _mapped_weight_name(weights_mapper: WeightsMapper | None, key: str) -> str | None:
     """Apply ``WeightsMapper.map_name`` when present; else identity."""
     if weights_mapper is None:
         return key
@@ -659,7 +659,7 @@ def _hf_prefix_maps_to_lm(
 
 def _shared_hf_root_module_prefixes(
     lm_module_prefixes: tuple[str, ...],
-    weights_mapper: "WeightsMapper | None",
+    weights_mapper: WeightsMapper | None,
 ) -> tuple[str, ...]:
     """Module prefixes that are also an HF root for non-LM weights.
 
@@ -693,7 +693,7 @@ def _shared_hf_root_module_prefixes(
 def resolve_mm_encoder_only_lm_prefixes(
     language_model_names: Iterable[str] | None,
     *,
-    weights_mapper: "WeightsMapper | None" = None,
+    weights_mapper: WeightsMapper | None = None,
 ) -> tuple[str, ...] | None:
     """Resolve vLLM LM *module* prefixes for ``--mm-encoder-only`` shard skip.
 
@@ -730,7 +730,7 @@ def filter_mm_encoder_only_safetensors_files(
     index_file: str,
     language_model_prefixes: Iterable[str],
     *,
-    weights_mapper: "WeightsMapper | None" = None,
+    weights_mapper: WeightsMapper | None = None,
 ) -> list[str]:
     """Drop safetensors shards that only contain language-model weights.
 
@@ -854,7 +854,7 @@ def np_cache_weights_iterator(
     hf_folder: str,
     hf_weights_files: list[str],
     use_tqdm_on_load: bool,
-) -> Generator[tuple[str, torch.Tensor], None, None]:
+) -> Generator[tuple[str, torch.Tensor]]:
     """Iterate over the weights in the model np files.
 
     Will dump the model weights to numpy files if they are not already dumped.
@@ -1120,13 +1120,20 @@ def safetensors_weights_iterator(
     *,
     safetensors_prefetch_num_threads: int = DEFAULT_SAFETENSORS_PREFETCH_NUM_THREADS,
     safetensors_prefetch_block_size: int = DEFAULT_SAFETENSORS_PREFETCH_BLOCK_SIZE,
-) -> Generator[tuple[str, torch.Tensor], None, None]:
+) -> Generator[tuple[str, torch.Tensor]]:
     """Iterate over the weights in the model safetensor files.
 
     When *local_expert_ids* is provided, expert weights not belonging to
     this rank are skipped **before** reading from disk, which drastically
     reduces storage I/O for MoE models under EP.
     """
+    if envs.VLLM_CUFILE_LOAD and envs.VLLM_HIPFILE_LOAD:
+        raise ValueError("Select either cuFile or hipFile loading")
+    if envs.VLLM_HIPFILE_LOAD:
+        from vllm.model_executor.model_loader.hipfile import hipfile_weights_iterator
+
+        yield from hipfile_weights_iterator(hf_weights_files, local_expert_ids)
+        return
     if envs.VLLM_CUFILE_LOAD:
         from vllm.model_executor.model_loader.cufile import cufile_weights_iterator
 
@@ -1258,7 +1265,7 @@ def multi_thread_safetensors_weights_iterator(
     hf_weights_files: list[str],
     use_tqdm_on_load: bool,
     max_workers: int = 4,
-) -> Generator[tuple[str, torch.Tensor], None, None]:
+) -> Generator[tuple[str, torch.Tensor]]:
     """Multi-Thread iterate over the weights in the model safetensor files."""
 
     def _load_file(st_file: str):
@@ -1288,7 +1295,7 @@ def runai_safetensors_weights_iterator(
     hf_weights_files: list[str],
     use_tqdm_on_load: bool,
     is_distributed: bool = False,
-) -> Generator[tuple[str, torch.Tensor], None, None]:
+) -> Generator[tuple[str, torch.Tensor]]:
     """Iterate over the weights in the model safetensor files."""
     with SafetensorsStreamer() as streamer:
         is_cuda_alike = current_platform.is_cuda_alike()
@@ -1324,7 +1331,7 @@ def runai_safetensors_weights_iterator(
 def fastsafetensors_weights_iterator(
     hf_weights_files: list[str],
     use_tqdm_on_load: bool,
-) -> Generator[tuple[str, torch.Tensor], None, None]:
+) -> Generator[tuple[str, torch.Tensor]]:
     """Iterate over the weights in the model safetensor files
     using fastsafetensor library.
 
@@ -1350,7 +1357,7 @@ def fastsafetensors_weights_iterator(
     queue_size = envs.VLLM_FASTSAFETENSORS_QUEUE_SIZE
     tqdm_enabled = enable_tqdm(use_tqdm_on_load)
 
-    def _make_loader(nogds: bool) -> "ParallelLoader":
+    def _make_loader(nogds: bool) -> ParallelLoader:
         return ParallelLoader(
             pg=pg,
             hf_weights_files=hf_weights_files,
@@ -1485,7 +1492,7 @@ def pt_weights_iterator(
     hf_weights_files: list[str],
     use_tqdm_on_load: bool,
     pt_load_map_location: str | dict[str, str] = "cpu",
-) -> Generator[tuple[str, torch.Tensor], None, None]:
+) -> Generator[tuple[str, torch.Tensor]]:
     """Iterate over the weights in the model bin/pt files."""
     for bin_file in tqdm(
         hf_weights_files,
@@ -1505,7 +1512,7 @@ def multi_thread_pt_weights_iterator(
     use_tqdm_on_load: bool,
     pt_load_map_location: str | dict[str, str] = "cpu",
     max_workers: int = 4,
-) -> Generator[tuple[str, torch.Tensor], None, None]:
+) -> Generator[tuple[str, torch.Tensor]]:
     """Multi-Thread iterate over the weights in the model bin/pt files."""
 
     def _load_file(bin_file: str):
@@ -1892,7 +1899,7 @@ def maybe_remap_moe_expert_param_name(
 def remap_moe_expert_weights(
     weights: Iterable[tuple[str, torch.Tensor]],
     params_dict: dict[str, torch.nn.Parameter],
-) -> Generator[tuple[str, torch.Tensor], None, None]:
+) -> Generator[tuple[str, torch.Tensor]]:
     """Remap MoE expert parameter names for backward compatibility.
 
     This allows models with custom weight loading to automatically handle both old

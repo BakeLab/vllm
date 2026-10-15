@@ -118,6 +118,8 @@ if TYPE_CHECKING:
     VLLM_FASTSAFETENSORS_QUEUE_SIZE: int = 0
     VLLM_CUFILE_LOAD: bool = False
     VLLM_CUFILE_MODE: Literal["compat", "p2p"] = "compat"
+    VLLM_HIPFILE_LOAD: bool = False
+    VLLM_HIPFILE_MODE: Literal["compat", "p2p"] = "compat"
     VLLM_TRITON_FORCE_FIRST_CONFIG: bool = False
     VLLM_TRITON_JIT_WARMUP_NUM_THREADS: int = 4
     VLLM_ALLOW_RUNTIME_LORA_UPDATING: bool = False
@@ -1091,6 +1093,10 @@ environment_variables: dict[str, Callable[[], Any]] = {
     "VLLM_CUFILE_LOAD": lambda: bool(int(os.getenv("VLLM_CUFILE_LOAD", "0"))),
     "VLLM_CUFILE_MODE": env_with_choices(
         "VLLM_CUFILE_MODE", "compat", ["compat", "p2p"]
+    ),
+    "VLLM_HIPFILE_LOAD": lambda: bool(int(os.getenv("VLLM_HIPFILE_LOAD", "0"))),
+    "VLLM_HIPFILE_MODE": env_with_choices(
+        "VLLM_HIPFILE_MODE", "compat", ["compat", "p2p"]
     ),
     # Timeout in seconds for keeping HTTP connections alive in API server
     "VLLM_HTTP_TIMEOUT_KEEP_ALIVE": lambda: int(
