@@ -363,12 +363,16 @@ def test_save_model_rejects_bad_pattern_before_overwrite(monkeypatch, tmp_path):
 
 
 @pytest.mark.parametrize("rank", [0, 1])
-def test_cufile_loads_only_selected_rank(tmp_path, monkeypatch, rank):
-    """Other TP ranks' shards must never reach cuFile or overwrite local weights."""
+@pytest.mark.parametrize("backend", ["cufile", "hipfile"])
+def test_direct_file_loads_only_selected_rank(tmp_path, monkeypatch, rank, backend):
+    """Other TP ranks' shards must not reach direct I/O or overwrite weights."""
+    import importlib
+
     from safetensors.torch import load_file, save_file
 
     from vllm.config import LoadConfig, ModelConfig
-    from vllm.model_executor.model_loader import cufile
+
+    module = importlib.import_module(f"vllm.model_executor.model_loader.{backend}")
 
     for saved_rank in range(2):
         save_file(
@@ -382,8 +386,8 @@ def test_cufile_loads_only_selected_rank(tmp_path, monkeypatch, rank):
             reads.append(os.path.basename(path))
             yield from load_file(path).items()
 
-    monkeypatch.setenv("VLLM_CUFILE_LOAD", "1")
-    monkeypatch.setattr(cufile, "cufile_weights_iterator", read_files)
+    monkeypatch.setenv(f"VLLM_{backend.upper()}_LOAD", "1")
+    monkeypatch.setattr(module, f"{backend}_weights_iterator", read_files)
     _mock_pp_group(monkeypatch, 1, tp_rank=rank)
     model = torch.nn.Linear(3, 2, bias=False)
     config = ModelConfig.__new__(ModelConfig)
