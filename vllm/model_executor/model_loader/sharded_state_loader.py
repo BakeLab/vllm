@@ -246,7 +246,15 @@ class ShardedStateLoader(BaseModelLoader):
             raise ValueError(f"Missing keys {tuple(state_dict)} in loaded state!")
 
     def iterate_over_files(self, paths) -> Generator[tuple[str, torch.Tensor]]:
-        if envs.VLLM_CUFILE_LOAD:
+        if envs.VLLM_CUFILE_LOAD and envs.VLLM_HIPFILE_LOAD:
+            raise ValueError("Select either cuFile or hipFile loading")
+        if envs.VLLM_HIPFILE_LOAD:
+            from vllm.model_executor.model_loader.hipfile import (
+                hipfile_weights_iterator,
+            )
+
+            yield from hipfile_weights_iterator(paths)
+        elif envs.VLLM_CUFILE_LOAD:
             from vllm.model_executor.model_loader.cufile import cufile_weights_iterator
 
             yield from cufile_weights_iterator(paths)
