@@ -37,9 +37,12 @@ replicated parameters remain in each rank's checkpoint. This avoids rereading
 the entire original checkpoint per rank. Conversion requires extra disk space
 and an initial model load; it does not accelerate unconverted checkpoints.
 Compatibility mode coalesces adjacent tensor payloads into reads capped at
-64 MiB; a single tensor larger than that is read on its own. Allow room for this
-temporary GPU staging buffer in addition to the model's resident weights. P2P
-mode keeps per-tensor reads to preserve direct-I/O alignment requirements. This
+64 MiB. Larger individual tensors are read in chunks through a reusable 64 MiB
+GPU buffer and assembled on CPU before normal TP slicing. This bounds the
+device read buffer, while temporarily using host memory for the large tensor
+and adding a GPU-to-CPU copy. Allow room for temporary staging in addition to
+the model's resident weights. P2P mode keeps per-tensor reads to preserve
+direct-I/O alignment requirements. This
 path overrides the normal safetensors load strategy when enabled.
 
 ## Strict PCI P2PDMA mode
