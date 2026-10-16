@@ -36,9 +36,13 @@ def cufile_weights_iterator(
     def open_reader(path: str):
         handle = GdsFile(path, flags)
         try:
-            yield lambda raw, offset, _length: handle.load_storage(
-                raw.untyped_storage(), offset=offset
-            )
+
+            def read(raw: torch.Tensor, offset: int, length: int) -> None:
+                start = raw.storage_offset()
+                storage = raw.untyped_storage()[start : start + length]
+                handle.load_storage(storage, offset=offset)
+
+            yield read
         finally:
             handle.close()
 

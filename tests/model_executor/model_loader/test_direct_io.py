@@ -1,7 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+import json
+import os
+from contextlib import contextmanager
+
+import pytest
 import torch
+from safetensors.torch import save_file
 
 from vllm.model_executor.model_loader.direct_io import _iter_contiguous_groups
 
@@ -29,3 +35,125 @@ def test_contiguous_groups_preserve_dtype_alignment():
     ]
 
     assert _names(_iter_contiguous_groups(entries, 16)) == [["half"], ["float"]]
+
+
+@pytest.mark.parametrize(("mode", "expected_reads"), [("compat", 1), ("p2p", 2)])
+def test_direct_iterator_coalesces_compat_but_preserves_p2p_reads(
+    monkeypatch, tmp_path, mode, expected_reads
+):
+    values = {
+        "first": torch.arange(4, dtype=torch.uint8),
+        "second": torch.arange(4, dtype=torch.uint8) + 4,
+    }
+    path = tmp_path / "weights.safetensors"
+    header = {}
+    payload_parts = []
+    offset = 0
+    for name, value in values.items():
+        data = bytes(value.tolist())
+        header[name] = {
+            "dtype": "U8",
+            "shape": [value.numel()],
+            "data_offsets": [offset, offset + len(data)],
+        }
+        payload_parts.append(data)
+        offset += len(data)
+    header_bytes = json.dumps(header).encode()
+    header_bytes += b" " * (-len(header_bytes) % 8)
+    path.write_bytes(
+        len(header_bytes).to_bytes(8, "little") + header_bytes + b"".join(payload_parts)
+    )
+    payload = path.read_bytes()
+    reads = []
+
+    @contextmanager
+    def open_reader(_):
+        def read(raw, offset, length):
+            reads.append((offset, length))
+            raw.copy_(torch.tensor(list(payload[offset : offset + length])))
+
+        yield read
+
+    monkeypatch.setattr(
+        direct_io,
+        "_empty",
+        lambda size: torch.empty(size, dtype=torch.uint8),
+    )
+    monkeypatch.setattr(torch.cuda, "synchronize", lambda: None)
+    loaded = dict(
+        direct_io.direct_weights_iterator(
+            [str(path)], backend="cuFile", mode=mode, open_reader=open_reader
+        )
+    )
+
+    assert len(reads) == expected_reads
+    for name, value in values.items():
+        torch.testing.assert_close(loaded[name], value)
+
+
+@pytest.mark.parametrize("mode", ["compat", "p2p"])
+def test_large_cufile_tensor_bounds_compat_memory_and_reads_exact_tail(
+    monkeypatch, tmp_path, mode
+):
+    from torch.cuda import gds
+
+    from vllm.model_executor.model_loader import cufile
+
+    # Split inside float elements and leave a partial final read at EOF.
+    value = torch.arange(37, dtype=torch.float32)
+    path = tmp_path / "large.safetensors"
+    save_file({"weight": value}, path)
+    payload = path.read_bytes()
+    payload_offset = 8 + int.from_bytes(payload[:8], "little")
+    reads, allocated, closed = [], [], []
+    limit = 17
+
+    class File:
+        def __init__(self, filename, flags):
+            assert filename == str(path)
+            assert flags == os.O_RDONLY | (os.O_DIRECT if mode == "p2p" else 0)
+
+        def load_storage(self, storage, offset):
+            count = storage.nbytes()
+            assert offset + count <= len(payload)
+            reads.append((offset, count))
+            target = torch.empty(0, dtype=torch.uint8).set_(storage)
+            target.copy_(
+                torch.frombuffer(
+                    bytearray(payload[offset : offset + count]), dtype=torch.uint8
+                )
+            )
+
+        def close(self):
+            closed.append(True)
+
+    def device_empty(size):
+        allocated.append(size)
+        return torch.empty(size, dtype=torch.uint8)
+
+    monkeypatch.setattr(gds, "GdsFile", File)
+    monkeypatch.setattr(direct_io, "COMPAT_COALESCE_BYTES", limit)
+    monkeypatch.setattr(direct_io, "_empty", device_empty)
+    monkeypatch.setattr(torch.cuda, "synchronize", lambda: None)
+    monkeypatch.setenv("VLLM_CUFILE_MODE", mode)
+    monkeypatch.setenv(
+        "CUFILE_FORCE_COMPAT_MODE", "true" if mode == "compat" else "false"
+    )
+    monkeypatch.setenv(
+        "CUFILE_ALLOW_COMPAT_MODE", "true" if mode == "compat" else "false"
+    )
+
+    loaded = dict(cufile.cufile_weights_iterator([str(path)]))
+
+    torch.testing.assert_close(loaded["weight"], value)
+    size = value.numel() * value.element_size()
+    if mode == "compat":
+        assert max(allocated) <= limit
+        assert reads == [
+            (payload_offset + begin, min(limit, size - begin))
+            for begin in range(0, size, limit)
+        ]
+    else:
+        assert allocated == [size]
+        assert reads == [(payload_offset, size)]
+    assert closed == [True]
