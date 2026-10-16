@@ -36,9 +36,11 @@ same tensor-parallel size. Each rank reads only its saved files through cuFile;
 replicated parameters remain in each rank's checkpoint. This avoids rereading
 the entire original checkpoint per rank. Conversion requires extra disk space
 and an initial model load; it does not accelerate unconverted checkpoints.
-Tensor payloads are allocated on the current CUDA device one at a time; allow
-space for the largest source tensor in addition to the model's resident weights.
-This path overrides the normal safetensors load strategy when enabled.
+Compatibility mode coalesces adjacent tensor payloads into reads capped at
+64 MiB; a single tensor larger than that is read on its own. Allow room for this
+temporary GPU staging buffer in addition to the model's resident weights. P2P
+mode keeps per-tensor reads to preserve direct-I/O alignment requirements. This
+path overrides the normal safetensors load strategy when enabled.
 
 ## Strict PCI P2PDMA mode
 

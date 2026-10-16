@@ -38,6 +38,9 @@ SAFETENSORS_DTYPES = {
 # Reads `length` bytes at `file_offset` into the uint8 device tensor `raw`.
 Reader = Callable[[torch.Tensor, int, int], None]
 TensorEntry = tuple[str, torch.dtype, list[int], int, int]
+# Compatibility modes accept arbitrary offsets; P2P keeps per-tensor I/O for
+# direct-I/O alignment requirements.
+COMPAT_COALESCE_BYTES = 64 * 1024 * 1024
 
 
 def check_compat_env(prefix: str, mode: str) -> None:
@@ -122,7 +125,7 @@ def direct_weights_iterator(
     backend: str,
     mode: str,
     open_reader: Callable[[str], Any],
-    coalesce_bytes: int = 0,
+    coalesce_bytes: int | None = None,
 ) -> Generator[tuple[str, torch.Tensor]]:
     """Read tensor payloads into the current device, one tensor at a time.
 
@@ -132,6 +135,9 @@ def direct_weights_iterator(
     default loader supplies the complete checkpoint, ShardedStateLoader only
     this TP rank's saved shards.
     """
+    if coalesce_bytes is None:
+        coalesce_bytes = COMPAT_COALESCE_BYTES if mode == "compat" else 0
+
     logger.info("%s loading mode=%s", backend, mode)
     total = 0
     for path in sorted(files, key=_natural_sort_key):
