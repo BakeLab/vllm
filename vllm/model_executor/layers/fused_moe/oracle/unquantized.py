@@ -64,6 +64,13 @@ def _get_priority_backends(moe_config: FusedMoEConfig) -> list[UnquantizedMoeBac
             UnquantizedMoeBackend.TRITON,
             UnquantizedMoeBackend.BATCHED_TRITON,
         ]
+
+        # On RDNA4, the standard Triton experts produce invalid output for
+        # Qwen3-MoE, while BatchedTritonExperts produces correct output. Keep
+        # AITER first when it supports the config, then prefer the batched
+        # fallback until the standard Triton kernel is fixed.
+        if current_platform.is_device_capability((12, 0)):
+            _move_to_back(_AVAILABLE_BACKENDS, UnquantizedMoeBackend.TRITON)
     elif current_platform.is_cuda():
         _AVAILABLE_BACKENDS = [
             UnquantizedMoeBackend.FLASHINFER_TRTLLM,
