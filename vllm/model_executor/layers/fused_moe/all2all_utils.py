@@ -101,14 +101,6 @@ def flashinfer_one_sided_dispatch_layout(
 logger = init_logger(__name__)
 
 
-def should_use_batched_triton(moe: FusedMoEConfig) -> bool:
-    """Whether auto selection must use batched experts on RDNA4."""
-    return (
-        moe.moe_backend == "auto"
-        and current_platform.is_rocm()
-        and current_platform.is_device_capability((12, 0))
-    )
-
 if current_platform.is_cuda_alike():
     if has_deep_ep():
         from .prepare_finalize.deepep_ht import DeepEPHTPrepareAndFinalize
@@ -209,12 +201,8 @@ def maybe_make_prepare_finalize(
         # batched Triton backend is selected. This is needed on CUDA/ROCm as
         # well as XPU so its experts receive BatchedExperts input.
         if (
-            (current_platform.is_cuda_alike() or current_platform.is_xpu())
-            and (
-                moe.moe_backend == "batched_triton"
-                or should_use_batched_triton(moe)
-            )
-        ):
+            current_platform.is_cuda_alike() or current_platform.is_xpu()
+        ) and moe.moe_backend == "batched_triton":
             return BatchedPrepareAndFinalize(
                 max_num_tokens=moe.max_num_tokens,
                 num_local_experts=moe.num_local_experts,
