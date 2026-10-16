@@ -7,11 +7,17 @@ import torch
 
 from tests.kernels.moe.utils import make_dummy_moe_config
 from vllm.model_executor.layers.fused_moe.activation import MoEActivation
+from vllm.model_executor.layers.fused_moe.all2all_utils import (
+    maybe_make_prepare_finalize,
+)
 from vllm.model_executor.layers.fused_moe.config import RoutingMethodType
 from vllm.model_executor.layers.fused_moe.oracle.unquantized import (
     UnquantizedMoeBackend,
     backend_to_kernel_cls,
     select_unquantized_moe_backend,
+)
+from vllm.model_executor.layers.fused_moe.prepare_finalize.batched import (
+    BatchedPrepareAndFinalize,
 )
 from vllm.platforms import CpuArchEnum, current_platform
 
@@ -19,6 +25,24 @@ skipif_not_cuda_rocm = pytest.mark.skipif(
     not (current_platform.is_cuda() or current_platform.is_rocm()),
     reason="Only supported on CUDA/ROCm platforms.",
 )
+
+
+@pytest.mark.parametrize("platform_method", ["is_cuda_alike", "is_xpu"])
+def test_batched_triton_uses_batched_prepare_finalize(platform_method: str):
+    moe_config = make_dummy_moe_config(max_num_tokens=128)
+    moe_config.moe_backend = "batched_triton"
+
+    with patch.object(current_platform, platform_method, return_value=True):
+        prepare_finalize = maybe_make_prepare_finalize(
+            moe_config,
+            None,
+            allow_new_interface=True,
+        )
+
+    assert isinstance(prepare_finalize, BatchedPrepareAndFinalize)
+    assert prepare_finalize.activation_format.name == "BatchedExperts"
+    assert prepare_finalize.max_num_tokens_per_rank() == 128
+    assert prepare_finalize.num_dispatchers() == 1
 
 
 @pytest.mark.parametrize(
