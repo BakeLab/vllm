@@ -9,8 +9,12 @@ from tests.kernels.moe.utils import make_dummy_moe_config
 from vllm.model_executor.layers.fused_moe.activation import MoEActivation
 from vllm.model_executor.layers.fused_moe.all2all_utils import (
     maybe_make_prepare_finalize,
+    should_use_batched_triton,
 )
 from vllm.model_executor.layers.fused_moe.config import RoutingMethodType
+from vllm.model_executor.layers.fused_moe.experts.fused_batched_moe import (
+    BatchedTritonExperts,
+)
 from vllm.model_executor.layers.fused_moe.oracle.unquantized import (
     UnquantizedMoeBackend,
     _get_priority_backends,
@@ -29,17 +33,65 @@ skipif_not_cuda_rocm = pytest.mark.skipif(
 
 
 def test_rocm_rdna4_prefers_batched_triton_unquantized_backend():
+    moe_config = make_dummy_moe_config()
+    moe_config.moe_backend = "auto"
     with (
         patch.object(current_platform, "is_rocm", return_value=True),
         patch.object(current_platform, "is_device_capability", return_value=True),
+        patch.object(current_platform, "is_cuda_alike", return_value=True),
     ):
-        backends = _get_priority_backends(None)  # type: ignore[arg-type]
+        backends = _get_priority_backends(moe_config)
+        assert should_use_batched_triton(moe_config)
 
     assert backends == [
         UnquantizedMoeBackend.AITER,
         UnquantizedMoeBackend.BATCHED_TRITON,
         UnquantizedMoeBackend.TRITON,
     ]
+
+
+def test_rocm_rdna4_auto_uses_batched_prepare_finalize():
+    moe_config = make_dummy_moe_config()
+    with (
+        patch.object(current_platform, "is_rocm", return_value=True),
+        patch.object(current_platform, "is_device_capability", return_value=True),
+        patch.object(current_platform, "is_cuda_alike", return_value=True),
+    ):
+        prepare_finalize = maybe_make_prepare_finalize(
+            moe_config,
+            None,
+            allow_new_interface=True,
+        )
+
+    assert isinstance(prepare_finalize, BatchedPrepareAndFinalize)
+
+
+def test_rocm_rdna4_auto_selects_batched_activation_format():
+    moe_config = make_dummy_moe_config()
+    with (
+        patch.object(current_platform, "is_rocm", return_value=True),
+        patch.object(current_platform, "is_device_capability", return_value=True),
+        patch.object(current_platform, "is_cpu", return_value=False),
+        patch.object(current_platform, "is_out_of_tree", return_value=False),
+        patch(
+            "vllm.model_executor.layers.fused_moe.oracle.unquantized."
+            "rocm_aiter_ops.is_fused_moe_enabled",
+            return_value=False,
+        ),
+        patch.object(
+            BatchedTritonExperts,
+            "is_supported_config",
+            return_value=(True, None),
+        ) as batched_supported,
+    ):
+        backend, expert_cls = select_unquantized_moe_backend(moe_config)
+
+    assert backend == UnquantizedMoeBackend.BATCHED_TRITON
+    assert expert_cls is BatchedTritonExperts
+    assert (
+        batched_supported.call_args.args[-1]
+        == BatchedTritonExperts.activation_format()
+    )
 
 
 @pytest.mark.parametrize("platform_method", ["is_cuda_alike", "is_xpu"])

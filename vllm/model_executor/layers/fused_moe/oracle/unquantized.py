@@ -14,6 +14,7 @@ from vllm.logger import init_logger
 from vllm.model_executor.layers.fused_moe.activation import MoEActivation
 from vllm.model_executor.layers.fused_moe.all2all_utils import (
     maybe_make_prepare_finalize,
+    should_use_batched_triton,
 )
 from vllm.model_executor.layers.fused_moe.config import (
     FusedMoEConfig,
@@ -69,7 +70,7 @@ def _get_priority_backends(moe_config: FusedMoEConfig) -> list[UnquantizedMoeBac
         # Qwen3-MoE, while BatchedTritonExperts produces correct output. Keep
         # AITER first when it supports the config, then prefer the batched
         # fallback until the standard Triton kernel is fixed.
-        if current_platform.is_device_capability((12, 0)):
+        if should_use_batched_triton(moe_config):
             _move_to_back(_AVAILABLE_BACKENDS, UnquantizedMoeBackend.TRITON)
     elif current_platform.is_cuda():
         _AVAILABLE_BACKENDS = [
@@ -263,6 +264,7 @@ def select_unquantized_moe_backend(
         mk.FusedMoEActivationFormat.BatchedExperts
         if moe_config.moe_parallel_config.use_batched_activation_format
         or moe_config.moe_backend == "batched_triton"
+        or should_use_batched_triton(moe_config)
         else mk.FusedMoEActivationFormat.Standard
     )
 
