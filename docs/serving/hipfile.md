@@ -17,8 +17,11 @@ vllm serve /mnt/model --load-format safetensors
 
 Compatibility mode works with unaligned safetensors payloads, but can copy
 through host memory. Adjacent tensor payloads are coalesced into reads capped
-at 64 MiB; a larger individual tensor is read on its own. P2P mode keeps
-per-tensor reads to preserve direct-I/O alignment requirements. To require
+at 64 MiB. Larger individual tensors are read in chunks through a reusable
+64 MiB GPU buffer and assembled on CPU before normal TP slicing. This bounds
+the device read buffer, while temporarily using host memory for the large
+tensor and adding a GPU-to-CPU copy. P2P mode keeps per-tensor reads to preserve
+direct-I/O alignment requirements. To require
 direct storage-to-GPU I/O, set
 `VLLM_HIPFILE_MODE=p2p`, `HIPFILE_FORCE_COMPAT_MODE=false`, and
 `HIPFILE_ALLOW_COMPAT_MODE=false`, and use files and I/O aligned for the target

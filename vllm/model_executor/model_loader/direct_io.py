@@ -127,16 +127,20 @@ def direct_weights_iterator(
     open_reader: Callable[[str], Any],
     coalesce_bytes: int | None = None,
 ) -> Generator[tuple[str, torch.Tensor]]:
-    """Read tensor payloads into the current device, one tensor at a time.
+    """Read tensor payloads with bounded device staging in compatibility mode.
 
     `open_reader(path)` returns a context manager yielding a `Reader` for that
     file. When requested, adjacent entries are read into a bounded staging
     buffer to reduce per-read overhead. Only supplied files are read: the
     default loader supplies the complete checkpoint, ShardedStateLoader only
     this TP rank's saved shards.
+
+    Oversized compatibility-mode tensors are assembled on CPU using bounded
+    device reads, so TP slicing does not require a full tensor's temporary VRAM.
     """
     if coalesce_bytes is None:
         coalesce_bytes = COMPAT_COALESCE_BYTES if mode == "compat" else 0
+    compat_buffer_bytes = coalesce_bytes or COMPAT_COALESCE_BYTES
 
     logger.info("%s loading mode=%s", backend, mode)
     total = 0
@@ -152,9 +156,28 @@ def direct_weights_iterator(
                 first_offset = group[0][3]
                 _, _, _, last_offset, last_length = group[-1]
                 length = last_offset + last_length - first_offset
-                raw = _empty(length)
-                if length:
-                    read(raw, first_offset, length)
+                if mode == "compat" and length > compat_buffer_bytes:
+                    logger.info(
+                        "%s compat bounded staging tensor=%s bytes=%d "
+                        "device_buffer_bytes=%d",
+                        backend,
+                        group[0][0],
+                        length,
+                        compat_buffer_bytes,
+                    )
+                    raw = torch.empty(length, dtype=torch.uint8, device="cpu")
+                    device_buffer = _empty(compat_buffer_bytes)
+                    for begin in range(0, length, compat_buffer_bytes):
+                        count = min(compat_buffer_bytes, length - begin)
+                        chunk = device_buffer.narrow(0, 0, count)
+                        read(chunk, first_offset + begin, count)
+                        # Blocking D2H completes before the buffer is reused.
+                        raw.narrow(0, begin, count).copy_(chunk)
+                    del chunk, device_buffer
+                else:
+                    raw = _empty(length)
+                    if length:
+                        read(raw, first_offset, length)
                 for name, dtype, shape, offset, tensor_length in group:
                     begin = offset - first_offset
                     tensor = (
