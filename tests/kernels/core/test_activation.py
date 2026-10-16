@@ -33,7 +33,7 @@ from vllm.platforms import current_platform
 from vllm.utils.torch_utils import set_random_seed
 
 DTYPES = [torch.half, torch.bfloat16, torch.float]
-NUM_TOKENS = [7, 83, 2048]  # Arbitrary values for testing
+NUM_TOKENS = [7, 83, 129, 2048]  # Include the 256-bit path dispatch boundary.
 D = [512, 13824]  # Arbitrary values for testing
 SEEDS = [0]
 CUDA_DEVICES = [
