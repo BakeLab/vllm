@@ -15,8 +15,6 @@ from vllm.model_executor.model_loader.direct_io import (
     direct_weights_iterator,
 )
 
-_COMPAT_COALESCE_BYTES = 64 * 1024 * 1024
-
 
 def hipfile_weights_iterator(
     files: list[str], local_expert_ids: set[int] | None = None
@@ -53,11 +51,5 @@ def hipfile_weights_iterator(
 
     with Driver():
         yield from direct_weights_iterator(
-            files,
-            backend="hipFile",
-            mode=mode,
-            open_reader=open_reader,
-            # Compat handles arbitrary offsets; preserve per-tensor reads for
-            # P2P mode, where direct-I/O alignment requirements still apply.
-            coalesce_bytes=(_COMPAT_COALESCE_BYTES if mode == "compat" else 0),
+            files, backend="hipFile", mode=mode, open_reader=open_reader
         )
