@@ -196,9 +196,13 @@ def maybe_make_prepare_finalize(
         if not allow_new_interface:
             return None
 
-        # Opt-in XPU batched path: reorganize tokens into E x T x K locally
-        # (no all-to-all) so BatchedTritonExperts (moe_mmk TD) can run.
-        if current_platform.is_xpu() and moe.moe_backend == "batched_triton":
+        # Reorganize tokens into E x T x K locally (no all-to-all) when the
+        # batched Triton backend is explicitly selected. This is needed on
+        # CUDA/ROCm as well as XPU so its experts receive BatchedExperts input.
+        if (
+            (current_platform.is_cuda_alike() or current_platform.is_xpu())
+            and moe.moe_backend == "batched_triton"
+        ):
             return BatchedPrepareAndFinalize(
                 max_num_tokens=moe.max_num_tokens,
                 num_local_experts=moe.num_local_experts,
