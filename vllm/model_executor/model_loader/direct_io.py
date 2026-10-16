@@ -37,6 +37,7 @@ SAFETENSORS_DTYPES = {
 
 # Reads `length` bytes at `file_offset` into the uint8 device tensor `raw`.
 Reader = Callable[[torch.Tensor, int, int], None]
+TensorEntry = tuple[str, torch.dtype, list[int], int, int]
 
 
 def check_compat_env(prefix: str, mode: str) -> None:
@@ -85,32 +86,78 @@ def _empty(length: int) -> torch.Tensor:
     return torch.empty(length, dtype=torch.uint8, device="cuda")
 
 
+def _iter_contiguous_groups(
+    entries: Iterable[TensorEntry], max_group_bytes: int
+) -> Generator[list[TensorEntry]]:
+    """Group adjacent entries whose dtype views remain properly aligned."""
+    if max_group_bytes <= 0:
+        raise ValueError("max_group_bytes must be positive")
+
+    group: list[TensorEntry] = []
+    group_bytes = 0
+    for entry in entries:
+        _, dtype, _, offset, length = entry
+        can_append = not group or (
+            group[-1][3] + group[-1][4] == offset
+            and (offset - group[0][3]) % dtype.itemsize == 0
+            and group_bytes + length <= max_group_bytes
+        )
+        if group and not can_append:
+            yield group
+            group = []
+            group_bytes = 0
+        group.append(entry)
+        group_bytes += length
+        if group_bytes >= max_group_bytes:
+            yield group
+            group = []
+            group_bytes = 0
+    if group:
+        yield group
+
+
 def direct_weights_iterator(
     files: Iterable[str],
     *,
     backend: str,
     mode: str,
     open_reader: Callable[[str], Any],
+    coalesce_bytes: int = 0,
 ) -> Generator[tuple[str, torch.Tensor]]:
     """Read tensor payloads into the current device, one tensor at a time.
 
     `open_reader(path)` returns a context manager yielding a `Reader` for that
-    file. Only the supplied files are read: the default loader supplies the
-    complete checkpoint, ShardedStateLoader only this TP rank's saved shards.
+    file. When requested, adjacent entries are read into a bounded staging
+    buffer to reduce per-read overhead. Only supplied files are read: the
+    default loader supplies the complete checkpoint, ShardedStateLoader only
+    this TP rank's saved shards.
     """
     logger.info("%s loading mode=%s", backend, mode)
     total = 0
     for path in sorted(files, key=_natural_sort_key):
         started = time.monotonic()
         with open_reader(path) as read:
-            for name, dtype, shape, offset, length in iter_safetensors_entries(path):
+            entries = iter_safetensors_entries(path)
+            if coalesce_bytes:
+                groups = _iter_contiguous_groups(entries, coalesce_bytes)
+            else:
+                groups = ([entry] for entry in entries)
+            for group in groups:
+                first_offset = group[0][3]
+                _, _, _, last_offset, last_length = group[-1]
+                length = last_offset + last_length - first_offset
                 raw = _empty(length)
                 if length:
-                    read(raw, offset, length)
-                tensor = raw.view(dtype).reshape(shape)
-                total += length
-                yield name, tensor
-                del tensor, raw
+                    read(raw, first_offset, length)
+                for name, dtype, shape, offset, tensor_length in group:
+                    begin = offset - first_offset
+                    tensor = (
+                        raw.narrow(0, begin, tensor_length).view(dtype).reshape(shape)
+                    )
+                    total += tensor_length
+                    yield name, tensor
+                    del tensor
+                del raw
             torch.cuda.synchronize()
         logger.info(
             "%s mode=%s shard=%s seconds=%.2f cumulative_bytes=%d",
