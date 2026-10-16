@@ -13,6 +13,7 @@ from vllm.model_executor.layers.fused_moe.all2all_utils import (
 from vllm.model_executor.layers.fused_moe.config import RoutingMethodType
 from vllm.model_executor.layers.fused_moe.oracle.unquantized import (
     UnquantizedMoeBackend,
+    _get_priority_backends,
     backend_to_kernel_cls,
     select_unquantized_moe_backend,
 )
@@ -25,6 +26,20 @@ skipif_not_cuda_rocm = pytest.mark.skipif(
     not (current_platform.is_cuda() or current_platform.is_rocm()),
     reason="Only supported on CUDA/ROCm platforms.",
 )
+
+
+def test_rocm_rdna4_prefers_batched_triton_unquantized_backend():
+    with (
+        patch.object(current_platform, "is_rocm", return_value=True),
+        patch.object(current_platform, "is_device_capability", return_value=True),
+    ):
+        backends = _get_priority_backends(None)  # type: ignore[arg-type]
+
+    assert backends == [
+        UnquantizedMoeBackend.AITER,
+        UnquantizedMoeBackend.BATCHED_TRITON,
+        UnquantizedMoeBackend.TRITON,
+    ]
 
 
 @pytest.mark.parametrize("platform_method", ["is_cuda_alike", "is_xpu"])
