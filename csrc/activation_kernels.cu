@@ -236,6 +236,17 @@ packed_gelu_tanh_kernel(const packed_t& val, const float /*alpha*/) {
 
 }  // namespace vllm
 
+// The 256-bit activation loads/stores use CUDA SM100 PTX and are unavailable
+// in ROCm builds. Keep architecture checks from treating gfx12's device
+// `major` value as an SM version.
+#if !defined(USE_ROCM) && defined(CUDART_VERSION) && CUDART_VERSION >= 12090
+  #define VLLM_USE_256B_ACTIVATION_PATH(cc_major, num_tokens) \
+    ((cc_major) >= 10 && (num_tokens) > 128)
+#else
+  #define VLLM_USE_256B_ACTIVATION_PATH(cc_major, num_tokens) \
+    (false && (cc_major) >= 10 && (num_tokens) > 128)
+#endif
+
 // Launch activation and gating kernel.
 // Use ACT_FIRST (bool) indicating whether to apply the activation function
 // first. HAS_CLAMP (bool) enables pre-activation clamping: gate input is
@@ -251,10 +262,9 @@ packed_gelu_tanh_kernel(const packed_t& val, const float /*alpha*/) {
   }                                                                            \
   dim3 grid(num_tokens);                                                       \
   int cc_major = get_device_prop()->major;                                     \
-  int support_vec =                                                            \
-      (cc_major >= 10 && num_tokens > 128)                                     \
-          ? vllm::VecTraits<true>::ARCH_MAX_VEC_SIZE                           \
-          : vllm::VecTraits<false>::ARCH_MAX_VEC_SIZE;                         \
+  int support_vec = VLLM_USE_256B_ACTIVATION_PATH(cc_major, num_tokens)        \
+                        ? vllm::VecTraits<true>::ARCH_MAX_VEC_SIZE             \
+                        : vllm::VecTraits<false>::ARCH_MAX_VEC_SIZE;           \
   int vec_size = support_vec / input.element_size();                           \
   const bool use_vec = (d % vec_size == 0);                                    \
   const torch::stable::accelerator::DeviceGuard device_guard(                  \
@@ -262,7 +272,7 @@ packed_gelu_tanh_kernel(const packed_t& val, const float /*alpha*/) {
   const cudaStream_t stream = get_current_cuda_stream();                       \
   if (use_vec) {                                                               \
     dim3 block(std::min(d / vec_size, 1024));                                  \
-    if (cc_major >= 10 && num_tokens > 128) {                                  \
+    if (VLLM_USE_256B_ACTIVATION_PATH(cc_major, num_tokens)) {                 \
       VLLM_STABLE_DISPATCH_FLOATING_TYPES(dtype, "act_and_mul_kernel", [&] {   \
         vllm::act_and_mul_kernel<                                              \
             scalar_t, typename vllm::PackedTypeConverter<scalar_t>::Type,      \
@@ -957,10 +967,9 @@ __global__ void masked_activation_kernel(
   }                                                                            \
   dim3 grid(num_tokens);                                                       \
   int cc_major = get_device_prop()->major;                                     \
-  int support_vec =                                                            \
-      (cc_major >= 10 && num_tokens > 128)                                     \
-          ? vllm::VecTraits<true>::ARCH_MAX_VEC_SIZE                           \
-          : vllm::VecTraits<false>::ARCH_MAX_VEC_SIZE;                         \
+  int support_vec = VLLM_USE_256B_ACTIVATION_PATH(cc_major, num_tokens)        \
+                        ? vllm::VecTraits<true>::ARCH_MAX_VEC_SIZE             \
+                        : vllm::VecTraits<false>::ARCH_MAX_VEC_SIZE;           \
   int vec_size = support_vec / input.element_size();                           \
   const bool use_vec = (d % vec_size == 0);                                    \
   const torch::stable::accelerator::DeviceGuard device_guard(                  \
@@ -968,7 +977,7 @@ __global__ void masked_activation_kernel(
   const cudaStream_t stream = get_current_cuda_stream();                       \
   if (use_vec) {                                                               \
     dim3 block(std::min(d / vec_size, 1024));                                  \
-    if (cc_major >= 10 && num_tokens > 128) {                                  \
+    if (VLLM_USE_256B_ACTIVATION_PATH(cc_major, num_tokens)) {                 \
       VLLM_STABLE_DISPATCH_FLOATING_TYPES(                                     \
           dtype, "act_and_mul_kernel_with_param", [&] {                        \
             vllm::act_and_mul_kernel_with_param<                               \
@@ -1360,10 +1369,9 @@ __global__ void activation_kernel(
   }                                                                            \
   dim3 grid(num_tokens);                                                       \
   int cc_major = get_device_prop()->major;                                     \
-  int support_vec =                                                            \
-      (cc_major >= 10 && num_tokens > 128)                                     \
-          ? vllm::VecTraits<true>::ARCH_MAX_VEC_SIZE                           \
-          : vllm::VecTraits<false>::ARCH_MAX_VEC_SIZE;                         \
+  int support_vec = VLLM_USE_256B_ACTIVATION_PATH(cc_major, num_tokens)        \
+                        ? vllm::VecTraits<true>::ARCH_MAX_VEC_SIZE             \
+                        : vllm::VecTraits<false>::ARCH_MAX_VEC_SIZE;           \
   int vec_size = support_vec / input.element_size();                           \
   const bool use_vec = (d % vec_size == 0);                                    \
   const torch::stable::accelerator::DeviceGuard device_guard(                  \
@@ -1371,7 +1379,7 @@ __global__ void activation_kernel(
   const cudaStream_t stream = get_current_cuda_stream();                       \
   if (use_vec) {                                                               \
     dim3 block(std::min(d / vec_size, 1024));                                  \
-    if (cc_major >= 10 && num_tokens > 128) {                                  \
+    if (VLLM_USE_256B_ACTIVATION_PATH(cc_major, num_tokens)) {                 \
       VLLM_STABLE_DISPATCH_FLOATING_TYPES(dtype, "activation_kernel", [&] {    \
         vllm::activation_kernel<scalar_t, KERNEL<scalar_t>, true, true>        \
             <<<grid, block, 0, stream>>>(out.mutable_data_ptr<scalar_t>(),     \
