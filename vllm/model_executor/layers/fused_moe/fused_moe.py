@@ -41,6 +41,46 @@ from vllm.utils.torch_utils import direct_register_custom_op
 logger = init_logger(__name__)
 
 
+@functools.cache
+def _use_rdna4_moe_gemv() -> bool:
+    if not current_platform.is_rocm():
+        return False
+    from vllm.platforms.rocm import on_rdna4
+
+    return on_rdna4()
+
+
+@triton.jit
+def fused_moe_gemv_kernel(
+    a_ptr,
+    b_ptr,
+    c_ptr,
+    expert_ids_ptr,
+    N: tl.constexpr,
+    K: tl.constexpr,
+    BLOCK_SIZE_N: tl.constexpr,
+    BLOCK_SIZE_K: tl.constexpr,
+):
+    expert_slot = tl.program_id(0)
+    expert = tl.load(expert_ids_ptr + expert_slot).to(tl.int64)
+    offs_n = tl.program_id(1) * BLOCK_SIZE_N + tl.arange(0, BLOCK_SIZE_N)
+    if expert == -1:
+        tl.store(c_ptr + expert_slot * N + offs_n, 0, offs_n < N)
+        return
+    offs_k = tl.arange(0, BLOCK_SIZE_K)
+    accumulator = tl.full((BLOCK_SIZE_N,), 0, tl.float32)
+    for block in range(tl.cdiv(K, BLOCK_SIZE_K)):
+        k = block * BLOCK_SIZE_K + offs_k
+        a = tl.load(a_ptr + k, k < K, other=0).to(tl.float32)
+        b = tl.load(
+            b_ptr + expert * N * K + offs_n[:, None] * K + k[None, :],
+            (offs_n[:, None] < N) & (k[None, :] < K),
+            other=0,
+        ).to(tl.float32)
+        accumulator += tl.sum(b * a[None, :], axis=1)
+    tl.store(c_ptr + expert_slot * N + offs_n, accumulator, offs_n < N)
+
+
 @triton.jit
 def write_zeros_to_output(
     c_ptr,
@@ -783,6 +823,31 @@ def invoke_fused_moe_triton_kernel(
     assert topk_weights is not None or not mul_routed_weight
     assert topk_weights is None or topk_weights.stride(1) == 1
     assert sorted_token_ids is None or sorted_token_ids.stride(0) == 1
+
+    # A single-token first projection does not benefit from padded matrix rows.
+    if (
+        _use_rdna4_moe_gemv()
+        and A.size(0) == 1
+        and top_k > 1
+        and sorted_token_ids is None
+        and not mul_routed_weight
+        and A_scale is None
+        and B_scale is None
+        and B_bias is None
+        and block_shape is None
+        and not (use_fp8_w8a8 or use_int8_w8a8 or use_int8_w8a16 or use_int4_w4a16)
+        and not per_channel_quant
+        and A.dtype in (torch.bfloat16, torch.float16)
+        and B.dtype == A.dtype == C.dtype
+        and A.size(1) == B.size(2)
+        and A.is_contiguous()
+        and B.is_contiguous()
+        and C.is_contiguous()
+    ):
+        fused_moe_gemv_kernel[(top_k, triton.cdiv(B.size(1), 8))](
+            A, B, C, expert_ids, B.size(1), B.size(2), 8, 256, num_warps=4
+        )
+        return
 
     if use_fp8_w8a8:
         SWAP_AB = enable_swap_ab(config["BLOCK_SIZE_M"], config["BLOCK_SIZE_N"])
