@@ -285,15 +285,18 @@ def test_rocm_symm_mem_all_reduce_preserves_output(monkeypatch, strided_output):
     communicator = object.__new__(SymmMemCommunicator)
     communicator.disabled = False
     communicator.dtype = torch.bfloat16
-    communicator.buffer = torch.empty(8, dtype=torch.bfloat16)
+    communicator.buffer = torch.full((8,), -3, dtype=torch.bfloat16)
     communicator.max_size = communicator.buffer.nbytes
     communicator.group = SimpleNamespace(group_name="test")
 
-    def one_shot(buffer, reduce_op, group_name, out):
+    def one_shot_copy(buffer, inp, reduce_op, group_name, out):
         assert (reduce_op, group_name) == ("sum", "test")
-        out.copy_(buffer + 1)
+        torch.testing.assert_close(buffer, torch.full_like(buffer, -3))
+        out.copy_(inp + 1)
 
-    monkeypatch.setattr(torch.ops.symm_mem, "one_shot_all_reduce_out", one_shot)
+    monkeypatch.setattr(
+        torch.ops.symm_mem, "one_shot_all_reduce_copy_out", one_shot_copy
+    )
     monkeypatch.setattr(
         torch.ops.symm_mem,
         "two_shot_all_reduce_",
