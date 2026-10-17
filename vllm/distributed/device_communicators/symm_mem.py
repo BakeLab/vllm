@@ -191,12 +191,11 @@ class SymmMemCommunicator:
             out = torch.empty_like(inp)
         symm_buffer = self.buffer[: inp.numel()]
         if current_platform.is_rocm():
-            symm_buffer.copy_(inp.view(-1))
             flat_out = (
                 out.view(-1) if out.is_contiguous() else torch.empty_like(symm_buffer)
             )
-            torch.ops.symm_mem.one_shot_all_reduce_out(
-                symm_buffer, "sum", self.group.group_name, flat_out
+            torch.ops.symm_mem.one_shot_all_reduce_copy_out(
+                symm_buffer, inp.view(-1), "sum", self.group.group_name, flat_out
             )
             if flat_out.data_ptr() != out.data_ptr():
                 out.copy_(flat_out.view(out.shape))
