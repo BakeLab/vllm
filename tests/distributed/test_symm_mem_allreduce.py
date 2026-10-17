@@ -277,33 +277,39 @@ def test_rocm_initialization_failure_is_not_rank_local_fallback(monkeypatch):
         )
 
 
-def test_rocm_symm_mem_all_reduce_uses_two_shot(monkeypatch):
+@pytest.mark.parametrize("strided_output", [False, True])
+def test_rocm_symm_mem_all_reduce_preserves_output(monkeypatch, strided_output):
+    monkeypatch.setattr(
+        symm_mem, "current_platform", SimpleNamespace(is_rocm=lambda: True)
+    )
     communicator = object.__new__(SymmMemCommunicator)
     communicator.disabled = False
     communicator.dtype = torch.bfloat16
     communicator.buffer = torch.empty(8, dtype=torch.bfloat16)
     communicator.max_size = communicator.buffer.nbytes
-    communicator.world_size = 2
     communicator.group = SimpleNamespace(group_name="test")
-    communicator.force_multimem = True
-    communicator.multimem_supported = False
-    calls = []
 
-    def two_shot(buffer, reduce_op, group_name):
-        calls.append((reduce_op, group_name))
-        buffer.add_(1)
+    def one_shot(buffer, reduce_op, group_name, out):
+        assert (reduce_op, group_name) == ("sum", "test")
+        out.copy_(buffer + 1)
 
-    monkeypatch.setattr(torch.ops.symm_mem, "two_shot_all_reduce_", two_shot)
+    monkeypatch.setattr(torch.ops.symm_mem, "one_shot_all_reduce_out", one_shot)
     monkeypatch.setattr(
         torch.ops.symm_mem,
-        "multimem_all_reduce_",
-        lambda *args, **kwargs: pytest.fail("ROCm must not use multimem"),
+        "two_shot_all_reduce_",
+        lambda *args: pytest.fail("ROCm must use out-of-place one-shot"),
     )
+    inp = torch.ones((2, 4), dtype=torch.bfloat16)
+    out = (
+        torch.empty((4, 2), dtype=inp.dtype).t()
+        if strided_output
+        else torch.empty_like(inp)
+    )
+    output = communicator.all_reduce(inp, out=out)
 
-    output = communicator.all_reduce(torch.ones(8, dtype=torch.bfloat16))
-
-    assert calls == [("sum", "test")]
-    torch.testing.assert_close(output, torch.full((8,), 2, dtype=torch.bfloat16))
+    assert output is out
+    torch.testing.assert_close(output, torch.full_like(inp, 2))
+    torch.testing.assert_close(inp, torch.ones_like(inp))
 
 
 def test_rocm_symm_mem_max_size_boundary():
@@ -381,6 +387,47 @@ def symm_mem_allreduce_worker(local_rank: int, world_size: int, q: mp.Queue):
         torch.testing.assert_close(
             out_tensor_parallel, original_inp_tensor_parallel, atol=2.5, rtol=0.1
         )
+
+        inputs = [
+            torch.full(
+                (2048,), (local_rank + 1) * (step + 1), dtype=dtype, device=device
+            )
+            for step in range(16)
+        ]
+        outputs = [torch.empty_like(inp) for inp in inputs]
+
+        def run():
+            for inp, out in zip(inputs, outputs):
+                symm_mem_comm.all_reduce(inp, out=out)
+
+        def check(sign):
+            rank_sum = world_size * (world_size + 1) // 2
+            correct = (
+                torch.stack(
+                    [
+                        (out == sign * rank_sum * (step + 1)).all()
+                        for step, out in enumerate(outputs)
+                    ]
+                )
+                .all()
+                .to(torch.int32)
+            )
+            dist.all_reduce(correct, op=dist.ReduceOp.MIN, group=group)
+            assert correct.item() == 1
+
+        run()
+        check(1)
+        device_module = torch.get_device_module(device)
+        graph = device_module.CUDAGraph()
+        with device_module.graph(graph):
+            run()
+        sign = 1
+        for _ in range(3):
+            for inp in inputs:
+                inp.neg_()
+            sign = -sign
+            graph.replay()
+            check(sign)
 
 
 @pytest.mark.skipif(
