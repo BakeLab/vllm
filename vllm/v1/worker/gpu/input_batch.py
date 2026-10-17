@@ -33,6 +33,13 @@ class InputBuffers:
         self.dcp_local_seq_lens = torch.zeros(
             max_num_reqs, dtype=torch.int32, device=device
         )
+        # These offsets are constant when each request produces one logit row.
+        self.single_token_cu_num_logits = torch.arange(
+            max_num_reqs + 1, dtype=torch.int32, device=device
+        )
+        self.single_token_local_pos = torch.zeros(
+            max_num_reqs, dtype=torch.int32, device=device
+        )
 
 
 @dataclass

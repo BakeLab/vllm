@@ -400,10 +400,10 @@ def fused_moe_kernel(
     # `a_ptrs` is a block of [BLOCK_SIZE_M, BLOCK_SIZE_K] pointers
     # `b_ptrs` is a block of [BLOCK_SIZE_K, BLOCK_SIZE_N] pointers
     offs = tl.arange(0, BLOCK_SIZE_M).to(tl.int64)
-    num_tokens_post_padded = tl.load(num_tokens_post_padded_ptr)
-    if pid_m * BLOCK_SIZE_M >= num_tokens_post_padded:
-        return
     if not naive_block_assignment:
+        num_tokens_post_padded = tl.load(num_tokens_post_padded_ptr)
+        if pid_m * BLOCK_SIZE_M >= num_tokens_post_padded:
+            return
         offs_token_id = pid_m * BLOCK_SIZE_M + offs
         offs_token = tl.load(sorted_token_ids_ptr + offs_token_id)
     else:
@@ -767,7 +767,7 @@ def invoke_fused_moe_triton_kernel(
     topk_weights: torch.Tensor | None,
     sorted_token_ids: torch.Tensor | None,
     expert_ids: torch.Tensor,
-    num_tokens_post_padded: torch.Tensor,
+    num_tokens_post_padded: torch.Tensor | None,
     mul_routed_weight: bool,
     top_k: int,
     config: dict[str, Any],
@@ -918,7 +918,7 @@ def dispatch_fused_moe_kernel(
     topk_weights: torch.Tensor | None,
     sorted_token_ids: torch.Tensor | None,
     expert_ids: torch.Tensor,
-    num_tokens_post_padded: torch.Tensor,
+    num_tokens_post_padded: torch.Tensor | None,
     mul_routed_weight: bool,
     top_k: int,
     config: dict[str, Any],
@@ -942,6 +942,7 @@ def dispatch_fused_moe_kernel(
         block_shape is not None and block_shape[1] > 0
     ):
         assert B_bias is None
+        assert num_tokens_post_padded is not None
 
         use_moe_wna16_cuda = should_moe_wna16_use_cuda(
             num_valid_tokens=num_tokens,
@@ -1550,7 +1551,7 @@ def _prepare_expert_assignment(
     use_int4_w4a16: bool = False,
     block_shape: list[int] | None = None,
     ignore_invalid_experts: bool = False,
-) -> tuple[torch.Tensor | None, torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor | None, torch.Tensor, torch.Tensor | None]:
     """Prepare expert assignments for the aligned and low-latency Triton paths."""
     # SPARSITY_FACTOR is a heuristic margin ensuring tokens_in_chunk * top_k
     # activates only a small fraction of total experts
@@ -1570,12 +1571,7 @@ def _prepare_expert_assignment(
         return (
             None,
             topk_ids.view(-1),
-            torch.full(
-                (1,),
-                topk_ids.numel() * config["BLOCK_SIZE_M"],
-                dtype=torch.int32,
-                device=topk_ids.device,
-            ),
+            None,
         )
 
     return moe_align_block_size(
