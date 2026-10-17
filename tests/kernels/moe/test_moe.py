@@ -139,6 +139,71 @@ def test_single_token_moe_projection(
     torch.testing.assert_close(output.float(), reference, atol=0.002, rtol=0.02)
 
 
+@pytest.mark.parametrize("m", [1, 2])
+@pytest.mark.parametrize("n,k,topk", [(129, 769, 2), (384, 2048, 8)])
+@pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float16])
+@pytest.mark.parametrize("padding", [False, True])
+@pytest.mark.parametrize("missing_expert", [False, True])
+def test_single_token_moe_projection_silu(
+    m, n, k, topk, dtype, padding, missing_expert, monkeypatch
+):
+    """Match separate projection/SiLU rounding, masked experts and fallbacks."""
+    if not current_platform.is_rocm():
+        pytest.skip("RDNA4 single-token projection")
+    from vllm.platforms.rocm import on_rdna4
+
+    if not on_rdna4():
+        pytest.skip("RDNA4 single-token projection")
+    monkeypatch.setenv("VLLM_ROCM_USE_MOE_GEMV", "1")
+    monkeypatch.setenv("VLLM_BATCH_INVARIANT", "0")
+    set_random_seed(2217)
+    e = 16
+    a = torch.randn(m, k, device=DEVICE_TYPE, dtype=dtype) / 10
+    weights = torch.randn(e, 2 * n, k, device=DEVICE_TYPE, dtype=dtype) / 10
+    if padding:
+        weights = F.pad(weights, (0, 16))[..., :k]
+    ids = torch.stack(
+        [torch.randperm(e, device=DEVICE_TYPE)[:topk] for _ in range(m)]
+    ).int()
+    if missing_expert:
+        ids[:, -1] = -1
+    raw = torch.empty(m, topk, 2 * n, device=DEVICE_TYPE, dtype=dtype)
+    expected = torch.empty(m * topk, n, device=DEVICE_TYPE, dtype=dtype)
+    actual = torch.empty_like(expected)
+    params = dict(
+        A=a,
+        B=weights,
+        C=raw,
+        A_scale=None,
+        B_scale=None,
+        topk_weights=None,
+        sorted_token_ids=None,
+        expert_ids=ids.view(-1),
+        num_tokens_post_padded=None,
+        mul_routed_weight=False,
+        top_k=topk,
+        config=fused_moe_module.get_default_config(m, e, n, k, topk, None),
+        compute_type=tl.bfloat16 if dtype == torch.bfloat16 else tl.float16,
+        use_fp8_w8a8=False,
+        use_int8_w8a8=False,
+        use_int8_w8a16=False,
+        use_int4_w4a16=False,
+        per_channel_quant=False,
+    )
+    fused_moe_module.invoke_fused_moe_triton_kernel(**params)
+    torch.ops._C.silu_and_mul(expected, raw.view(-1, 2 * n))
+    fused = fused_moe_module.invoke_fused_moe_triton_kernel(
+        **params, silu_output=actual
+    )
+    assert bool(fused) == (m == 1 and not padding)
+    if not fused:
+        torch.ops._C.silu_and_mul(actual, raw.view(-1, 2 * n))
+    torch.testing.assert_close(actual, expected, atol=1e-6, rtol=0.01)
+    assert (actual.float() - expected.float()).norm() / expected.float().norm() < 1e-4
+    if missing_expert:
+        assert torch.count_nonzero(actual.view(m, topk, n)[:, -1]).item() == 0
+
+
 def test_triton_moe_launcher_passes_scalar_scale_as_pointer(monkeypatch) -> None:
     captured: dict[str, torch.Tensor] = {}
 

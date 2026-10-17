@@ -426,28 +426,41 @@ class TritonExperts(LoRAExpertsMixin, mk.FusedMoEExpertsModular):
             else (a1q_scale if a1q_scale is not None else self.a1_scale)
         )
 
+        fused_projection = False
+        silu_output = (
+            intermediate_cache2
+            if activation == MoEActivation.SILU
+            and self.activation_config.clamp_limit is None
+            and lora_context is None
+            else None
+        )
+
         def _base_w13_fn():
-            invoke_fused_moe_triton_kernel(
-                hidden_states,
-                w1,
-                intermediate_cache1,
-                input_scale,
-                self.w1_scale,
-                None,  # topk_weights
-                sorted_token_ids,
-                expert_ids,
-                num_tokens_post_padded,
-                False,  # mul_routed_weights
-                top_k_num,
-                config,
-                compute_type=compute_type,
-                use_fp8_w8a8=self.quant_config.use_fp8_w8a8,
-                use_int8_w8a8=self.quant_config.use_int8_w8a8,
-                use_int8_w8a16=self.quant_config.use_int8_w8a16,
-                use_int4_w4a16=self.quant_config.use_int4_w4a16,
-                per_channel_quant=self.per_act_token_quant,
-                block_shape=self.block_shape,
-                B_bias=self.w1_bias,
+            nonlocal fused_projection
+            fused_projection = bool(
+                invoke_fused_moe_triton_kernel(
+                    hidden_states,
+                    w1,
+                    intermediate_cache1,
+                    input_scale,
+                    self.w1_scale,
+                    None,  # topk_weights
+                    sorted_token_ids,
+                    expert_ids,
+                    num_tokens_post_padded,
+                    False,  # mul_routed_weights
+                    top_k_num,
+                    config,
+                    compute_type=compute_type,
+                    use_fp8_w8a8=self.quant_config.use_fp8_w8a8,
+                    use_int8_w8a8=self.quant_config.use_int8_w8a8,
+                    use_int8_w8a16=self.quant_config.use_int8_w8a16,
+                    use_int4_w4a16=self.quant_config.use_int4_w4a16,
+                    per_channel_quant=self.per_act_token_quant,
+                    block_shape=self.block_shape,
+                    B_bias=self.w1_bias,
+                    silu_output=silu_output,
+                )
             )
 
         if lora_context is not None and lora_context.aux_stream is not None:
@@ -529,9 +542,10 @@ class TritonExperts(LoRAExpertsMixin, mk.FusedMoEExpertsModular):
                 quant_dtype=current_platform.fp8_dtype(),
             )
         else:
-            self.activation(
-                activation, intermediate_cache2, intermediate_cache1.view(-1, N)
-            )
+            if not fused_projection:
+                self.activation(
+                    activation, intermediate_cache2, intermediate_cache1.view(-1, N)
+                )
 
             qintermediate_cache2, a2q_scale = moe_kernel_quantize_input(
                 intermediate_cache2,
