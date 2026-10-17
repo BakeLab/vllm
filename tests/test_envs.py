@@ -610,3 +610,24 @@ class TestVllmMaxNSequences:
 
         with pytest.raises(VLLMValidationError, match="n must be at most 128"):
             SamplingParams(n=129)
+
+
+@pytest.mark.parametrize("backend", ["auto", "spin", "futex"])
+def test_shm_wait_policy_is_not_a_compile_factor(monkeypatch, backend):
+    monkeypatch.setenv("VLLM_SHM_WAIT_BACKEND", backend)
+    monkeypatch.setenv("VLLM_SHM_FUTEX_SPIN_US", "0")
+    assert backend == envs.VLLM_SHM_WAIT_BACKEND
+    assert envs.VLLM_SHM_FUTEX_SPIN_US == 0
+    factors = envs.compile_factors()
+    assert "VLLM_SHM_WAIT_BACKEND" not in factors
+    assert "VLLM_SHM_FUTEX_SPIN_US" not in factors
+
+
+def test_shm_wait_defaults_and_invalid_budget(monkeypatch):
+    monkeypatch.delenv("VLLM_SHM_WAIT_BACKEND", raising=False)
+    monkeypatch.delenv("VLLM_SHM_FUTEX_SPIN_US", raising=False)
+    assert envs.VLLM_SHM_WAIT_BACKEND == "auto"
+    assert envs.VLLM_SHM_FUTEX_SPIN_US == 50
+    monkeypatch.setenv("VLLM_SHM_FUTEX_SPIN_US", "-1")
+    with pytest.raises(ValueError, match="non-negative"):
+        _ = envs.VLLM_SHM_FUTEX_SPIN_US

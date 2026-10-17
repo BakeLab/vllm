@@ -3,14 +3,16 @@
 import copyreg
 import functools
 import io
+import mmap
 import os
 import pickle
+import platform
 import shutil
 import sys
 import threading
 import time
 import weakref
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
 from multiprocessing import shared_memory
 from pickle import PickleBuffer
@@ -114,6 +116,42 @@ LONG_WAIT_TIME_LOG_MSG = (
 )
 
 
+@functools.cache
+def _native_wait_extension():
+    backend = envs.VLLM_SHM_WAIT_BACKEND
+    if backend == "spin":
+        return None
+    supported_platform = (
+        sys.platform == "linux"
+        and sys.version_info >= (3, 14)
+        and int(platform.release().split(".", 1)[0]) >= 7
+    )
+    if supported_platform:
+        try:
+            import vllm.spinloop as extension
+
+            if extension.native_supported():
+                return extension
+        except (ImportError, AttributeError):
+            logger.warning_once(
+                "Native SHM wait extension is unavailable; using spin waits"
+            )
+    if backend == "futex":
+        raise RuntimeError(
+            "Native SHM waits require Linux 7+, Python 3.14+ and futex_waitv support"
+        )
+    return None
+
+
+def _close_native_wait(notification, cancellation, owner):
+    if cancellation is not None:
+        cancellation.close()
+    notification.close()
+    if owner:
+        with suppress(FileNotFoundError):
+            notification.unlink()
+
+
 class SpinCondition:
     """This class implements an interface similar to a threading.Condition. It
     allows a writer to notify readers to wake up and read from the shared memory
@@ -136,8 +174,27 @@ class SpinCondition:
         context: zmq.Context,
         notify_address: str,
         busy_loop_s: float = 1,
+        native_notify_name: str | None = None,
     ):
         self.is_reader = is_reader
+        self.native_notify_name = None
+        self._native_notification = None
+        self._native_cancellation = None
+        self._native_extension = _native_wait_extension()
+        if self._native_extension is not None and (not is_reader or native_notify_name):
+            notification = shared_memory.SharedMemory(
+                name=native_notify_name,
+                create=not is_reader,
+                size=4 if not is_reader else 0,
+                track=not is_reader,
+            )
+            cancellation = mmap.mmap(-1, 4) if is_reader else None
+            self._native_notification = notification
+            self._native_cancellation = cancellation
+            self.native_notify_name = notification.name
+            weakref.finalize(
+                self, _close_native_wait, notification, cancellation, not is_reader
+            )
 
         if is_reader:
             # Time of last shm buffer read
@@ -180,6 +237,23 @@ class SpinCondition:
             self.write_cancel_socket = None
             self.poller = None
 
+    @property
+    def uses_native_wait(self) -> bool:
+        return self._native_notification is not None and self.busy_loop_s == 1
+
+    def wait_for_read(self, metadata, read_flag_offset, timeout_ms):
+        assert self._native_notification is not None
+        assert self._native_cancellation is not None
+        self._native_extension.native_wait(
+            self._native_notification.buf,
+            self._native_cancellation,
+            metadata,
+            0,
+            read_flag_offset,
+            -1 if timeout_ms is None else int(timeout_ms),
+            envs.VLLM_SHM_FUTEX_SPIN_US,
+        )
+
     def record_read(self):
         self.last_read = time.monotonic()
 
@@ -187,6 +261,8 @@ class SpinCondition:
         # Sends cancellation ping that will cause the reader to wake up.
         # This is done from a monitor thread in the same process as the reader.
         if self.is_reader:
+            if self._native_cancellation is not None:
+                self._native_extension.native_cancel(self._native_cancellation)
             logger.debug("Canceling waiting reads on SHM Buffer")
             self.write_cancel_socket.send(b"\x00")
 
@@ -220,6 +296,8 @@ class SpinCondition:
     def notify(self):
         """Notifies all readers to wake up"""
         assert not self.is_reader, "Only writers can notify"
+        if self._native_notification is not None:
+            self._native_extension.native_publish(self._native_notification.buf)
         self.local_notify_socket.send(b"\x00")
 
 
@@ -468,6 +546,7 @@ class Handle:
     buffer_handle: tuple[int, int, int, str] | None = None
     local_subscribe_addr: str | None = None
     local_notify_addr: str | None = None
+    native_notify_name: str | None = None
     remote_subscribe_addr: str | None = None
     remote_addr_ipv6: bool = False
     tensor_arena_handle: tuple[int, int, int, str] | None = None
@@ -576,6 +655,11 @@ class MessageQueue:
             buffer_handle=self.buffer.handle() if self.buffer is not None else None,
             local_subscribe_addr=local_subscribe_addr,
             local_notify_addr=local_notify_addr,
+            native_notify_name=(
+                self._spin_condition.native_notify_name
+                if self._spin_condition is not None
+                else None
+            ),
             remote_subscribe_addr=remote_subscribe_addr,
             remote_addr_ipv6=remote_addr_ipv6,
             tensor_arena_handle=(
@@ -648,7 +732,10 @@ class MessageQueue:
             self.remote_socket = None
             assert isinstance(handle.local_notify_addr, str)
             self._spin_condition = SpinCondition(
-                is_reader=True, context=context, notify_address=handle.local_notify_addr
+                is_reader=True,
+                context=context,
+                notify_address=handle.local_notify_addr,
+                native_notify_name=getattr(handle, "native_notify_name", None),
             )
         else:
             self.buffer = None  # type: ignore
@@ -844,7 +931,11 @@ class MessageQueue:
                     written_flag = metadata_buffer[0]
                     return not (not written_flag or read_flag)
 
-                if SPINLOOP_EXT_ENABLED and not check():
+                if (
+                    SPINLOOP_EXT_ENABLED
+                    and not self._spin_condition.uses_native_wait
+                    and not check()
+                ):
                     spinloop(
                         metadata_buffer[0 : self.local_reader_rank + 1],
                         check,
@@ -859,7 +950,14 @@ class MessageQueue:
                     # for readers, `self.current_idx` is the next block to read
                     # if this block is not ready,
                     # we need to wait until it is written
-                    self._spin_condition.wait(timeout_ms=read_timeout.timeout_ms())
+                    if self._spin_condition.uses_native_wait:
+                        self._spin_condition.wait_for_read(
+                            metadata_buffer,
+                            self.local_reader_rank + 1,
+                            read_timeout.timeout_ms(),
+                        )
+                    else:
+                        self._spin_condition.wait(timeout_ms=read_timeout.timeout_ms())
 
                     if self.shutting_down:
                         raise RuntimeError("cancelled")

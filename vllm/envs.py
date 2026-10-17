@@ -18,6 +18,8 @@ if TYPE_CHECKING:
     VLLM_USE_MODELSCOPE: bool = False
     VLLM_USE_FASTOKENS: bool = False
     VLLM_RINGBUFFER_WARNING_INTERVAL: int = 60
+    VLLM_SHM_WAIT_BACKEND: Literal["auto", "spin", "futex"] = "auto"
+    VLLM_SHM_FUTEX_SPIN_US: int = 50
     VLLM_NCCL_SO_PATH: str | None = None
     LD_LIBRARY_PATH: str | None = None
     VLLM_ROCM_SLEEP_MEM_CHUNK_SIZE: int = 256
@@ -595,6 +597,13 @@ def _resolve_rust_cli_path() -> str | None:
             "Build with setuptools-rust or set the path explicitly."
         )
     return raw
+
+
+def _shm_futex_spin_us() -> int:
+    value = int(os.getenv("VLLM_SHM_FUTEX_SPIN_US", "50"))
+    if value < 0:
+        raise ValueError("VLLM_SHM_FUTEX_SPIN_US must be non-negative")
+    return value
 
 
 environment_variables: dict[str, Callable[[], Any]] = {
@@ -2218,6 +2227,11 @@ environment_variables: dict[str, Callable[[], Any]] = {
     ),
     # If set to 1, use Python spinloop extension to poll in a more efficient
     # way when using the mp backend.
+    # Runtime IPC waiting policy; independent of compiled model graphs.
+    "VLLM_SHM_WAIT_BACKEND": env_with_choices(
+        "VLLM_SHM_WAIT_BACKEND", "auto", ["auto", "spin", "futex"]
+    ),
+    "VLLM_SHM_FUTEX_SPIN_US": _shm_futex_spin_us,
     "VLLM_USE_SPINLOOP_EXT": lambda: bool(int(os.getenv("VLLM_USE_SPINLOOP_EXT", "0"))),
     # Comma-separated GPU_BDF=NIC_BDF pairs for RDMA NIC selection.
     # Must be set together with VLLM_NIC_SELECTION_VARS.
@@ -2316,6 +2330,8 @@ def compile_factors() -> dict[str, object]:
         "VLLM_RPC_BASE_PATH",
         "VLLM_USE_MODELSCOPE",
         "VLLM_RINGBUFFER_WARNING_INTERVAL",
+        "VLLM_SHM_WAIT_BACKEND",
+        "VLLM_SHM_FUTEX_SPIN_US",
         "VLLM_DEBUG_DUMP_PATH",
         "VLLM_PORT",
         "VLLM_CACHE_ROOT",
