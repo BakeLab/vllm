@@ -189,7 +189,20 @@ class SymmMemCommunicator:
             return None
         if out is None:
             out = torch.empty_like(inp)
-        self.buffer[: inp.numel()].copy_(inp.view(-1))
+        symm_buffer = self.buffer[: inp.numel()]
+        if current_platform.is_rocm():
+            symm_buffer.copy_(inp.view(-1))
+            flat_out = (
+                out.view(-1) if out.is_contiguous() else torch.empty_like(symm_buffer)
+            )
+            torch.ops.symm_mem.one_shot_all_reduce_out(
+                symm_buffer, "sum", self.group.group_name, flat_out
+            )
+            if flat_out.data_ptr() != out.data_ptr():
+                out.copy_(flat_out.view(out.shape))
+            return out
+
+        symm_buffer.copy_(inp.view(-1))
 
         # Determine which algorithm to use
         use_multimem = False
@@ -206,11 +219,11 @@ class SymmMemCommunicator:
 
         if use_multimem:
             torch.ops.symm_mem.multimem_all_reduce_(
-                self.buffer[: inp.numel()], "sum", self.group.group_name
+                symm_buffer, "sum", self.group.group_name
             )
         else:
             torch.ops.symm_mem.two_shot_all_reduce_(
-                self.buffer[: inp.numel()], "sum", self.group.group_name
+                symm_buffer, "sum", self.group.group_name
             )
-        out.copy_(self.buffer[: inp.numel()].view(out.shape))
+        out.copy_(symm_buffer.view(out.shape))
         return out
