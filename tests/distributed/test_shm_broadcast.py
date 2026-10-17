@@ -317,8 +317,14 @@ def worker_fn_test_idle_to_busy():
     print(f"torch distributed passed the test! Rank {rank}")
 
 
-def test_message_queue_idle_wake():
-    distributed_run(worker_fn_test_idle_to_busy, 4)
+def test_message_queue_idle_wake(monkeypatch):
+    # Exercise the legacy idle/busy transitions and their wait call counts.
+    monkeypatch.setenv("VLLM_SHM_WAIT_BACKEND", "spin")
+    shm_broadcast._native_wait_extension.cache_clear()
+    try:
+        distributed_run(worker_fn_test_idle_to_busy, 4)
+    finally:
+        shm_broadcast._native_wait_extension.cache_clear()
 
 
 @worker_fn_wrapper
@@ -587,6 +593,156 @@ def test_reader_timeout_caps_indefinite_waits(should_warn):
             timeout=None, should_warn=should_warn
         )
         assert timeout.timeout_ms() == 7
+
+
+def test_native_notification_owner_crash_is_cleaned_up(monkeypatch):
+    import subprocess
+    import sys
+    from multiprocessing import shared_memory
+
+    if shm_broadcast._native_wait_extension() is None:
+        pytest.skip("native SHM waits unavailable")
+    monkeypatch.setenv("VLLM_SHM_WAIT_BACKEND", "futex")
+    # A separate interpreter gives the owner its own resource tracker. os._exit
+    # bypasses weakref finalizers, exercising cleanup after abnormal termination.
+    script = """
+import os
+import zmq
+from vllm.distributed.device_communicators.shm_broadcast import SpinCondition
+writer = SpinCondition(False, zmq.Context(), 'inproc://owner-cleanup')
+print('native-notification:' + writer.native_notify_name, flush=True)
+os._exit(0)
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=30,
+    )
+    name = next(
+        line.removeprefix("native-notification:")
+        for line in result.stdout.splitlines()
+        if line.startswith("native-notification:")
+    )
+    with pytest.raises(FileNotFoundError):
+        shared_memory.SharedMemory(name=name, track=False)
+
+
+def test_native_wait_ready_timeout_and_thread_cancel():
+    import mmap
+
+    extension = pytest.importorskip("vllm.spinloop")
+    if not hasattr(extension, "native_supported") or not extension.native_supported():
+        pytest.skip("native futex_waitv unavailable")
+    with mmap.mmap(-1, 4) as sequence, mmap.mmap(-1, 4) as cancellation:
+        metadata = bytearray([1, 0])
+        assert (
+            extension.native_wait(sequence, cancellation, metadata, 0, 1, 20, 50) == 0
+        )
+        metadata[:] = bytes([0, 1])
+        assert extension.native_wait(sequence, cancellation, metadata, 0, 1, 5, 0) == 2
+        with pytest.raises(ValueError):
+            extension.native_wait(sequence, cancellation, metadata, 0, 2, 5, 0)
+
+        def cancel_waiter():
+            time.sleep(0.01)
+            extension.native_cancel(cancellation)
+
+        thread = threading.Thread(target=cancel_waiter)
+        thread.start()
+        try:
+            assert (
+                extension.native_wait(sequence, cancellation, metadata, 0, 1, 1000, 0)
+                == 1
+            )
+        finally:
+            thread.join(timeout=2)
+        assert not thread.is_alive()
+
+
+def _native_queue_reader(handle, control):
+    import ctypes
+
+    reader = MessageQueue.create_from_handle(handle, rank=0)
+    assert reader._spin_condition.uses_native_wait
+    notification = reader._spin_condition._native_notification
+    control.send(ctypes.addressof(ctypes.c_char.from_buffer(notification.buf)))
+    reader.wait_until_ready()
+    shm_broadcast.SPINLOOP_EXT_ENABLED = True
+    shm_broadcast.spinloop = mock.Mock(
+        side_effect=AssertionError("Native readers must skip callback busy polling")
+    )
+    for sequence in range(256):
+        assert reader.dequeue(timeout=5) == sequence
+    control.send("done")
+    reader.shutdown()
+
+
+def test_native_queue_cross_process_bursts_and_prepublished_data(monkeypatch):
+    import ctypes
+
+    monkeypatch.setenv("VLLM_SHM_WAIT_BACKEND", "futex")
+    shm_broadcast._native_wait_extension.cache_clear()
+    try:
+        extension = shm_broadcast._native_wait_extension()
+    except RuntimeError:
+        pytest.skip("native queue waits require Linux 7 and Python 3.14")
+    assert extension is not None
+    writer = MessageQueue(1, 1, max_chunk_bytes=1024, max_chunks=8)
+    context = mp.get_context("spawn")
+    parent, child = context.Pipe()
+    worker = context.Process(
+        target=_native_queue_reader, args=(writer.export_handle(), child)
+    )
+    try:
+        # Publish before the child attaches to exercise the metadata-first path.
+        writer.enqueue(0)
+        worker.start()
+        writer.wait_until_ready()
+        assert parent.poll(10)
+        child_address = parent.recv()
+        notification = writer._spin_condition._native_notification
+        assert child_address != ctypes.addressof(
+            ctypes.c_char.from_buffer(notification.buf)
+        )
+        for sequence in range(1, 256):
+            writer.enqueue(sequence, timeout=5)
+            if sequence % 17 == 0:
+                time.sleep(0.0001)
+        assert parent.poll(10)
+        assert parent.recv() == "done"
+        worker.join(timeout=10)
+        assert worker.exitcode == 0
+    finally:
+        if worker.pid is not None and worker.is_alive():
+            worker.terminate()
+            worker.join(timeout=5)
+        parent.close()
+        child.close()
+        writer.shutdown()
+        shm_broadcast._native_wait_extension.cache_clear()
+
+
+def test_native_wait_old_handle_uses_socket_fallback(monkeypatch):
+    monkeypatch.setenv("VLLM_SHM_WAIT_BACKEND", "spin")
+    shm_broadcast._native_wait_extension.cache_clear()
+    writer = MessageQueue(1, 1, max_chunk_bytes=1024, max_chunks=1)
+    handle = writer.export_handle()
+    assert handle.native_notify_name is None
+    monkeypatch.setenv("VLLM_SHM_WAIT_BACKEND", "auto")
+    shm_broadcast._native_wait_extension.cache_clear()
+    reader = MessageQueue.create_from_handle(handle, 0)
+    try:
+        assert not reader._spin_condition.uses_native_wait
+        writer.wait_until_ready()
+        reader.wait_until_ready()
+        writer.enqueue(123)
+        assert reader.dequeue(timeout=1) == 123
+    finally:
+        writer.shutdown()
+        reader.shutdown()
+        shm_broadcast._native_wait_extension.cache_clear()
 
 
 def test_writer_retains_latest_notification_when_subscriber_is_backlogged():
