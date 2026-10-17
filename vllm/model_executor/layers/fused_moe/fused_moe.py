@@ -826,7 +826,9 @@ def invoke_fused_moe_triton_kernel(
 
     # A single-token first projection does not benefit from padded matrix rows.
     if (
-        _use_rdna4_moe_gemv()
+        envs.VLLM_ROCM_USE_MOE_GEMV
+        and not envs.VLLM_BATCH_INVARIANT
+        and _use_rdna4_moe_gemv()
         and A.size(0) == 1
         and top_k > 1
         and sorted_token_ids is None

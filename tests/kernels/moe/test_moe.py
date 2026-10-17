@@ -76,7 +76,10 @@ DEVICE_TYPE = current_platform.device_type
 @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float16])
 @pytest.mark.parametrize("padding", [False, True])
 @pytest.mark.parametrize("missing_expert", [False, True])
-def test_single_token_moe_projection(m, e, n, k, topk, dtype, padding, missing_expert):
+@pytest.mark.parametrize("mode", ["default", "disabled", "enabled", "batch_invariant"])
+def test_single_token_moe_projection(
+    m, e, n, k, topk, dtype, padding, missing_expert, mode, monkeypatch
+):
     """Check GEMV projection, tail masks and matrix-path fallbacks against FP32."""
     if not current_platform.is_rocm():
         pytest.skip("RDNA4 single-token projection")
@@ -84,6 +87,12 @@ def test_single_token_moe_projection(m, e, n, k, topk, dtype, padding, missing_e
 
     if not on_rdna4():
         pytest.skip("RDNA4 single-token projection")
+    monkeypatch.delenv("VLLM_ROCM_USE_MOE_GEMV", raising=False)
+    if mode != "default":
+        monkeypatch.setenv("VLLM_ROCM_USE_MOE_GEMV", "0" if mode == "disabled" else "1")
+    monkeypatch.setenv(
+        "VLLM_BATCH_INVARIANT", "1" if mode == "batch_invariant" else "0"
+    )
     set_random_seed(17)
     a = torch.randn(m, k, device=DEVICE_TYPE, dtype=dtype) / 10
     weights = torch.randn(e, 2 * n, k, device=DEVICE_TYPE, dtype=dtype) / 10
@@ -96,26 +105,35 @@ def test_single_token_moe_projection(m, e, n, k, topk, dtype, padding, missing_e
         ids[:, -1] = -1
     output = torch.empty(m, topk, 2 * n, device=DEVICE_TYPE, dtype=dtype)
     config = fused_moe_module.get_default_config(m, e, n, k, topk, None)
-    fused_moe_module.invoke_fused_moe_triton_kernel(
-        a,
-        weights,
-        output,
-        None,
-        None,
-        None,
-        None,
-        ids.view(-1),
-        None,
-        False,
-        topk,
-        config,
-        compute_type=tl.bfloat16 if dtype == torch.bfloat16 else tl.float16,
-        use_fp8_w8a8=False,
-        use_int8_w8a8=False,
-        use_int8_w8a16=False,
-        use_int4_w4a16=False,
-        per_channel_quant=False,
-    )
+
+    def project():
+        fused_moe_module.invoke_fused_moe_triton_kernel(
+            a,
+            weights,
+            output,
+            None,
+            None,
+            None,
+            None,
+            ids.view(-1),
+            None,
+            False,
+            topk,
+            config,
+            compute_type=tl.bfloat16 if dtype == torch.bfloat16 else tl.float16,
+            use_fp8_w8a8=False,
+            use_int8_w8a8=False,
+            use_int8_w8a16=False,
+            use_int4_w4a16=False,
+            per_channel_quant=False,
+        )
+
+    project()
+    if mode in ("disabled", "batch_invariant"):
+        actual = output.clone()
+        monkeypatch.setattr(fused_moe_module, "_use_rdna4_moe_gemv", lambda: False)
+        project()
+        torch.testing.assert_close(actual, output, atol=0, rtol=0)
     reference = (weights[ids.long()].float() * a.float()[:, None, None, :]).sum(-1)
     reference.masked_fill_(ids[:, :, None] == -1, 0)
     torch.testing.assert_close(output.float(), reference, atol=0.002, rtol=0.02)
