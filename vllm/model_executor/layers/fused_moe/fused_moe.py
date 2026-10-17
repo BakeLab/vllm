@@ -60,25 +60,36 @@ def fused_moe_gemv_kernel(
     K: tl.constexpr,
     BLOCK_SIZE_N: tl.constexpr,
     BLOCK_SIZE_K: tl.constexpr,
+    FUSE_SILU: tl.constexpr = False,
 ):
+    output_n: tl.constexpr = N // 2 if FUSE_SILU else N
     expert_slot = tl.program_id(0)
     expert = tl.load(expert_ids_ptr + expert_slot).to(tl.int64)
     offs_n = tl.program_id(1) * BLOCK_SIZE_N + tl.arange(0, BLOCK_SIZE_N)
     if expert == -1:
-        tl.store(c_ptr + expert_slot * N + offs_n, 0, offs_n < N)
+        tl.store(c_ptr + expert_slot * output_n + offs_n, 0, offs_n < output_n)
         return
     offs_k = tl.arange(0, BLOCK_SIZE_K)
     accumulator = tl.full((BLOCK_SIZE_N,), 0, tl.float32)
+    if FUSE_SILU:
+        up_accumulator = tl.full((BLOCK_SIZE_N,), 0, tl.float32)
     for block in range(tl.cdiv(K, BLOCK_SIZE_K)):
         k = block * BLOCK_SIZE_K + offs_k
         a = tl.load(a_ptr + k, k < K, other=0).to(tl.float32)
-        b = tl.load(
-            b_ptr + expert * N * K + offs_n[:, None] * K + k[None, :],
-            (offs_n[:, None] < N) & (k[None, :] < K),
-            other=0,
-        ).to(tl.float32)
+        offsets = expert * N * K + offs_n[:, None] * K + k[None, :]
+        mask = (offs_n[:, None] < output_n) & (k[None, :] < K)
+        b = tl.load(b_ptr + offsets, mask, other=0).to(tl.float32)
         accumulator += tl.sum(b * a[None, :], axis=1)
-    tl.store(c_ptr + expert_slot * N + offs_n, accumulator, offs_n < N)
+        if FUSE_SILU:
+            up = tl.load(b_ptr + offsets + output_n * K, mask, other=0).to(tl.float32)
+            up_accumulator += tl.sum(up * a[None, :], axis=1)
+    if FUSE_SILU:
+        # Match the projection and activation rounding of the separate kernels.
+        gate = accumulator.to(c_ptr.dtype.element_ty).to(tl.float32)
+        up = up_accumulator.to(c_ptr.dtype.element_ty).to(tl.float32)
+        activated = (gate / (1 + tl.exp(-gate))).to(c_ptr.dtype.element_ty)
+        accumulator = activated.to(tl.float32) * up
+    tl.store(c_ptr + expert_slot * output_n + offs_n, accumulator, offs_n < output_n)
 
 
 @triton.jit
@@ -819,7 +830,9 @@ def invoke_fused_moe_triton_kernel(
     per_channel_quant: bool,
     block_shape: list[int] | None = None,
     B_bias: torch.Tensor | None = None,
+    silu_output: torch.Tensor | None = None,
 ):
+    """Write C, or return True when SiLU writes directly to silu_output."""
     assert topk_weights is not None or not mul_routed_weight
     assert topk_weights is None or topk_weights.stride(1) == 1
     assert sorted_token_ids is None or sorted_token_ids.stride(0) == 1
@@ -846,10 +859,28 @@ def invoke_fused_moe_triton_kernel(
         and B.is_contiguous()
         and C.is_contiguous()
     ):
-        fused_moe_gemv_kernel[(top_k, triton.cdiv(B.size(1), 8))](
-            A, B, C, expert_ids, B.size(1), B.size(2), 8, 256, num_warps=4
+        fuse_silu = (
+            silu_output is not None
+            and B.size(1) % 2 == 0
+            and silu_output.shape == (top_k, B.size(1) // 2)
+            and silu_output.dtype == A.dtype
+            and silu_output.is_contiguous()
         )
-        return
+        block_n = 4 if fuse_silu else 8
+        output_n = B.size(1) // 2 if fuse_silu else B.size(1)
+        fused_moe_gemv_kernel[(top_k, triton.cdiv(output_n, block_n))](
+            A,
+            B,
+            silu_output if fuse_silu else C,
+            expert_ids,
+            B.size(1),
+            B.size(2),
+            block_n,
+            256,
+            FUSE_SILU=fuse_silu,
+            num_warps=4,
+        )
+        return fuse_silu
 
     if use_fp8_w8a8:
         SWAP_AB = enable_swap_ab(config["BLOCK_SIZE_M"], config["BLOCK_SIZE_N"])
