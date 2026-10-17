@@ -170,10 +170,8 @@ class SpinCondition:
         else:
             # Writer side publishes write notifications
             self.local_notify_socket: zmq.Socket = context.socket(PUB)  # type: ignore
-            # Set high water mark to 1 - we don't need to send a massive amount of
-            # pings during busy operation. PUB sockets will silently drop subsequent
-            # messages after the high water mark is reached.
-            self.local_notify_socket.setsockopt(zmq.SNDHWM, 1)
+            # Keep the latest wakeup instead of dropping it behind an older ping.
+            self.local_notify_socket.setsockopt(zmq.CONFLATE, 1)
             self.local_notify_socket.bind(notify_address)
 
             self.last_read = 0
@@ -608,7 +606,7 @@ class MessageQueue:
         return self.handle
 
     @staticmethod
-    def create_from_handle(handle: Handle, rank) -> "MessageQueue":
+    def create_from_handle(handle: Handle, rank) -> MessageQueue:
         self = MessageQueue.__new__(MessageQueue)
         self.handle = handle
         self._is_writer = False
@@ -1012,7 +1010,7 @@ class MessageQueue:
         max_chunks,
         reader_rank: int = 0,
         blocking: bool = False,
-    ) -> tuple["MessageQueue", list[Handle]]:
+    ) -> tuple[MessageQueue, list[Handle]]:
         """Creates a MessageQueue for a process group with a single reader.
 
         This method is designed for scenarios where only one process (the reader)
@@ -1065,7 +1063,7 @@ class MessageQueue:
         writer_rank: int = 0,
         external_writer_handle=None,
         blocking: bool = True,
-    ) -> "MessageQueue":
+    ) -> MessageQueue:
         """Creates a MessageQueue for a distributed process group with one writer and
         multiple readers.
 

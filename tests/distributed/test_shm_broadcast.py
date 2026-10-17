@@ -589,6 +589,36 @@ def test_reader_timeout_caps_indefinite_waits(should_warn):
         assert timeout.timeout_ms() == 7
 
 
+def test_writer_retains_latest_notification_when_subscriber_is_backlogged():
+    import zmq
+
+    with zmq.Context() as context:
+        address = "inproc://backlogged-shm-notifications"
+        writer = shm_broadcast.SpinCondition(False, context, address)
+        subscriber = context.socket(zmq.SUB)
+        subscriber.setsockopt(zmq.RCVHWM, 1)
+        subscriber.setsockopt(zmq.SUBSCRIBE, b"")
+        subscriber.connect(address)
+        try:
+            writer.local_notify_socket.send(b"ready")
+            assert subscriber.poll(1000)
+            assert subscriber.recv() == b"ready"
+
+            # Fill a real pipe without consuming it, then stop publishing.
+            for sequence in range(1000):
+                writer.local_notify_socket.send(str(sequence).encode())
+
+            latest = b""
+            while subscriber.poll(1000):
+                latest = subscriber.recv()
+                if latest == b"999":
+                    break
+            assert latest == b"999", "The final wakeup must survive backpressure"
+        finally:
+            subscriber.close(linger=0)
+            writer.local_notify_socket.close(linger=0)
+
+
 def test_reader_rechecks_shm_after_idle_wait_timeout_without_notify():
     writer = MessageQueue(
         n_reader=1,
