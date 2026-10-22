@@ -4,7 +4,7 @@
 
 import ctypes
 import os
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 
 import torch
@@ -17,7 +17,10 @@ from vllm.model_executor.model_loader.direct_io import (
 
 
 def hipfile_weights_iterator(
-    files: list[str], local_expert_ids: set[int] | None = None
+    files: list[str],
+    local_expert_ids: set[int] | None = None,
+    *,
+    is_unused_weight: Callable[[str], bool] | None = None,
 ) -> Generator[tuple[str, torch.Tensor]]:
     """Read safetensors payloads into the current ROCm device through hipFile."""
     if local_expert_ids is not None:
@@ -51,5 +54,9 @@ def hipfile_weights_iterator(
 
     with Driver():
         yield from direct_weights_iterator(
-            files, backend="hipFile", mode=mode, open_reader=open_reader
+            files,
+            backend="hipFile",
+            mode=mode,
+            open_reader=open_reader,
+            is_unused_weight=is_unused_weight,
         )

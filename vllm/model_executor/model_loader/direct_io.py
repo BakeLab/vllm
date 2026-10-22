@@ -126,6 +126,7 @@ def direct_weights_iterator(
     mode: str,
     open_reader: Callable[[str], Any],
     coalesce_bytes: int | None = None,
+    is_unused_weight: Callable[[str], bool] | None = None,
 ) -> Generator[tuple[str, torch.Tensor]]:
     """Read tensor payloads with bounded device staging in compatibility mode.
 
@@ -148,6 +149,8 @@ def direct_weights_iterator(
         started = time.monotonic()
         with open_reader(path) as read:
             entries = iter_safetensors_entries(path)
+            if is_unused_weight is not None:
+                entries = (entry for entry in entries if not is_unused_weight(entry[0]))
             if coalesce_bytes:
                 groups = _iter_contiguous_groups(entries, coalesce_bytes)
             else:
@@ -187,7 +190,7 @@ def direct_weights_iterator(
                     yield name, tensor
                     del tensor
                 del raw
-            torch.cuda.synchronize()
+            torch.accelerator.synchronize()
         logger.info(
             "%s mode=%s shard=%s seconds=%.2f cumulative_bytes=%d",
             backend,

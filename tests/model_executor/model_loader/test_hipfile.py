@@ -47,7 +47,7 @@ def test_hipfile_reads_safetensors_payload_at_exact_offset(tmp_path, monkeypatch
         return allocated[-1]
 
     monkeypatch.setattr(direct_io, "_empty", cpu_empty)
-    monkeypatch.setattr(torch.cuda, "synchronize", lambda: None)
+    monkeypatch.setattr(torch.accelerator, "synchronize", lambda: None)
     monkeypatch.setattr(torch.version, "hip", "10.1")
     monkeypatch.setitem(
         sys.modules,

@@ -1118,6 +1118,7 @@ def safetensors_weights_iterator(
     safetensors_load_strategy: str | None = None,
     local_expert_ids: set[int] | None = None,
     *,
+    is_unused_weight: Callable[[str], bool] | None = None,
     safetensors_prefetch_num_threads: int = DEFAULT_SAFETENSORS_PREFETCH_NUM_THREADS,
     safetensors_prefetch_block_size: int = DEFAULT_SAFETENSORS_PREFETCH_BLOCK_SIZE,
 ) -> Generator[tuple[str, torch.Tensor]]:
@@ -1132,12 +1133,16 @@ def safetensors_weights_iterator(
     if envs.VLLM_HIPFILE_LOAD:
         from vllm.model_executor.model_loader.hipfile import hipfile_weights_iterator
 
-        yield from hipfile_weights_iterator(hf_weights_files, local_expert_ids)
+        yield from hipfile_weights_iterator(
+            hf_weights_files, local_expert_ids, is_unused_weight=is_unused_weight
+        )
         return
     if envs.VLLM_CUFILE_LOAD:
         from vllm.model_executor.model_loader.cufile import cufile_weights_iterator
 
-        yield from cufile_weights_iterator(hf_weights_files, local_expert_ids)
+        yield from cufile_weights_iterator(
+            hf_weights_files, local_expert_ids, is_unused_weight=is_unused_weight
+        )
         return
     loading_desc = "Loading safetensors checkpoint shards"
     if safetensors_load_strategy == "eager":

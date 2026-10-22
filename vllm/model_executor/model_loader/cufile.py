@@ -3,7 +3,7 @@
 """Opt-in safetensors loading through cuFile compatibility or PCI P2PDMA."""
 
 import os
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 
 import torch
@@ -16,7 +16,10 @@ from vllm.model_executor.model_loader.direct_io import (
 
 
 def cufile_weights_iterator(
-    files: list[str], local_expert_ids: set[int] | None = None
+    files: list[str],
+    local_expert_ids: set[int] | None = None,
+    *,
+    is_unused_weight: Callable[[str], bool] | None = None,
 ) -> Generator[tuple[str, torch.Tensor]]:
     """Read safetensors payloads into the current CUDA device through cuFile.
 
@@ -47,5 +50,9 @@ def cufile_weights_iterator(
             handle.close()
 
     yield from direct_weights_iterator(
-        files, backend="cuFile", mode=mode, open_reader=open_reader
+        files,
+        backend="cuFile",
+        mode=mode,
+        open_reader=open_reader,
+        is_unused_weight=is_unused_weight,
     )
