@@ -80,7 +80,7 @@ def test_direct_iterator_coalesces_compat_but_preserves_p2p_reads(
         "_empty",
         lambda size: torch.empty(size, dtype=torch.uint8),
     )
-    monkeypatch.setattr(torch.cuda, "synchronize", lambda: None)
+    monkeypatch.setattr(torch.accelerator, "synchronize", lambda: None)
     loaded = dict(
         direct_io.direct_weights_iterator(
             [str(path)], backend="cuFile", mode=mode, open_reader=open_reader
@@ -135,7 +135,7 @@ def test_large_cufile_tensor_bounds_compat_memory_and_reads_exact_tail(
     monkeypatch.setattr(gds, "GdsFile", File)
     monkeypatch.setattr(direct_io, "COMPAT_COALESCE_BYTES", limit)
     monkeypatch.setattr(direct_io, "_empty", device_empty)
-    monkeypatch.setattr(torch.cuda, "synchronize", lambda: None)
+    monkeypatch.setattr(torch.accelerator, "synchronize", lambda: None)
     monkeypatch.setenv("VLLM_CUFILE_MODE", mode)
     monkeypatch.setenv(
         "CUFILE_FORCE_COMPAT_MODE", "true" if mode == "compat" else "false"
@@ -158,3 +158,76 @@ def test_large_cufile_tensor_bounds_compat_memory_and_reads_exact_tail(
         assert allocated == [size]
         assert reads == [(payload_offset, size)]
     assert closed == [True]
+
+
+@pytest.mark.parametrize("mode", ["compat", "p2p"])
+def test_pp_filter_skips_payloads_before_device_reads(monkeypatch, tmp_path, mode):
+    from vllm.model_executor.model_loader.default_loader import DefaultModelLoader
+    from vllm.model_executor.models.utils import PPMissingLayer, WeightsMapper
+
+    model = torch.nn.Module()
+    model.layers = torch.nn.ModuleDict(
+        {"1": PPMissingLayer(), "10": torch.nn.Identity()}
+    )
+    model.hf_to_vllm_mapper = WeightsMapper(
+        orig_to_new_prefix={"checkpoint.": "", "mtp.": None}
+    )
+    model.is_unused_checkpoint_weight = lambda name: name == "unused.weight"
+    unused = DefaultModelLoader._get_unused_weight_filter(model)
+    values = {
+        name: torch.arange(4, dtype=torch.float32)
+        for name in (
+            "checkpoint.layers.1.weight",
+            "checkpoint.layers.10.weight",
+            "mtp.weight",
+            "unused.weight",
+        )
+    }
+    path = tmp_path / "mixed.safetensors"
+    save_file(values, path)
+    payload = path.read_bytes()
+    reads = []
+
+    @contextmanager
+    def open_reader(_):
+        def read(raw, offset, length):
+            reads.append((offset, length))
+            raw.copy_(
+                torch.frombuffer(
+                    bytearray(payload[offset : offset + length]), dtype=torch.uint8
+                )
+            )
+
+        yield read
+
+    monkeypatch.setattr(
+        direct_io, "_empty", lambda n: torch.empty(n, dtype=torch.uint8)
+    )
+    monkeypatch.setattr(torch.accelerator, "synchronize", lambda: None)
+    loaded = dict(
+        direct_io.direct_weights_iterator(
+            [str(path)],
+            backend="cuFile",
+            mode=mode,
+            open_reader=open_reader,
+            is_unused_weight=unused,
+        )
+    )
+    kept = "checkpoint.layers.10.weight"
+    assert list(loaded) == [kept]
+    torch.testing.assert_close(loaded[kept], values[kept])
+    entry = next(
+        e for e in direct_io.iter_safetensors_entries(str(path)) if e[0] == kept
+    )
+    assert reads == [(entry[3], entry[4])]
+    reads.clear()
+    assert not list(
+        direct_io.direct_weights_iterator(
+            [str(path)],
+            backend="cuFile",
+            mode=mode,
+            open_reader=open_reader,
+            is_unused_weight=lambda _: True,
+        )
+    )
+    assert reads == []
