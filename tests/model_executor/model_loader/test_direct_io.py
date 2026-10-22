@@ -392,3 +392,41 @@ def test_large_hf_weight_uses_device_buffer_or_bounded_fallback(
     else:
         assert attempts == ([size, 17] if budget == "allocation_race" else [17])
         assert loaded.data_ptr() != allocated[0].data_ptr()
+
+
+@pytest.mark.parametrize("failure", [None, "submit", "wait"])
+def test_async_chunks_drain_before_return_or_failure(monkeypatch, failure):
+    """Pending writes must finish before a destination can be reused."""
+    monkeypatch.setattr(torch.accelerator, "synchronize", lambda: None)
+    target = torch.zeros(16, dtype=torch.uint8)
+    active: list[Request] = []
+    peak = 0
+
+    class Request:
+        def __init__(self, raw, offset):
+            self.raw = raw
+            self.offset = offset
+
+        def wait(self):
+            active.remove(self)
+            if failure == "wait" and self.offset == 0:
+                raise RuntimeError("read failed")
+            self.raw.fill_(self.offset + 1)
+
+    def read(raw, offset, length):
+        nonlocal peak
+        if failure == "submit" and offset == 8:
+            raise RuntimeError("submit failed")
+        request = Request(raw, offset)
+        active.append(request)
+        peak = max(peak, len(active))
+        return request
+
+    if failure:
+        with pytest.raises(RuntimeError, match="failed"):
+            direct_io._read_into(read, target, 0, 4, max_inflight=2)
+    else:
+        direct_io._read_into(read, target, 0, 4, max_inflight=2)
+        assert target.tolist() == [1] * 4 + [5] * 4 + [9] * 4 + [13] * 4
+    assert peak == 2
+    assert not active
