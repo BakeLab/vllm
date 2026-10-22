@@ -11,6 +11,7 @@ import torch
 
 from vllm import envs
 from vllm.model_executor.model_loader.direct_io import (
+    WeightDestination,
     check_compat_env,
     direct_weights_iterator,
 )
@@ -21,6 +22,7 @@ def hipfile_weights_iterator(
     local_expert_ids: set[int] | None = None,
     *,
     is_unused_weight: Callable[[str], bool] | None = None,
+    get_destination: WeightDestination | None = None,
 ) -> Generator[tuple[str, torch.Tensor]]:
     """Read safetensors payloads into the current ROCm device through hipFile."""
     if local_expert_ids is not None:
@@ -59,4 +61,5 @@ def hipfile_weights_iterator(
             mode=mode,
             open_reader=open_reader,
             is_unused_weight=is_unused_weight,
+            get_destination=get_destination,
         )
