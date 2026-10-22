@@ -6,6 +6,7 @@ import ctypes
 import os
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
+from functools import partial
 
 import torch
 
@@ -14,6 +15,7 @@ from vllm.model_executor.model_loader.direct_io import (
     WeightDestination,
     check_compat_env,
     direct_weights_iterator,
+    open_gds_reader,
 )
 
 
@@ -31,6 +33,20 @@ def hipfile_weights_iterator(
         raise RuntimeError("hipFile loading requires a ROCm PyTorch build")
     mode = envs.VLLM_HIPFILE_MODE
     check_compat_env("HIPFILE", mode)
+
+    async_reads = envs.VLLM_GDS_ASYNC_READS
+    if async_reads:
+        flags = os.O_RDONLY | (os.O_DIRECT if mode == "p2p" else 0)
+        yield from direct_weights_iterator(
+            files,
+            backend="hipFile",
+            mode=mode,
+            open_reader=partial(open_gds_reader, flags=flags, async_reads=async_reads),
+            max_inflight=max(1, async_reads),
+            is_unused_weight=is_unused_weight,
+            get_destination=get_destination,
+        )
+        return
 
     try:
         from hipfile import Buffer, Driver, FileHandle

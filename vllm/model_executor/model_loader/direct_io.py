@@ -6,8 +6,10 @@ import json
 import math
 import os
 import time
+from collections import deque
 from collections.abc import Callable, Generator, Iterable
-from typing import Any
+from contextlib import contextmanager
+from typing import Any, Protocol
 
 import torch
 
@@ -35,8 +37,50 @@ SAFETENSORS_DTYPES = {
     "F8_E8M0": torch.float8_e8m0fnu,
 }
 
+
 # Reads `length` bytes at `file_offset` into the uint8 device tensor `raw`.
-Reader = Callable[[torch.Tensor, int, int], None]
+class PendingRead(Protocol):
+    def wait(self) -> None: ...
+
+
+Reader = Callable[[torch.Tensor, int, int], PendingRead | None]
+
+
+@contextmanager
+def open_gds_reader(path: str, flags: int, async_reads: int = 0):
+    from torch.cuda.gds import GdsFile
+
+    if async_reads < 0:
+        raise ValueError("VLLM_GDS_ASYNC_READS must be nonnegative")
+    if async_reads and not hasattr(GdsFile, "load_storage_async"):
+        raise RuntimeError("Async loading requires PyTorch GdsFile.load_storage_async")
+    streams = [torch.cuda.Stream() for _ in range(async_reads)]
+    handle = GdsFile(path, flags)
+    index = 0
+    try:
+
+        def read(raw: torch.Tensor, offset: int, length: int) -> PendingRead | None:
+            nonlocal index
+            start = raw.storage_offset()
+            storage = raw.untyped_storage()[start : start + length]
+            if not streams:
+                handle.load_storage(storage, offset=offset)
+                return None
+            stream = streams[index % len(streams)]
+            index += 1
+            stream.wait_stream(torch.cuda.current_stream())
+            return handle.load_storage_async(storage, offset=offset, stream=stream)
+
+        yield read
+    finally:
+        handle.close()
+
+
+def _wait_read(request: PendingRead | None) -> None:
+    if request is not None:
+        request.wait()
+
+
 TensorEntry = tuple[str, torch.dtype, list[int], int, int]
 WeightDestination = Callable[[str, torch.dtype, list[int]], torch.Tensor | None]
 # Compatibility modes accept arbitrary offsets; P2P keeps per-tensor I/O for
@@ -141,13 +185,35 @@ def _can_load_into(tensor: torch.Tensor) -> bool:
     )
 
 
-def _read_into(read: Reader, tensor: torch.Tensor, offset: int, limit: int) -> None:
+def _read_into(
+    read: Reader,
+    tensor: torch.Tensor,
+    offset: int,
+    limit: int,
+    max_inflight: int = 1,
+) -> None:
     raw = tensor.detach().view(-1).view(torch.uint8)
-    # Complete prior initialization/copies before external storage writes.
     torch.accelerator.synchronize()
-    for begin in range(0, raw.numel(), limit):
-        count = min(limit, raw.numel() - begin)
-        read(raw.narrow(0, begin, count), offset + begin, count)
+    pending: deque[PendingRead] = deque()
+    try:
+        for begin in range(0, raw.numel(), limit):
+            count = min(limit, raw.numel() - begin)
+            request = read(raw.narrow(0, begin, count), offset + begin, count)
+            if request is not None:
+                pending.append(request)
+                if len(pending) >= max_inflight:
+                    pending.popleft().wait()
+    finally:
+        # Drain every outstanding write even when submission/completion fails.
+        error = None
+        while pending:
+            try:
+                pending.popleft().wait()
+            except Exception as exc:
+                if error is None:
+                    error = exc
+        if error is not None:
+            raise error
     torch.accelerator.synchronize()
 
 
@@ -158,6 +224,7 @@ def direct_weights_iterator(
     mode: str,
     open_reader: Callable[[str], Any],
     coalesce_bytes: int | None = None,
+    max_inflight: int = 1,
     is_unused_weight: Callable[[str], bool] | None = None,
     get_destination: WeightDestination | None = None,
 ) -> Generator[tuple[str, torch.Tensor]]:
@@ -178,6 +245,8 @@ def direct_weights_iterator(
     permits. Otherwise bounded device reads assemble them on CPU, so TP slicing
     can still proceed without a full tensor's temporary VRAM.
     """
+    if max_inflight < 1:
+        raise ValueError("max_inflight must be positive")
     if coalesce_bytes is not None and coalesce_bytes < 0:
         raise ValueError("coalesce_bytes must be nonnegative")
     if coalesce_bytes is None:
@@ -213,14 +282,26 @@ def direct_weights_iterator(
                         if not _can_load_into(destination):
                             destination = None
                 if destination is not None:
-                    _read_into(read, destination, first_offset, compat_buffer_bytes)
+                    _read_into(
+                        read,
+                        destination,
+                        first_offset,
+                        compat_buffer_bytes,
+                        max_inflight,
+                    )
                     total += length
                     yield group[0][0], destination
                     continue
                 if mode == "compat" and length > compat_buffer_bytes:
                     device_raw = _try_device_buffer(length)
                     if device_raw is not None:
-                        _read_into(read, device_raw, first_offset, compat_buffer_bytes)
+                        _read_into(
+                            read,
+                            device_raw,
+                            first_offset,
+                            compat_buffer_bytes,
+                            max_inflight,
+                        )
                         for name, dtype, shape, offset, tensor_length in group:
                             tensor = (
                                 device_raw.narrow(
@@ -247,14 +328,14 @@ def direct_weights_iterator(
                     for begin in range(0, length, compat_buffer_bytes):
                         count = min(compat_buffer_bytes, length - begin)
                         chunk = device_buffer.narrow(0, 0, count)
-                        read(chunk, first_offset + begin, count)
+                        _wait_read(read(chunk, first_offset + begin, count))
                         # Blocking D2H completes before the buffer is reused.
                         raw.narrow(0, begin, count).copy_(chunk)
                     del chunk, device_buffer
                 else:
                     raw = _empty(length)
                     if length:
-                        read(raw, first_offset, length)
+                        _wait_read(read(raw, first_offset, length))
                 for name, dtype, shape, offset, tensor_length in group:
                     begin = offset - first_offset
                     tensor = (
