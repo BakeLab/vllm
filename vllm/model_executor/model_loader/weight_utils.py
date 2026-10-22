@@ -1128,6 +1128,15 @@ def safetensors_weights_iterator(
     this rank are skipped **before** reading from disk, which drastically
     reduces storage I/O for MoE models under EP.
     """
+    if envs.VLLM_CUFILE_LOAD and envs.VLLM_HIPFILE_LOAD:
+        raise ValueError("Select either cuFile or hipFile loading")
+    if envs.VLLM_HIPFILE_LOAD:
+        from vllm.model_executor.model_loader.hipfile import hipfile_weights_iterator
+
+        yield from hipfile_weights_iterator(
+            hf_weights_files, local_expert_ids, is_unused_weight=is_unused_weight
+        )
+        return
     if envs.VLLM_CUFILE_LOAD:
         from vllm.model_executor.model_loader.cufile import cufile_weights_iterator
 

@@ -4,7 +4,7 @@
 
 import ctypes
 import os
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 
 import torch
@@ -19,7 +19,10 @@ _COMPAT_COALESCE_BYTES = 64 * 1024 * 1024
 
 
 def hipfile_weights_iterator(
-    files: list[str], local_expert_ids: set[int] | None = None
+    files: list[str],
+    local_expert_ids: set[int] | None = None,
+    *,
+    is_unused_weight: Callable[[str], bool] | None = None,
 ) -> Generator[tuple[str, torch.Tensor]]:
     """Read safetensors payloads into the current ROCm device through hipFile."""
     if local_expert_ids is not None:
@@ -60,4 +63,5 @@ def hipfile_weights_iterator(
             # Compat handles arbitrary offsets; preserve per-tensor reads for
             # P2P mode, where direct-I/O alignment requirements still apply.
             coalesce_bytes=(_COMPAT_COALESCE_BYTES if mode == "compat" else 0),
+            is_unused_weight=is_unused_weight,
         )
