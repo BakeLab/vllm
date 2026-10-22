@@ -310,3 +310,32 @@ def test_destination_read_failure_does_not_yield_partial_weight(monkeypatch, tmp
     with pytest.raises(EOFError, match="short read"):
         next(iterator)
     assert calls == [4, 4]
+
+
+def test_destination_rejects_negative_chunk_size_before_io():
+    def unexpected(*args):
+        pytest.fail("invalid chunk size must be rejected before I/O")
+
+    with pytest.raises(ValueError, match="coalesce_bytes must be nonnegative"):
+        list(
+            direct_io.direct_weights_iterator(
+                ["unused"],
+                backend="test",
+                mode="compat",
+                open_reader=unexpected,
+                coalesce_bytes=-1,
+                get_destination=unexpected,
+            )
+        )
+
+
+def test_destination_requires_current_accelerator(monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(torch.accelerator, "current_device_index", lambda: 1)
+    for index, expected in [(0, False), (1, True)]:
+        tensor = SimpleNamespace(
+            device=torch.device("cuda", index), is_contiguous=lambda: True
+        )
+        assert direct_io._can_load_into(tensor) is expected
+    assert not direct_io._can_load_into(torch.empty(1))

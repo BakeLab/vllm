@@ -121,7 +121,11 @@ def _iter_contiguous_groups(
 
 
 def _can_load_into(tensor: torch.Tensor) -> bool:
-    return tensor.device.type == "cuda" and tensor.is_contiguous()
+    return (
+        tensor.device.type == "cuda"
+        and tensor.device.index == torch.accelerator.current_device_index()
+        and tensor.is_contiguous()
+    )
 
 
 def _read_into(read: Reader, tensor: torch.Tensor, offset: int, limit: int) -> None:
@@ -152,9 +156,16 @@ def direct_weights_iterator(
     default loader supplies the complete checkpoint, ShardedStateLoader only
     this TP rank's saved shards.
 
+    In compatibility mode, get_destination may return a matching contiguous
+    tensor on the current accelerator. It is written in place; a read failure
+    leaves its contents unspecified and must abort loading. Other destinations
+    fall back to staging. P2P does not use destination callbacks.
+
     Oversized compatibility-mode tensors are assembled on CPU using bounded
     device reads, so TP slicing does not require a full tensor's temporary VRAM.
     """
+    if coalesce_bytes is not None and coalesce_bytes < 0:
+        raise ValueError("coalesce_bytes must be nonnegative")
     if coalesce_bytes is None:
         coalesce_bytes = COMPAT_COALESCE_BYTES if mode == "compat" else 0
     compat_buffer_bytes = coalesce_bytes or COMPAT_COALESCE_BYTES
