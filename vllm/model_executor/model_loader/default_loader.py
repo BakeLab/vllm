@@ -264,7 +264,7 @@ class DefaultModelLoader(BaseModelLoader):
 
     def _get_weights_iterator(
         self, source: Source
-    ) -> Generator[tuple[str, torch.Tensor], None, None]:
+    ) -> Generator[tuple[str, torch.Tensor]]:
         """Get an iterator for the model weights based on the load format."""
         extra_config = self.load_config.model_loader_extra_config
         hf_folder, hf_weights_files, use_safetensors, index_file = (
@@ -340,6 +340,7 @@ class DefaultModelLoader(BaseModelLoader):
                         self.load_config.use_tqdm_on_load,
                         self.load_config.safetensors_load_strategy,
                         local_expert_ids=self.local_expert_ids,
+                        is_unused_weight=source.is_unused_weight,
                         safetensors_prefetch_num_threads=(
                             self.load_config.safetensors_prefetch_num_threads
                         ),
@@ -369,18 +370,34 @@ class DefaultModelLoader(BaseModelLoader):
         # Apply the prefix.
         return ((source.prefix + name, tensor) for (name, tensor) in weights_iterator)
 
+    @staticmethod
+    def _get_unused_weight_filter(model: nn.Module) -> Callable[[str], bool]:
+        from vllm.model_executor.models.utils import get_pp_missing_layer_names
+
+        missing = tuple(get_pp_missing_layer_names(model))
+        mapper = getattr(model, "hf_to_vllm_mapper", None)
+        unused = getattr(model, "is_unused_checkpoint_weight", None)
+
+        def is_unused(name: str) -> bool:
+            if unused is not None and unused(name):
+                return True
+            mapped = mapper.map_name(name) if mapper is not None else name
+            return mapped is None or mapped.startswith(missing)
+
+        return is_unused
+
     def get_all_weights(
         self,
         model_config: ModelConfig,
         model: nn.Module,
-    ) -> Generator[tuple[str, torch.Tensor], None, None]:
+    ) -> Generator[tuple[str, torch.Tensor]]:
         primary_weights = DefaultModelLoader.Source(
             model_config.model,
             model_config.revision,
             prefix="",
             fall_back_to_pt=getattr(model, "fall_back_to_pt_during_load", True),
             allow_patterns_overrides=getattr(model, "allow_patterns_overrides", None),
-            is_unused_weight=getattr(model, "is_unused_checkpoint_weight", None),
+            is_unused_weight=self._get_unused_weight_filter(model),
         )
         yield from self._get_weights_iterator(primary_weights)
 
