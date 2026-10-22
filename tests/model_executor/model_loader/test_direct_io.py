@@ -9,6 +9,7 @@ import pytest
 import torch
 from safetensors.torch import save_file
 
+from vllm.model_executor.model_loader import direct_io
 from vllm.model_executor.model_loader.direct_io import _iter_contiguous_groups
 
 
@@ -107,6 +108,7 @@ def test_large_cufile_tensor_bounds_compat_memory_and_reads_exact_tail(
     payload_offset = 8 + int.from_bytes(payload[:8], "little")
     reads, allocated, closed = [], [], []
     limit = 17
+    monkeypatch.setattr(direct_io, "_try_device_buffer", lambda _: None)
 
     class File:
         def __init__(self, filename, flags):
@@ -230,3 +232,163 @@ def test_pp_filter_skips_payloads_before_device_reads(monkeypatch, tmp_path, mod
         )
     )
     assert reads == []
+
+
+@pytest.mark.parametrize("invalid", [False, True])
+def test_destination_reads_preserve_storage_offset_and_reject_shape(
+    monkeypatch, tmp_path, invalid
+):
+    value = torch.arange(37, dtype=torch.float32)
+    path = tmp_path / "destination.safetensors"
+    save_file({"weight": value}, path)
+    payload = path.read_bytes()
+    storage = torch.full((45,), -1.0)
+    destination = storage[4:41] if not invalid else storage[4:40]
+    reads = []
+
+    @contextmanager
+    def open_reader(_):
+        def read(raw, offset, length):
+            reads.append(length)
+            raw.copy_(
+                torch.frombuffer(
+                    bytearray(payload[offset : offset + length]), dtype=torch.uint8
+                )
+            )
+
+        yield read
+
+    monkeypatch.setattr(direct_io, "_can_load_into", lambda _: True)
+    monkeypatch.setattr(torch.accelerator, "synchronize", lambda: None)
+    iterator = direct_io.direct_weights_iterator(
+        [str(path)],
+        backend="test",
+        mode="compat",
+        open_reader=open_reader,
+        coalesce_bytes=17,
+        get_destination=lambda *_: destination,
+    )
+    if invalid:
+        with pytest.raises(ValueError, match="Invalid direct-load destination"):
+            list(iterator)
+        assert reads == []
+        assert torch.all(storage == -1)
+    else:
+        loaded = dict(iterator)
+        assert loaded["weight"] is destination
+        torch.testing.assert_close(destination, value)
+        assert torch.all(storage[:4] == -1)
+        assert torch.all(storage[41:] == -1)
+        assert reads == [17] * 8 + [12]
+
+
+def test_destination_read_failure_does_not_yield_partial_weight(monkeypatch, tmp_path):
+    path = tmp_path / "failed.safetensors"
+    save_file({"weight": torch.arange(8, dtype=torch.uint8)}, path)
+    destination = torch.empty(8, dtype=torch.uint8)
+    calls = []
+
+    @contextmanager
+    def open_reader(_):
+        def read(raw, offset, length):
+            calls.append(length)
+            if len(calls) == 2:
+                raise EOFError("short read")
+            raw.fill_(1)
+
+        yield read
+
+    monkeypatch.setattr(direct_io, "_can_load_into", lambda _: True)
+    monkeypatch.setattr(torch.accelerator, "synchronize", lambda: None)
+    iterator = direct_io.direct_weights_iterator(
+        [str(path)],
+        backend="test",
+        mode="compat",
+        open_reader=open_reader,
+        coalesce_bytes=4,
+        get_destination=lambda *_: destination,
+    )
+    with pytest.raises(EOFError, match="short read"):
+        next(iterator)
+    assert calls == [4, 4]
+
+
+def test_destination_rejects_negative_chunk_size_before_io():
+    def unexpected(*args):
+        pytest.fail("invalid chunk size must be rejected before I/O")
+
+    with pytest.raises(ValueError, match="coalesce_bytes must be nonnegative"):
+        list(
+            direct_io.direct_weights_iterator(
+                ["unused"],
+                backend="test",
+                mode="compat",
+                open_reader=unexpected,
+                coalesce_bytes=-1,
+                get_destination=unexpected,
+            )
+        )
+
+
+def test_destination_requires_current_accelerator(monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(torch.accelerator, "current_device_index", lambda: 1)
+    for index, expected in [(0, False), (1, True)]:
+        tensor = SimpleNamespace(
+            device=torch.device("cuda", index), is_contiguous=lambda: True
+        )
+        assert direct_io._can_load_into(tensor) is expected
+    assert not direct_io._can_load_into(torch.empty(1))
+
+
+@pytest.mark.parametrize("budget", ["available", "low", "allocation_race"])
+def test_large_hf_weight_uses_device_buffer_or_bounded_fallback(
+    monkeypatch, tmp_path, budget
+):
+    value = torch.arange(37, dtype=torch.float32)
+    path = tmp_path / "hf.safetensors"
+    save_file({"weight": value}, path)
+    payload = path.read_bytes()
+    allocated, attempts = [], []
+    size = value.numel() * value.element_size()
+
+    def device_empty(length):
+        attempts.append(length)
+        if budget == "allocation_race" and length == size:
+            raise torch.OutOfMemoryError("competing allocation")
+        tensor = torch.empty(length, dtype=torch.uint8)
+        allocated.append(tensor)
+        return tensor
+
+    @contextmanager
+    def open_reader(_):
+        def read(raw, offset, length):
+            raw.copy_(
+                torch.frombuffer(
+                    bytearray(payload[offset : offset + length]), dtype=torch.uint8
+                )
+            )
+
+        yield read
+
+    monkeypatch.setattr(direct_io, "_empty", device_empty)
+    free = 0 if budget == "low" else 1024 * 1024 * 1024
+    monkeypatch.setattr(torch.accelerator, "get_memory_info", lambda: (free, free))
+    monkeypatch.setattr(torch.accelerator, "synchronize", lambda: None)
+    loaded = dict(
+        direct_io.direct_weights_iterator(
+            [str(path)],
+            backend="test",
+            mode="compat",
+            open_reader=open_reader,
+            coalesce_bytes=17,
+        )
+    )["weight"]
+    torch.testing.assert_close(loaded, value)
+    if budget == "available":
+        assert attempts == [size]
+        assert loaded.data_ptr() == allocated[0].data_ptr()
+    else:
+        assert attempts == ([size, 17] if budget == "allocation_race" else [17])
+        assert loaded.data_ptr() != allocated[0].data_ptr()

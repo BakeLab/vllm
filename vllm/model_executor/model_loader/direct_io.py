@@ -35,12 +35,13 @@ SAFETENSORS_DTYPES = {
     "F8_E8M0": torch.float8_e8m0fnu,
 }
 
-# Maximum GPU staging buffer for compatibility reads.
-COMPAT_COALESCE_BYTES = 64 * 1024 * 1024
-
 # Reads `length` bytes at `file_offset` into the uint8 device tensor `raw`.
 Reader = Callable[[torch.Tensor, int, int], None]
 TensorEntry = tuple[str, torch.dtype, list[int], int, int]
+WeightDestination = Callable[[str, torch.dtype, list[int]], torch.Tensor | None]
+# Compatibility modes accept arbitrary offsets; P2P keeps per-tensor I/O for
+# direct-I/O alignment requirements.
+COMPAT_COALESCE_BYTES = 64 * 1024 * 1024
 
 
 def check_compat_env(prefix: str, mode: str) -> None:
@@ -119,6 +120,37 @@ def _iter_contiguous_groups(
         yield group
 
 
+def _try_device_buffer(length: int) -> torch.Tensor | None:
+    free, _ = torch.accelerator.get_memory_info()
+    # Leave room for the model loader's own temporary tensors. The free-memory
+    # snapshot is advisory: another allocation may win the race below.
+    reserve = max(256 * 1024 * 1024, length // 4)
+    if length + reserve > free:
+        return None
+    try:
+        return _empty(length)
+    except torch.OutOfMemoryError:
+        return None
+
+
+def _can_load_into(tensor: torch.Tensor) -> bool:
+    return (
+        tensor.device.type == "cuda"
+        and tensor.device.index == torch.accelerator.current_device_index()
+        and tensor.is_contiguous()
+    )
+
+
+def _read_into(read: Reader, tensor: torch.Tensor, offset: int, limit: int) -> None:
+    raw = tensor.detach().view(-1).view(torch.uint8)
+    # Complete prior initialization/copies before external storage writes.
+    torch.accelerator.synchronize()
+    for begin in range(0, raw.numel(), limit):
+        count = min(limit, raw.numel() - begin)
+        read(raw.narrow(0, begin, count), offset + begin, count)
+    torch.accelerator.synchronize()
+
+
 def direct_weights_iterator(
     files: Iterable[str],
     *,
@@ -127,6 +159,7 @@ def direct_weights_iterator(
     open_reader: Callable[[str], Any],
     coalesce_bytes: int | None = None,
     is_unused_weight: Callable[[str], bool] | None = None,
+    get_destination: WeightDestination | None = None,
 ) -> Generator[tuple[str, torch.Tensor]]:
     """Read tensor payloads with bounded device staging in compatibility mode.
 
@@ -136,12 +169,21 @@ def direct_weights_iterator(
     default loader supplies the complete checkpoint, ShardedStateLoader only
     this TP rank's saved shards.
 
-    Oversized compatibility-mode tensors are assembled on CPU using bounded
-    device reads, so TP slicing does not require a full tensor's temporary VRAM.
+    In compatibility mode, get_destination may return a matching contiguous
+    tensor on the current accelerator. It is written in place; a read failure
+    leaves its contents unspecified and must abort loading. Other destinations
+    fall back to staging. P2P does not use destination callbacks.
+
+    Oversized compatibility-mode tensors stay on device when free memory
+    permits. Otherwise bounded device reads assemble them on CPU, so TP slicing
+    can still proceed without a full tensor's temporary VRAM.
     """
+    if coalesce_bytes is not None and coalesce_bytes < 0:
+        raise ValueError("coalesce_bytes must be nonnegative")
     if coalesce_bytes is None:
         coalesce_bytes = COMPAT_COALESCE_BYTES if mode == "compat" else 0
     compat_buffer_bytes = coalesce_bytes or COMPAT_COALESCE_BYTES
+
     logger.info("%s loading mode=%s", backend, mode)
     total = 0
     for path in sorted(files, key=_natural_sort_key):
@@ -150,9 +192,7 @@ def direct_weights_iterator(
             entries = iter_safetensors_entries(path)
             if is_unused_weight is not None:
                 entries = (entry for entry in entries if not is_unused_weight(entry[0]))
-            if is_unused_weight is not None:
-                entries = (entry for entry in entries if not is_unused_weight(entry[0]))
-            if coalesce_bytes:
+            if coalesce_bytes and get_destination is None:
                 groups = _iter_contiguous_groups(entries, coalesce_bytes)
             else:
                 groups = ([entry] for entry in entries)
@@ -160,7 +200,40 @@ def direct_weights_iterator(
                 first_offset = group[0][3]
                 _, _, _, last_offset, last_length = group[-1]
                 length = last_offset + last_length - first_offset
+                destination = None
+                if mode == "compat" and get_destination is not None:
+                    name, dtype, shape, _, _ = group[0]
+                    destination = get_destination(name, dtype, shape)
+                    if destination is not None:
+                        if (
+                            destination.dtype != dtype
+                            or list(destination.shape) != shape
+                        ):
+                            raise ValueError(f"Invalid direct-load destination: {name}")
+                        if not _can_load_into(destination):
+                            destination = None
+                if destination is not None:
+                    _read_into(read, destination, first_offset, compat_buffer_bytes)
+                    total += length
+                    yield group[0][0], destination
+                    continue
                 if mode == "compat" and length > compat_buffer_bytes:
+                    device_raw = _try_device_buffer(length)
+                    if device_raw is not None:
+                        _read_into(read, device_raw, first_offset, compat_buffer_bytes)
+                        for name, dtype, shape, offset, tensor_length in group:
+                            tensor = (
+                                device_raw.narrow(
+                                    0, offset - first_offset, tensor_length
+                                )
+                                .view(dtype)
+                                .reshape(shape)
+                            )
+                            total += tensor_length
+                            yield name, tensor
+                            del tensor
+                        del device_raw
+                        continue
                     logger.info(
                         "%s compat bounded staging tensor=%s bytes=%d "
                         "device_buffer_bytes=%d",
