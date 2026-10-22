@@ -118,6 +118,7 @@ if TYPE_CHECKING:
     VLLM_USE_MEGA_AOT_ARTIFACT: bool = False
     VLLM_USE_TRITON_AWQ: bool = False
     VLLM_FASTSAFETENSORS_QUEUE_SIZE: int = 0
+    VLLM_GDS_ASYNC_READS: int = 0
     VLLM_CUFILE_LOAD: bool = False
     VLLM_CUFILE_MODE: Literal["compat", "p2p"] = "compat"
     VLLM_HIPFILE_LOAD: bool = False
@@ -1100,6 +1101,9 @@ environment_variables: dict[str, Callable[[], Any]] = {
     "VLLM_FASTSAFETENSORS_QUEUE_SIZE": lambda: int(
         os.getenv("VLLM_FASTSAFETENSORS_QUEUE_SIZE", "0")
     ),
+    # Opt-in cuFile/hipFile async streams and maximum pending chunk reads.
+    # Zero retains the synchronous loader; requires async-capable PyTorch.
+    "VLLM_GDS_ASYNC_READS": lambda: int(os.getenv("VLLM_GDS_ASYNC_READS", "0")),
     "VLLM_CUFILE_LOAD": lambda: bool(int(os.getenv("VLLM_CUFILE_LOAD", "0"))),
     "VLLM_CUFILE_MODE": env_with_choices(
         "VLLM_CUFILE_MODE", "compat", ["compat", "p2p"]

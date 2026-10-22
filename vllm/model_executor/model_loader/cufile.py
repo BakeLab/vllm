@@ -4,7 +4,7 @@
 
 import os
 from collections.abc import Callable, Generator
-from contextlib import contextmanager
+from functools import partial
 
 import torch
 
@@ -13,6 +13,7 @@ from vllm.model_executor.model_loader.direct_io import (
     WeightDestination,
     check_compat_env,
     direct_weights_iterator,
+    open_gds_reader,
 )
 
 
@@ -33,29 +34,15 @@ def cufile_weights_iterator(
     mode = envs.VLLM_CUFILE_MODE
     check_compat_env("CUFILE", mode)
 
-    from torch.cuda.gds import GdsFile
-
     flags = os.O_RDONLY | (os.O_DIRECT if mode == "p2p" else 0)
-
-    @contextmanager
-    def open_reader(path: str):
-        handle = GdsFile(path, flags)
-        try:
-
-            def read(raw: torch.Tensor, offset: int, length: int) -> None:
-                start = raw.storage_offset()
-                storage = raw.untyped_storage()[start : start + length]
-                handle.load_storage(storage, offset=offset)
-
-            yield read
-        finally:
-            handle.close()
+    async_reads = envs.VLLM_GDS_ASYNC_READS
 
     yield from direct_weights_iterator(
         files,
         backend="cuFile",
         mode=mode,
-        open_reader=open_reader,
+        open_reader=partial(open_gds_reader, flags=flags, async_reads=async_reads),
+        max_inflight=max(1, async_reads),
         is_unused_weight=is_unused_weight,
         get_destination=get_destination,
     )
