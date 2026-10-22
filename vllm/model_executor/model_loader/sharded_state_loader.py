@@ -18,6 +18,7 @@ from vllm.config import ModelConfig
 from vllm.config.load import LoadConfig
 from vllm.logger import init_logger
 from vllm.model_executor.model_loader.base_loader import BaseModelLoader
+from vllm.model_executor.model_loader.direct_io import WeightDestination
 from vllm.model_executor.model_loader.weight_utils import (
     download_weights_from_hf,
     runai_safetensors_weights_iterator,
@@ -210,7 +211,18 @@ class ShardedStateLoader(BaseModelLoader):
             )
         state_dict = self._filter_subtensors(model.state_dict())
         counter_before_loading_weights = time.perf_counter()
-        for key, tensor in self.iterate_over_files(filepaths):
+
+        def get_destination(name, dtype, shape):
+            param = state_dict[name]
+            if param.dtype != dtype or param.ndim != len(shape):
+                return None
+            if any(size > dim for size, dim in zip(shape, param.shape)):
+                return None
+            for dim, size in enumerate(shape):
+                param = param.narrow(dim, 0, size)
+            return param
+
+        for key, tensor in self.iterate_over_files(filepaths, get_destination):
             # If loading with LoRA enabled, additional padding may
             # be added to certain parameters. We only load into a
             # narrowed view of the parameter data.
@@ -245,7 +257,9 @@ class ShardedStateLoader(BaseModelLoader):
         if state_dict:
             raise ValueError(f"Missing keys {tuple(state_dict)} in loaded state!")
 
-    def iterate_over_files(self, paths) -> Generator[tuple[str, torch.Tensor]]:
+    def iterate_over_files(
+        self, paths, get_destination: WeightDestination | None = None
+    ) -> Generator[tuple[str, torch.Tensor]]:
         if envs.VLLM_CUFILE_LOAD and envs.VLLM_HIPFILE_LOAD:
             raise ValueError("Select either cuFile or hipFile loading")
         if envs.VLLM_HIPFILE_LOAD:
@@ -253,11 +267,11 @@ class ShardedStateLoader(BaseModelLoader):
                 hipfile_weights_iterator,
             )
 
-            yield from hipfile_weights_iterator(paths)
+            yield from hipfile_weights_iterator(paths, get_destination=get_destination)
         elif envs.VLLM_CUFILE_LOAD:
             from vllm.model_executor.model_loader.cufile import cufile_weights_iterator
 
-            yield from cufile_weights_iterator(paths)
+            yield from cufile_weights_iterator(paths, get_destination=get_destination)
         elif self.load_config.load_format == "runai_streamer_sharded":
             yield from runai_safetensors_weights_iterator(paths, True)
         else:

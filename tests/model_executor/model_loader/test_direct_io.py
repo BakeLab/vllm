@@ -231,3 +231,82 @@ def test_pp_filter_skips_payloads_before_device_reads(monkeypatch, tmp_path, mod
         )
     )
     assert reads == []
+
+
+@pytest.mark.parametrize("invalid", [False, True])
+def test_destination_reads_preserve_storage_offset_and_reject_shape(
+    monkeypatch, tmp_path, invalid
+):
+    value = torch.arange(37, dtype=torch.float32)
+    path = tmp_path / "destination.safetensors"
+    save_file({"weight": value}, path)
+    payload = path.read_bytes()
+    storage = torch.full((45,), -1.0)
+    destination = storage[4:41] if not invalid else storage[4:40]
+    reads = []
+
+    @contextmanager
+    def open_reader(_):
+        def read(raw, offset, length):
+            reads.append(length)
+            raw.copy_(
+                torch.frombuffer(
+                    bytearray(payload[offset : offset + length]), dtype=torch.uint8
+                )
+            )
+
+        yield read
+
+    monkeypatch.setattr(direct_io, "_can_load_into", lambda _: True)
+    monkeypatch.setattr(torch.accelerator, "synchronize", lambda: None)
+    iterator = direct_io.direct_weights_iterator(
+        [str(path)],
+        backend="test",
+        mode="compat",
+        open_reader=open_reader,
+        coalesce_bytes=17,
+        get_destination=lambda *_: destination,
+    )
+    if invalid:
+        with pytest.raises(ValueError, match="Invalid direct-load destination"):
+            list(iterator)
+        assert reads == []
+        assert torch.all(storage == -1)
+    else:
+        loaded = dict(iterator)
+        assert loaded["weight"] is destination
+        torch.testing.assert_close(destination, value)
+        assert torch.all(storage[:4] == -1)
+        assert torch.all(storage[41:] == -1)
+        assert reads == [17] * 8 + [12]
+
+
+def test_destination_read_failure_does_not_yield_partial_weight(monkeypatch, tmp_path):
+    path = tmp_path / "failed.safetensors"
+    save_file({"weight": torch.arange(8, dtype=torch.uint8)}, path)
+    destination = torch.empty(8, dtype=torch.uint8)
+    calls = []
+
+    @contextmanager
+    def open_reader(_):
+        def read(raw, offset, length):
+            calls.append(length)
+            if len(calls) == 2:
+                raise EOFError("short read")
+            raw.fill_(1)
+
+        yield read
+
+    monkeypatch.setattr(direct_io, "_can_load_into", lambda _: True)
+    monkeypatch.setattr(torch.accelerator, "synchronize", lambda: None)
+    iterator = direct_io.direct_weights_iterator(
+        [str(path)],
+        backend="test",
+        mode="compat",
+        open_reader=open_reader,
+        coalesce_bytes=4,
+        get_destination=lambda *_: destination,
+    )
+    with pytest.raises(EOFError, match="short read"):
+        next(iterator)
+    assert calls == [4, 4]
