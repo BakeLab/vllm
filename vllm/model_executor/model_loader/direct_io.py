@@ -120,6 +120,19 @@ def _iter_contiguous_groups(
         yield group
 
 
+def _try_device_buffer(length: int) -> torch.Tensor | None:
+    free, _ = torch.accelerator.get_memory_info()
+    # Leave room for the model loader's own temporary tensors. The free-memory
+    # snapshot is advisory: another allocation may win the race below.
+    reserve = max(256 * 1024 * 1024, length // 4)
+    if length + reserve > free:
+        return None
+    try:
+        return _empty(length)
+    except torch.OutOfMemoryError:
+        return None
+
+
 def _can_load_into(tensor: torch.Tensor) -> bool:
     return (
         tensor.device.type == "cuda"
@@ -161,8 +174,9 @@ def direct_weights_iterator(
     leaves its contents unspecified and must abort loading. Other destinations
     fall back to staging. P2P does not use destination callbacks.
 
-    Oversized compatibility-mode tensors are assembled on CPU using bounded
-    device reads, so TP slicing does not require a full tensor's temporary VRAM.
+    Oversized compatibility-mode tensors stay on device when free memory
+    permits. Otherwise bounded device reads assemble them on CPU, so TP slicing
+    can still proceed without a full tensor's temporary VRAM.
     """
     if coalesce_bytes is not None and coalesce_bytes < 0:
         raise ValueError("coalesce_bytes must be nonnegative")
@@ -204,6 +218,22 @@ def direct_weights_iterator(
                     yield group[0][0], destination
                     continue
                 if mode == "compat" and length > compat_buffer_bytes:
+                    device_raw = _try_device_buffer(length)
+                    if device_raw is not None:
+                        _read_into(read, device_raw, first_offset, compat_buffer_bytes)
+                        for name, dtype, shape, offset, tensor_length in group:
+                            tensor = (
+                                device_raw.narrow(
+                                    0, offset - first_offset, tensor_length
+                                )
+                                .view(dtype)
+                                .reshape(shape)
+                            )
+                            total += tensor_length
+                            yield name, tensor
+                            del tensor
+                        del device_raw
+                        continue
                     logger.info(
                         "%s compat bounded staging tensor=%s bytes=%d "
                         "device_buffer_bytes=%d",

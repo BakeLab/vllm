@@ -108,6 +108,7 @@ def test_large_cufile_tensor_bounds_compat_memory_and_reads_exact_tail(
     payload_offset = 8 + int.from_bytes(payload[:8], "little")
     reads, allocated, closed = [], [], []
     limit = 17
+    monkeypatch.setattr(direct_io, "_try_device_buffer", lambda _: None)
 
     class File:
         def __init__(self, filename, flags):
@@ -339,3 +340,55 @@ def test_destination_requires_current_accelerator(monkeypatch):
         )
         assert direct_io._can_load_into(tensor) is expected
     assert not direct_io._can_load_into(torch.empty(1))
+
+
+@pytest.mark.parametrize("budget", ["available", "low", "allocation_race"])
+def test_large_hf_weight_uses_device_buffer_or_bounded_fallback(
+    monkeypatch, tmp_path, budget
+):
+    value = torch.arange(37, dtype=torch.float32)
+    path = tmp_path / "hf.safetensors"
+    save_file({"weight": value}, path)
+    payload = path.read_bytes()
+    allocated, attempts = [], []
+    size = value.numel() * value.element_size()
+
+    def device_empty(length):
+        attempts.append(length)
+        if budget == "allocation_race" and length == size:
+            raise torch.OutOfMemoryError("competing allocation")
+        tensor = torch.empty(length, dtype=torch.uint8)
+        allocated.append(tensor)
+        return tensor
+
+    @contextmanager
+    def open_reader(_):
+        def read(raw, offset, length):
+            raw.copy_(
+                torch.frombuffer(
+                    bytearray(payload[offset : offset + length]), dtype=torch.uint8
+                )
+            )
+
+        yield read
+
+    monkeypatch.setattr(direct_io, "_empty", device_empty)
+    free = 0 if budget == "low" else 1024 * 1024 * 1024
+    monkeypatch.setattr(torch.accelerator, "get_memory_info", lambda: (free, free))
+    monkeypatch.setattr(torch.accelerator, "synchronize", lambda: None)
+    loaded = dict(
+        direct_io.direct_weights_iterator(
+            [str(path)],
+            backend="test",
+            mode="compat",
+            open_reader=open_reader,
+            coalesce_bytes=17,
+        )
+    )["weight"]
+    torch.testing.assert_close(loaded, value)
+    if budget == "available":
+        assert attempts == [size]
+        assert loaded.data_ptr() == allocated[0].data_ptr()
+    else:
+        assert attempts == ([size, 17] if budget == "allocation_race" else [17])
+        assert loaded.data_ptr() != allocated[0].data_ptr()
