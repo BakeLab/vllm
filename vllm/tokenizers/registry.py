@@ -36,11 +36,14 @@ _MODEL_TYPES_WITH_INCORRECT_TOKENIZER_CLASS: set[str] = {
     "internlm2",
     "step3_vl",
     "step3p7",
+    "step5",
+    "step5_vl",
     "unlimited-ocr",
     "unlimited_ocr",
 }
 
 _VLLM_TOKENIZERS = {
+    "alpamayo2_super": ("alpamayo2_super", "Alpamayo2SuperTokenizer"),
     # ``cohere`` mode uses the standard cached HF tokenizer; only the
     # renderer (template stage) is replaced with a melody-based one.
     "cohere": ("hf", "CachedHfTokenizer"),
@@ -100,7 +103,7 @@ TokenizerRegistry = _TokenizerRegistry(
 def resolve_tokenizer_args(
     tokenizer_name: str | Path,
     *args,
-    runner_type: "RunnerType" = "generate",
+    runner_type: RunnerType = "generate",
     tokenizer_mode: str = "auto",
     **kwargs,
 ):
@@ -165,12 +168,17 @@ def resolve_tokenizer_args(
                 "mistral_format=True is not supported with tokenizer_mode='hf'"
             )
         kwargs["mistral_format"] = False
-        tokenizer_name = get_non_weight_snapshot_path(
-            str(tokenizer_name),
-            revision=revision,
-            cache_dir=download_dir,
-            token=kwargs.get("token"),
-        )
+        if kwargs.get("code_revision") in (None, revision):
+            tokenizer_name = get_non_weight_snapshot_path(
+                str(tokenizer_name),
+                revision=revision,
+                cache_dir=download_dir,
+                token=kwargs.get("token"),
+            )
+
+    if tokenizer_mode == "mistral":
+        # MistralCommonBackend rejects HF-only keyword arguments, even None.
+        kwargs.pop("code_revision", None)
 
     return tokenizer_mode, tokenizer_name, args, kwargs
 
@@ -178,7 +186,11 @@ def resolve_tokenizer_args(
 cached_resolve_tokenizer_args = lru_cache(resolve_tokenizer_args)
 
 
-def tokenizer_args_from_config(config: "ModelConfig", **kwargs):
+def tokenizer_args_from_config(config: ModelConfig, **kwargs):
+    if config.tokenizer == config.model:
+        code_revision = getattr(config, "code_revision", None)
+        if code_revision is not None:
+            kwargs.setdefault("code_revision", code_revision)
     return cached_resolve_tokenizer_args(
         config.tokenizer,
         runner_type=config.runner_type,
@@ -239,6 +251,7 @@ def get_tokenizer(
             tokenizer_name,
             trust_remote_code=trust_remote_code,
             revision=revision,
+            code_revision=kwargs.get("code_revision"),
             config_format=config_format,
             token=kwargs.get("token"),
         )
@@ -281,11 +294,15 @@ def get_tokenizer(
 cached_get_tokenizer = lru_cache(get_tokenizer)
 
 
-def cached_tokenizer_from_config(model_config: "ModelConfig", **kwargs):
+def cached_tokenizer_from_config(model_config: ModelConfig, **kwargs):
     if model_config.skip_tokenizer_init:
         return None
 
     _maybe_register_hf_config(getattr(model_config, "hf_config", None))
+    if model_config.tokenizer == model_config.model:
+        code_revision = getattr(model_config, "code_revision", None)
+        if code_revision is not None:
+            kwargs.setdefault("code_revision", code_revision)
 
     return cached_get_tokenizer(
         model_config.tokenizer,

@@ -58,7 +58,7 @@ logger = init_logger(__name__)
 
 def register_layer_for_moe_forward_op(
     vllm_config: VllmConfig,
-    layer: "MoERunner",
+    layer: MoERunner,
 ):
     # For smuggling this layer into the fused moe custom op
     prefix = layer.layer_name
@@ -202,7 +202,7 @@ direct_register_custom_op(
     op_func=_moe_forward,
     mutates_args=["hidden_states"],
     fake_impl=_moe_forward_fake,
-    tags=(torch.Tag.needs_fixed_stride_order,),
+    tags=(torch.Tag.needs_exact_strides,),
 )
 
 
@@ -210,7 +210,7 @@ direct_register_custom_op(
     op_name="moe_forward_shared",
     op_func=_moe_forward_shared,
     fake_impl=_moe_forward_shared_fake,
-    tags=(torch.Tag.needs_fixed_stride_order,),
+    tags=(torch.Tag.needs_exact_strides,),
 )
 
 
@@ -614,6 +614,7 @@ class MoERunner(MoERunnerInterface):
 
         if self.routed_experts.quant_method.is_monolithic:
             # Monolithic kernels: pass router_logits to routed_experts
+            router_logits = self.router.prepare_monolithic_logits(router_logits)
             fused_out = self.routed_experts.forward_monolithic(
                 x=hidden_states,
                 router_logits=router_logits,

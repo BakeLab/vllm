@@ -64,6 +64,7 @@ def test_e8m0_custom_op_fullgraph(use_v2, use_fresh_inductor_cache):
         )
         torch.testing.assert_close(compiled(x, scale), x * 2)
 
+
 def test_copy_pass():
     vllm_config = VllmConfig()
     inductor_pass = FixFunctionalizationPass(vllm_config)

@@ -67,7 +67,7 @@ class UnquantizedFusedMoEMethod(FusedMoEMethodBase, CustomOp):
 
     def create_weights(
         self,
-        layer: "RoutedExperts",
+        layer: RoutedExperts,
         num_experts: int,
         hidden_size: int,
         intermediate_size_per_partition: int,
@@ -165,7 +165,7 @@ class UnquantizedFusedMoEMethod(FusedMoEMethodBase, CustomOp):
 
     def _setup_kernel(
         self,
-        layer: "RoutedExperts",
+        layer: RoutedExperts,
         w13: torch.Tensor,
         w2: torch.Tensor,
     ) -> None:
@@ -177,16 +177,9 @@ class UnquantizedFusedMoEMethod(FusedMoEMethodBase, CustomOp):
             w2_weight=w2,
             layer=layer,
         )
-        # `moe_kernel` is initialized to None in FusedMoEMethodBase.__init__;
-        # On the first call we replace the parameter normally. On subsequent
-        # calls (e.g. RL weight updates that re-trigger
-        # process_weights_after_loading) the moe kernel has already been set
-        # up and CUDA graphs may have captured the parameter addresses, so
-        # we copy the shuffled data into the existing storage instead of
-        # re-registering a new Parameter.
         is_weight_update = self.moe_kernel is not None  # type: ignore[has-type]
-        replace_parameter(layer, "w13_weight", w13_new, prefer_copy=is_weight_update)
-        replace_parameter(layer, "w2_weight", w2_new, prefer_copy=is_weight_update)
+        replace_parameter(layer, "w13_weight", w13_new)
+        replace_parameter(layer, "w2_weight", w2_new)
 
         if not is_weight_update:
             # Setup moe kernel only on the first call. For the unquantized
@@ -204,7 +197,7 @@ class UnquantizedFusedMoEMethod(FusedMoEMethodBase, CustomOp):
             assert self.moe_kernel is not None
             self.moe_kernel.fused_experts.process_weights_after_loading(layer)
 
-    def _init_moe_kernel(self, layer: "RoutedExperts") -> None:
+    def _init_moe_kernel(self, layer: RoutedExperts) -> None:
         """Build the MoE kernel from the layer's current (shuffled) weights."""
         self.moe_quant_config = self.get_fused_moe_quant_config(layer)
         assert self.moe_quant_config is not None
@@ -217,7 +210,7 @@ class UnquantizedFusedMoEMethod(FusedMoEMethodBase, CustomOp):
             routing_tables=layer._expert_routing_tables(),
         )
 
-    def process_weights_after_loading(self, layer: "RoutedExperts") -> None:
+    def process_weights_after_loading(self, layer: RoutedExperts) -> None:
         super().process_weights_after_loading(layer)
 
         if is_weights_pre_processed():
@@ -279,7 +272,7 @@ class UnquantizedFusedMoEMethod(FusedMoEMethodBase, CustomOp):
 
     def apply(
         self,
-        layer: "RoutedExperts",
+        layer: RoutedExperts,
         x: torch.Tensor,
         topk_weights: torch.Tensor,
         topk_ids: torch.Tensor,
@@ -297,7 +290,7 @@ class UnquantizedFusedMoEMethod(FusedMoEMethodBase, CustomOp):
 
     def forward_native(
         self,
-        layer: "RoutedExperts",
+        layer: RoutedExperts,
         x: torch.Tensor,
         topk_weights: torch.Tensor,
         topk_ids: torch.Tensor,
@@ -321,7 +314,7 @@ class UnquantizedFusedMoEMethod(FusedMoEMethodBase, CustomOp):
 
     def forward_cuda(
         self,
-        layer: "RoutedExperts",
+        layer: RoutedExperts,
         x: torch.Tensor,
         topk_weights: torch.Tensor,
         topk_ids: torch.Tensor,
@@ -339,7 +332,7 @@ class UnquantizedFusedMoEMethod(FusedMoEMethodBase, CustomOp):
 
     def apply_monolithic(
         self,
-        layer: "RoutedExperts",
+        layer: RoutedExperts,
         x: torch.Tensor,
         router_logits: torch.Tensor,
         input_ids: torch.Tensor | None = None,

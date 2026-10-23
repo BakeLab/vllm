@@ -67,7 +67,7 @@ class FsAsyncLookupManager(AsyncLookupManager):
 
     def __init__(
         self,
-        tier: "FileSystemTierManager",
+        tier: FileSystemTierManager,
         tier_type: str,
     ) -> None:
         super().__init__(tier_type=tier_type)
@@ -108,7 +108,7 @@ class FileSystemTierManager(SecondaryTierManager):
 
     def __init__(
         self,
-        offloading_spec: "OffloadingSpec",
+        offloading_spec: OffloadingSpec,
         primary_kv_view: memoryview,
         tier_type: str,
         root_dir: str,

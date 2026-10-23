@@ -89,8 +89,10 @@ cachetools==7.2.1
     # via -r requirements/test/../common.txt
 cbor2==6.1.5
     # via -r requirements/test/../common.txt
-certifi==2026.7.22
+certifi==2026.10.19
     # via
+    #   -c requirements/common.txt
+    #   -r requirements/test/../common.txt
     #   httpcore
     #   httpx
     #   requests
@@ -524,7 +526,6 @@ numpy==2.4.6
     #   bitsandbytes
     #   bm25s
     #   contourpy
-    #   cupy-cuda12x
     #   datasets
     #   decord
     #   einx
@@ -607,6 +608,8 @@ optuna==3.6.1
     # via genai-perf
 orjson==3.13.0
     # via
+    #   -c requirements/common.txt
+    #   -r requirements/test/../common.txt
     #   -r requirements/test/rocm.in
     #   genai-perf
 oss-harmony==0.0.11
@@ -1115,7 +1118,7 @@ traitlets==5.16.1
     # via
     #   jupyter-client
     #   jupyter-core
-transformers==5.19.0
+transformers==5.20.2
     # via
     #   -c requirements/common.txt
     #   -r requirements/test/../common.txt
@@ -1250,4 +1253,20 @@ z3-solver==4.15.4.0
 # torchaudio
 # triton
 # cuda-pathfinder
+# cuda-toolkit
+# nvidia-cublas
+# nvidia-cuda-cupti
+# nvidia-cuda-nvrtc
+# nvidia-cuda-runtime
+# nvidia-cufft
+# nvidia-cufile
+# nvidia-curand
+# nvidia-cusolver
+# nvidia-cusparse
+# nvidia-nvjitlink
+# nvidia-nvtx
+# nvidia-cudnn-cu13
+# nvidia-cusparselt-cu13
+# nvidia-nccl-cu13
+# nvidia-nvshmem-cu13
 # cupy-cuda12x

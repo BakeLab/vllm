@@ -9,6 +9,7 @@ from typing import Any, Generic, TypeVar
 import numpy as np
 import torch
 
+from vllm.exceptions import GenerationError, RetryableRequestError, VLLMValidationError
 from vllm.logger import init_logger
 from vllm.logprobs import PromptLogprobs, SampleLogprobs
 from vllm.lora.request import LoRARequest
@@ -24,6 +25,13 @@ class RequestError:
     code: str
     message: str
     retryable: bool = False
+
+    def to_exception(self) -> GenerationError | VLLMValidationError:
+        if self.code == "validation_error":
+            return VLLMValidationError(self.message)
+        if self.retryable:
+            return RetryableRequestError(self.message)
+        return GenerationError(self.message)
 
 
 @dataclass
@@ -199,7 +207,7 @@ class RequestOutput:
         self.kv_transfer_params = kv_transfer_params
         self.ec_transfer_params = ec_transfer_params
 
-    def add(self, next_output: "RequestOutput", aggregate: bool) -> None:
+    def add(self, next_output: RequestOutput, aggregate: bool) -> None:
         """Merge subsequent RequestOutput into this one"""
         self.finished |= next_output.finished
         self.kv_transfer_params = next_output.kv_transfer_params
@@ -276,6 +284,20 @@ STREAM_FINISHED = RequestOutput(
 _O = TypeVar("_O", default=PoolingOutput)
 
 
+@dataclass(frozen=True)
+class LateChunk:
+    token_range: tuple[int, int]
+    char_range: tuple[int, int] | None
+
+
+@dataclass(frozen=True)
+class LateChunkingMetadata:
+    chunk_size: int
+    input_tokens: int
+    chunks: list[LateChunk]
+    strategy: str = "fixed_tokens"
+
+
 class PoolingRequestOutput(Generic[_O]):
     """The output data of a pooling request to the LLM.
 
@@ -286,6 +308,7 @@ class PoolingRequestOutput(Generic[_O]):
         num_cached_tokens: The number of tokens with prefix cache hit.
         finished (bool): A flag indicating whether the pooling is completed.
         error: Structured request-level error information, if the request failed.
+        late_chunking: Token and source ranges for fixed-length late chunking.
 
     """
 
@@ -298,8 +321,10 @@ class PoolingRequestOutput(Generic[_O]):
         finished: bool,
         *,
         error: RequestError | None = None,
+        late_chunking: LateChunkingMetadata | None = None,
     ):
         self.request_id = request_id
+        self.late_chunking = late_chunking
         self.prompt_token_ids = prompt_token_ids
         self.num_cached_tokens = num_cached_tokens
         self.finished = finished
@@ -331,7 +356,7 @@ class EmbeddingOutput:
     embedding: list[float]
 
     @staticmethod
-    def from_base(pooling_output: PoolingOutput) -> "EmbeddingOutput":
+    def from_base(pooling_output: PoolingOutput) -> EmbeddingOutput:
         pooled_data = pooling_output.data
         if pooled_data.ndim != 1:
             raise ValueError("pooled_data should be a 1-D embedding vector")
@@ -350,7 +375,7 @@ class EmbeddingRequestOutput(PoolingRequestOutput[EmbeddingOutput]):
     @staticmethod
     def from_base(
         request_output: PoolingRequestOutput,
-    ) -> "EmbeddingRequestOutput":
+    ) -> EmbeddingRequestOutput:
         outputs = (
             EmbeddingOutput([])
             if request_output.error is not None
@@ -379,7 +404,7 @@ class ClassificationOutput:
     probs: list[float]
 
     @staticmethod
-    def from_base(pooling_output: PoolingOutput) -> "ClassificationOutput":
+    def from_base(pooling_output: PoolingOutput) -> ClassificationOutput:
         # pooling_output shape: (num_classes)
         pooled_data = pooling_output.data
         if pooled_data.ndim != 1:
@@ -399,7 +424,7 @@ class ClassificationRequestOutput(PoolingRequestOutput[ClassificationOutput]):
     @staticmethod
     def from_base(
         request_output: PoolingRequestOutput,
-    ) -> "ClassificationRequestOutput":
+    ) -> ClassificationRequestOutput:
         outputs = (
             ClassificationOutput([])
             if request_output.error is not None
@@ -427,7 +452,7 @@ class ScoringOutput:
     score: float
 
     @staticmethod
-    def from_base(pooling_output: PoolingOutput) -> "ScoringOutput":
+    def from_base(pooling_output: PoolingOutput) -> ScoringOutput:
         # pooling_output shape:
         #   classify task: (num_classes) num_classes == 1
         #   embed task: a scalar value
@@ -445,7 +470,7 @@ class ScoringRequestOutput(PoolingRequestOutput[ScoringOutput]):
     @staticmethod
     def from_base(
         request_output: PoolingRequestOutput,
-    ) -> "ScoringRequestOutput":
+    ) -> ScoringRequestOutput:
         outputs = (
             ScoringOutput(0.0)
             if request_output.error is not None

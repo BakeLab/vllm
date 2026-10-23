@@ -30,7 +30,7 @@ P = ParamSpec("P")
 
 
 @contextmanager
-def _compilation_context() -> Generator[None, None, None]:
+def _compilation_context() -> Generator[None]:
     """Context manager for compilation settings.
 
     This manager sets higher dynamo cache limits for compilation.
@@ -85,6 +85,8 @@ class TorchCompileWithNoGuardsWrapper:
             return ctx.result
         return callable_fn(*args, **kwargs)
 
+    _allow_aot_compile: bool = True
+
     def __init__(
         self,
         compile_prefix: str = "",
@@ -104,7 +106,10 @@ class TorchCompileWithNoGuardsWrapper:
             raise RuntimeError("Compilation mode cannot be NO_COMPILATION")
 
         backend = vllm_config.compilation_config.init_backend(
-            vllm_config, prefix=compile_prefix, is_encoder=is_encoder
+            vllm_config,
+            prefix=compile_prefix,
+            is_encoder=is_encoder,
+            use_aot_compile=self._allow_aot_compile,
         )
         options = {}
 
@@ -139,7 +144,7 @@ class TorchCompileWithNoGuardsWrapper:
         # Validate that unbacked dynamic shapes require VLLM_USE_BYTECODE_HOOK=False
 
         aot_context = nullcontext()
-        if envs.VLLM_USE_AOT_COMPILE:
+        if self._allow_aot_compile and envs.VLLM_USE_AOT_COMPILE:
             aot_context = torch._dynamo.config.patch(enable_aot_compile=True)
 
         with aot_context:
@@ -268,7 +273,7 @@ class TorchCompileWithNoGuardsWrapper:
             handle.remove()
 
     @contextmanager
-    def _dispatch_to_compiled_code(self) -> Generator[None, None, None]:
+    def _dispatch_to_compiled_code(self) -> Generator[None]:
         # noqa: E501
         """Context manager to dispatch to internally compiled code captured by
         the bytecode hook.

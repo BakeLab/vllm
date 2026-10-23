@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 import os
-from collections.abc import Generator
+from collections.abc import Callable, Generator
+from typing import Any
 
 import torch
 from torch import nn
@@ -9,14 +10,19 @@ from transformers.utils import SAFE_WEIGHTS_INDEX_NAME
 
 from vllm.config import ModelConfig
 from vllm.config.load import LoadConfig
+from vllm.distributed import get_pp_group, get_world_group
+from vllm.logger import init_logger
 from vllm.model_executor.model_loader.base_loader import BaseModelLoader
 from vllm.model_executor.model_loader.weight_utils import (
     download_safetensors_index_file_from_hf,
     download_weights_from_hf,
+    filter_safetensors_files_by_weight_name,
     runai_safetensors_weights_iterator,
 )
 from vllm.transformers_utils.repo_utils import resolve_revision
 from vllm.transformers_utils.runai_utils import list_safetensors
+
+logger = init_logger(__name__)
 
 
 class RunaiModelStreamerLoader(BaseModelLoader):
@@ -116,12 +122,38 @@ class RunaiModelStreamerLoader(BaseModelLoader):
         return hf_weights_files
 
     def _get_weights_iterator(
-        self, model_or_path: str, revision: str | None
-    ) -> Generator[tuple[str, torch.Tensor], None, None]:
+        self,
+        model_or_path: str,
+        revision: str | None,
+        is_unused_weight: Callable[[str], bool] | None = None,
+    ) -> Generator[tuple[str, torch.Tensor]]:
         """Get an iterator for the model weights based on the load format."""
         hf_weights_files = self._prepare_weights(model_or_path, revision)
+        selected_files = hf_weights_files
+        distributed = self._is_distributed and torch.distributed.is_initialized()
+        # Drafts load only on the last PP stage; RunAI is invoked without a
+        # model-specific group, so retain its existing full-list path with PP.
+        can_select = not distributed or get_pp_group().world_size == 1
+        if is_unused_weight is not None and can_select:
+            selected_files = filter_safetensors_files_by_weight_name(
+                hf_weights_files, is_unused_weight
+            )
+        if distributed and can_select:
+            # RunAI broadcasts across node-local or WORLD groups, not just TP.
+            # A rank that cannot filter safely keeps the group on the full list.
+            group = get_world_group()
+            selections: list[Any] = [None] * group.world_size
+            torch.distributed.all_gather_object(
+                selections, (hf_weights_files, selected_files), group=group.cpu_group
+            )
+            if all(files == hf_weights_files for files, _ in selections):
+                needed = {path for _, selected in selections for path in selected}
+                selected_files = [path for path in hf_weights_files if path in needed]
+            else:
+                # Do not substitute another node's local checkpoint paths.
+                selected_files = hf_weights_files
         return runai_safetensors_weights_iterator(
-            hf_weights_files, self.load_config.use_tqdm_on_load, self._is_distributed
+            selected_files, self.load_config.use_tqdm_on_load, self._is_distributed
         )
 
     def download_model(self, model_config: ModelConfig) -> None:
@@ -132,11 +164,15 @@ class RunaiModelStreamerLoader(BaseModelLoader):
         self,
         model_config: ModelConfig,
         model: nn.Module,
-    ) -> Generator[tuple[str, torch.Tensor], None, None]:
+    ) -> Generator[tuple[str, torch.Tensor]]:
         model_weights = model_config.model
         if model_weights_override := model_config.model_weights:
             model_weights = model_weights_override
-        yield from self._get_weights_iterator(model_weights, model_config.revision)
+        yield from self._get_weights_iterator(
+            model_weights,
+            model_config.revision,
+            getattr(model, "is_unused_checkpoint_weight", None),
+        )
 
     def load_weights(self, model: nn.Module, model_config: ModelConfig) -> None:
         """Load weights into a model."""

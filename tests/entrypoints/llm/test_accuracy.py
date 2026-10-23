@@ -56,12 +56,10 @@ def run_test(model_name, more_args=None):
 @pytest.mark.parametrize("model", MODEL_NAMES)
 def test_lm_eval_accuracy_v1_engine(model):
     """Run with the V1 Engine."""
-
     run_test(model)
 
 
 @pytest.mark.parametrize("model", FP8_KV_MODEL_NAMES)
 def test_lm_eval_accuracy_v1_engine_fp8_kv_cache(model):
     """Run with the V1 Engine."""
-
     run_test(model)

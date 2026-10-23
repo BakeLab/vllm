@@ -74,7 +74,7 @@ class EmbedsInput(_InputOptions):
     type: Literal["embeds"]
     """The type of input."""
 
-    prompt_embeds: "torch.Tensor"
+    prompt_embeds: torch.Tensor
     """The embeddings of the prompt."""
 
     prompt: NotRequired[str]
@@ -95,7 +95,7 @@ class EmbedsInput(_InputOptions):
 
 
 def embeds_input(
-    prompt_embeds: "torch.Tensor",
+    prompt_embeds: torch.Tensor,
     *,
     prompt: str | None = None,
     cache_salt: str | None = None,
@@ -143,7 +143,7 @@ class MultiModalInput(_InputOptions):
     prompt: NotRequired[str]
     """The prompt text corresponding to the token IDs, if available."""
 
-    mm_kwargs: "MultiModalKwargsOptionalItems"
+    mm_kwargs: MultiModalKwargsOptionalItems
     """Keyword arguments to be directly passed to the model after batching."""
 
     mm_hashes: MultiModalHashes
@@ -158,7 +158,7 @@ class MultiModalInput(_InputOptions):
 
 def mm_input(
     prompt_token_ids: list[int],
-    mm_kwargs: "MultiModalKwargsOptionalItems",
+    mm_kwargs: MultiModalKwargsOptionalItems,
     mm_hashes: MultiModalHashes,
     mm_placeholders: MultiModalPlaceholders,
     *,

@@ -23,7 +23,7 @@ logger = init_logger(__name__)
 
 
 class OMPProcessManager:
-    def __init__(self, config: "VllmConfig"):
+    def __init__(self, config: VllmConfig):
         if not current_platform.is_cpu():
             return
 
@@ -45,7 +45,8 @@ class OMPProcessManager:
         # TODO: make scheduler proc sleep when idle
         self.reserve_cpu_num = (
             self.local_world_size
-            if current_platform.get_cpu_architecture() in (
+            if current_platform.get_cpu_architecture()
+            in (
                 CpuArchEnum.X86,
                 CpuArchEnum.ARM,
             )

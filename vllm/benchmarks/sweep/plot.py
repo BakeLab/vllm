@@ -29,10 +29,10 @@ class PlotFilterBase(ABC):
     def parse_str(cls, s: str):
         for op_key in PLOT_FILTERS:
             if op_key in s:
-                key, value = s.split(op_key)
+                key, _, value = s.partition(op_key)
                 return PLOT_FILTERS[op_key](
-                    key,
-                    value.removeprefix(op_key).strip("'").strip('"'),
+                    key.strip(),
+                    value.removeprefix(op_key).strip().strip("'").strip('"'),
                 )
         else:
             raise ValueError(
@@ -41,62 +41,70 @@ class PlotFilterBase(ABC):
             )
 
     @abstractmethod
-    def apply(self, df: "pd.DataFrame") -> "pd.DataFrame":
+    def apply(self, df: pd.DataFrame) -> pd.DataFrame:
         """Applies this filter to a DataFrame."""
         raise NotImplementedError
+
+
+def _parse_filter_target(series, target: str) -> float | bool | str:
+    """Parse a filter target using the column's value type when needed."""
+    if target.casefold() in ("true", "false"):
+        dtype_kind = getattr(series.dtype, "kind", None)
+        non_null_values = series.dropna()
+        is_boolean = dtype_kind == "b" or (
+            len(non_null_values) > 0
+            and all(isinstance(value, bool) for value in non_null_values)
+        )
+        if is_boolean:
+            return target.casefold() == "true"
+
+    try:
+        return float(target)
+    except ValueError:
+        return target
 
 
 @dataclass
 class PlotEqualTo(PlotFilterBase):
     @override
-    def apply(self, df: "pd.DataFrame") -> "pd.DataFrame":
-        target: float | str
-        try:
-            target = float(self.target)
-        except ValueError:
-            target = self.target
-
+    def apply(self, df: pd.DataFrame) -> pd.DataFrame:
+        target = _parse_filter_target(df[self.var], self.target)
         return df[df[self.var] == target]
 
 
 @dataclass
 class PlotNotEqualTo(PlotFilterBase):
     @override
-    def apply(self, df: "pd.DataFrame") -> "pd.DataFrame":
-        target: float | str
-        try:
-            target = float(self.target)
-        except ValueError:
-            target = self.target
-
+    def apply(self, df: pd.DataFrame) -> pd.DataFrame:
+        target = _parse_filter_target(df[self.var], self.target)
         return df[df[self.var] != target]
 
 
 @dataclass
 class PlotLessThan(PlotFilterBase):
     @override
-    def apply(self, df: "pd.DataFrame") -> "pd.DataFrame":
+    def apply(self, df: pd.DataFrame) -> pd.DataFrame:
         return df[df[self.var] < float(self.target)]
 
 
 @dataclass
 class PlotLessThanOrEqualTo(PlotFilterBase):
     @override
-    def apply(self, df: "pd.DataFrame") -> "pd.DataFrame":
+    def apply(self, df: pd.DataFrame) -> pd.DataFrame:
         return df[df[self.var] <= float(self.target)]
 
 
 @dataclass
 class PlotGreaterThan(PlotFilterBase):
     @override
-    def apply(self, df: "pd.DataFrame") -> "pd.DataFrame":
+    def apply(self, df: pd.DataFrame) -> pd.DataFrame:
         return df[df[self.var] > float(self.target)]
 
 
 @dataclass
 class PlotGreaterThanOrEqualTo(PlotFilterBase):
     @override
-    def apply(self, df: "pd.DataFrame") -> "pd.DataFrame":
+    def apply(self, df: pd.DataFrame) -> pd.DataFrame:
         return df[df[self.var] >= float(self.target)]
 
 
@@ -119,7 +127,7 @@ class PlotFilters(list[PlotFilterBase]):
 
         return cls(PlotFilterBase.parse_str(e) for e in s.split(","))
 
-    def apply(self, df: "pd.DataFrame") -> "pd.DataFrame":
+    def apply(self, df: pd.DataFrame) -> pd.DataFrame:
         for item in self:
             df = item.apply(df)
 
@@ -135,15 +143,17 @@ class PlotBinner:
     def parse_str(cls, s: str):
         for op_key in PLOT_BINNERS:
             if op_key in s:
-                key, value = s.split(op_key)
-                return PLOT_BINNERS[op_key](key, float(value.removeprefix(op_key)))
+                key, _, value = s.partition(op_key)
+                return PLOT_BINNERS[op_key](
+                    key.strip(), float(value.removeprefix(op_key).strip())
+                )
         else:
             raise ValueError(
                 f"Invalid operator for plot binner '{s}'. "
                 f"Valid operators are: {sorted(PLOT_BINNERS)}",
             )
 
-    def apply(self, df: "pd.DataFrame") -> "pd.DataFrame":
+    def apply(self, df: pd.DataFrame) -> pd.DataFrame:
         """Applies this binner to a DataFrame."""
         df = df.copy()
         df[self.var] = df[self.var] // self.bin_size * self.bin_size
@@ -163,7 +173,7 @@ class PlotBinners(list[PlotBinner]):
 
         return cls(PlotBinner.parse_str(e) for e in s.split(","))
 
-    def apply(self, df: "pd.DataFrame") -> "pd.DataFrame":
+    def apply(self, df: pd.DataFrame) -> pd.DataFrame:
         for item in self:
             df = item.apply(df)
 

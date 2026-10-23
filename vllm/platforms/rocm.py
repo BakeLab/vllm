@@ -109,6 +109,7 @@ _sync_hip_cuda_env_vars()
 def _get_gcn_arch() -> str:
     return torch.cuda.get_device_properties(0).gcnArchName
 
+
 # Resolve once at module load. These are plain Python bools and therefore
 # torch.compile/Dynamo safe.
 _GCN_ARCH = _get_gcn_arch()
@@ -117,6 +118,7 @@ _ON_GFX1X = any(arch in _GCN_ARCH for arch in ["gfx11", "gfx12"])
 _ON_GFX11 = "gfx11" in _GCN_ARCH
 _ON_GFX1100 = "gfx1100" in _GCN_ARCH
 _ON_GFX1151 = "gfx1151" in _GCN_ARCH
+_ON_GFX115X = "gfx115" in _GCN_ARCH
 _ON_GFX12X = any(arch in _GCN_ARCH for arch in ["gfx12"])
 _ON_MI3XX = any(arch in _GCN_ARCH for arch in ["gfx942", "gfx950"])
 _ON_GFX9 = any(arch in _GCN_ARCH for arch in ["gfx90a", "gfx942", "gfx950"])
@@ -218,6 +220,10 @@ def on_gfx1151() -> bool:
     return _ON_GFX1151
 
 
+def on_gfx115x() -> bool:
+    return _ON_GFX115X
+
+
 def on_gfx12x() -> bool:
     return _ON_GFX12X and not _ON_CDNA
 
@@ -298,6 +304,12 @@ if (
     and get_cdna_version() > 2
 ):
     os.environ["HIP_ONLINE_TUNING"] = "1"
+
+# RCCL 2.30's RAS thread can abort the process at exit ("terminate called
+# without an active exception") when its shutdown notification fails.
+# https://github.com/ROCm/rocm-systems/issues/13572
+if torch.version.hip:
+    os.environ.setdefault("NCCL_RAS_ENABLE", "0")
 
 
 @cache
@@ -414,7 +426,7 @@ def _get_backend_priorities(
     return backends
 
 
-def _uses_turboquant(vllm_config: "VllmConfig | None") -> bool:
+def _uses_turboquant(vllm_config: VllmConfig | None) -> bool:
     """Whether the run's KV cache dtype is one of the turboquant_* presets."""
     cache_config = getattr(vllm_config, "cache_config", None)
     return cache_config is not None and str(cache_config.cache_dtype).startswith(
@@ -422,7 +434,7 @@ def _uses_turboquant(vllm_config: "VllmConfig | None") -> bool:
     )
 
 
-def _uses_ultraquant(vllm_config: "VllmConfig | None") -> bool:
+def _uses_ultraquant(vllm_config: VllmConfig | None) -> bool:
     """Whether the run's KV cache dtype is the UltraQuant 4-bit format."""
     cache_config = getattr(vllm_config, "cache_config", None)
     return (
@@ -430,7 +442,7 @@ def _uses_ultraquant(vllm_config: "VllmConfig | None") -> bool:
     )
 
 
-def _shares_layout_with_turboquant(backend_class: type["AttentionBackend"]) -> bool:
+def _shares_layout_with_turboquant(backend_class: type[AttentionBackend]) -> bool:
     """Whether this backend reads a KV cache layout TURBOQUANT reads too.
 
     A turboquant_* run keeps its boundary layers at the native dtype (see
@@ -448,7 +460,7 @@ def _shares_layout_with_turboquant(backend_class: type["AttentionBackend"]) -> b
     return not set(layouts).isdisjoint(turboquant_layouts)
 
 
-def _shares_layout_with_ultraquant(backend_class: type["AttentionBackend"]) -> bool:
+def _shares_layout_with_ultraquant(backend_class: type[AttentionBackend]) -> bool:
     """Whether this backend reads a KV cache layout ULTRAQUANT reads too.
 
     Same constraint as _shares_layout_with_turboquant: an ultraquant_4bit run
@@ -465,9 +477,9 @@ def _shares_layout_with_ultraquant(backend_class: type["AttentionBackend"]) -> b
 
 
 def _get_invalid_reasons(
-    backend_class: type["AttentionBackend"],
+    backend_class: type[AttentionBackend],
     device_capability: DeviceCapability,
-    attn_selector_config: "AttentionSelectorConfig",
+    attn_selector_config: AttentionSelectorConfig,
     *,
     is_turboquant_run: bool,
     is_ultraquant_run: bool = False,
@@ -603,8 +615,8 @@ class RocmPlatform(Platform):
     @classmethod
     def get_attn_backend_cls(
         cls,
-        selected_backend: "AttentionBackendEnum | None",
-        attn_selector_config: "AttentionSelectorConfig",
+        selected_backend: AttentionBackendEnum | None,
+        attn_selector_config: AttentionSelectorConfig,
         num_heads: int | None = None,
     ) -> str:
         device_capability = cls.get_device_capability()
@@ -765,7 +777,11 @@ class RocmPlatform(Platform):
 
         from vllm._aiter_ops import rocm_aiter_ops
 
-        if rocm_aiter_ops.is_mha_enabled() and on_cdna():
+        if (
+            rocm_aiter_ops.is_mha_enabled()
+            and on_cdna()
+            and (dtype == torch.float16 or dtype == torch.bfloat16)
+        ):
             logger.info_once("Using AITER Flash Attention backend for ViT model.")
             return AttentionBackendEnum.ROCM_AITER_FA
 
@@ -794,8 +810,8 @@ class RocmPlatform(Platform):
     @classmethod
     def get_mla_prefill_backend_cls(
         cls,
-        mla_selector_config: "MLAPrefillSelectorConfig",
-    ) -> "type[MLAPrefillBackend]":
+        mla_selector_config: MLAPrefillSelectorConfig,
+    ) -> type[MLAPrefillBackend]:
         """On ROCm, prefer the AITER FlashAttention backend, falling back to
         FlashAttention.
 
@@ -868,9 +884,7 @@ class RocmPlatform(Platform):
 
     @classmethod
     def is_fully_connected(cls, physical_device_ids: list[int]) -> bool:
-        """
-        Query whether every GPU can directly access every peer GPU.
-        """
+        """Query whether every GPU can directly access every peer GPU."""
         visible_physical_ids = [
             cls.visible_device_id_to_physical_device_id(device_id)
             for device_id in range(cls.device_count())
@@ -906,7 +920,7 @@ class RocmPlatform(Platform):
 
     @classmethod
     def pre_register_and_update(
-        cls, parser: "FlexibleArgumentParser | None" = None
+        cls, parser: FlexibleArgumentParser | None = None
     ) -> None:
         # Keep mmap'd weight pages on the HIP staging path: above this
         # threshold the runtime registers the pageable source instead, and each
@@ -953,6 +967,17 @@ class RocmPlatform(Platform):
 
         # Default dispatch to rocm's sparse_attn_indexer implementation
         compilation_config.custom_ops.append("+sparse_attn_indexer")
+
+        # Default the gated RMSNorm custom op on for unquantized models. Quantized
+        # is untested in serving.
+        model_config = vllm_config.model_config
+        if (
+            model_config is not None
+            and model_config.quantization is None
+            and "+rms_norm_gated" not in compilation_config.custom_ops
+            and "-rms_norm_gated" not in compilation_config.custom_ops
+        ):
+            compilation_config.custom_ops.append("+rms_norm_gated")
 
     @classmethod
     def check_and_update_config(cls, vllm_config: VllmConfig) -> None:
@@ -1040,7 +1065,7 @@ class RocmPlatform(Platform):
 
     @classmethod
     def supports_fp8(cls) -> bool:
-        return on_cdna() or on_rdna4()
+        return on_cdna() or on_rdna()
 
     @classmethod
     def is_fp8_fnuz(cls) -> bool:
@@ -1201,12 +1226,14 @@ class RocmPlatform(Platform):
         default = ["native"] if using_inductor else ["vllm_c", "native"]
 
         #  Aiter rms norm perform best when CUDA Graph capture is enabled.
-        # TODO(luka/TJ) remove env vars completely
+        # TODO(Rohan138/dllehr-amd/rasmith) Change this to be an inclusive
+        # check instead of exclusive check in the future.
         if (
             cc.cudagraph_mode != CUDAGraphMode.NONE
             and envs.VLLM_ROCM_USE_AITER
             and envs.VLLM_ROCM_USE_AITER_RMSNORM
             and not on_rdna4()
+            and not on_gfx90a()  # AITER not built for gfx90a, rmsnorm -> SEGV.
         ):
             rms_norm = ["aiter"] + default
         else:

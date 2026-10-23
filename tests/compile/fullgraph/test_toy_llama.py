@@ -343,7 +343,6 @@ def test_toy_llama(
     # 1. To make sure we can properly track the number of Inductor compilations.
     monkeypatch.setenv("VLLM_DISABLE_COMPILE_CACHE", "1")
 
-
     # compare output with and without piecewise compilation
 
     llama_config = LlamaConfig(

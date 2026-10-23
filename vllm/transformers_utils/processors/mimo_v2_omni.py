@@ -21,6 +21,7 @@ from PIL import Image
 from transformers import BatchFeature, TensorType
 from transformers.audio_utils import mel_filter_bank
 from transformers.processing_utils import ProcessorMixin
+
 from vllm.multimodal.audio import resample_audio_torch
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,7 @@ class _MelSpectrogram(torch.nn.Module):
             self.filterbank.to(device=waveform.device, dtype=waveform.dtype).T,
             spectrum,
         )
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -977,7 +979,7 @@ class MiMoOmniProcessor(ProcessorMixin):
         cls,
         tokenizer: Any,
         hf_config: Any,
-    ) -> "MiMoOmniProcessor":
+    ) -> MiMoOmniProcessor:
         """Instantiate directly from an HF model config object."""
         vc = hf_config.vision_config
         if isinstance(vc, dict):

@@ -768,7 +768,7 @@ class KDARecoverSSMCommitContext:
         *,
         spec_query_len: int,
         max_num_reqs: int,
-    ) -> "KDARecoverSSMCommitContext":
+    ) -> KDARecoverSSMCommitContext:
         if not layers:
             raise ValueError("KDA RecoverSSM commit requires at least one layer")
         if any(len(layer.kv_cache) != 4 for layer in layers):

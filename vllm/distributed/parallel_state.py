@@ -50,6 +50,7 @@ from vllm.distributed.device_communicators.base_device_communicator import (
 )
 from vllm.distributed.utils import (
     StatelessProcessGroup,
+    cpu_all_reduce_,
     create_tcp_store,
     get_cached_tcp_store_client,
 )
@@ -156,10 +157,10 @@ def _get_unique_name(name: str) -> str:
     return newname
 
 
-_groups: dict[str, Callable[[], "GroupCoordinator | None"]] = {}
+_groups: dict[str, Callable[[], GroupCoordinator | None]] = {}
 
 
-def _register_group(group: "GroupCoordinator") -> None:
+def _register_group(group: GroupCoordinator) -> None:
     _groups[group.unique_name] = weakref.ref(group)
 
 
@@ -1064,7 +1065,7 @@ class GroupCoordinator:
         self,
         key: str,
         numel: int,
-        all_gather_group: "GroupCoordinator | None",
+        all_gather_group: GroupCoordinator | None,
         all_gather_tensors: dict[str, bool] | None,
     ) -> bool:
         if all_gather_group is None:
@@ -1078,7 +1079,7 @@ class GroupCoordinator:
         self,
         tensor_dict: dict[str, torch.Tensor | Any],
         dst: int | None = None,
-        all_gather_group: "GroupCoordinator | None" = None,
+        all_gather_group: GroupCoordinator | None = None,
         all_gather_tensors: dict[str, bool] | None = None,
     ) -> dict[str, torch.Tensor | Any] | None:
         """Send the input tensor dictionary.
@@ -1159,7 +1160,7 @@ class GroupCoordinator:
         self,
         tensor_dict: dict[str, torch.Tensor | Any],
         dst: int | None = None,
-        all_gather_group: "GroupCoordinator | None" = None,
+        all_gather_group: GroupCoordinator | None = None,
         all_gather_tensors: dict[str, bool] | None = None,
     ) -> list[Handle]:
         """Send the input tensor dictionary asynchronously.
@@ -1242,7 +1243,7 @@ class GroupCoordinator:
     def recv_tensor_dict(
         self,
         src: int | None = None,
-        all_gather_group: "GroupCoordinator | None" = None,
+        all_gather_group: GroupCoordinator | None = None,
         all_gather_tensors: dict[str, bool] | None = None,
     ) -> dict[str, torch.Tensor | Any] | None:
         """Recv the input tensor dictionary.
@@ -1280,7 +1281,7 @@ class GroupCoordinator:
     def irecv_tensor_dict(
         self,
         src: int | None = None,
-        all_gather_group: "GroupCoordinator | None" = None,
+        all_gather_group: GroupCoordinator | None = None,
         all_gather_tensors: dict[str, bool] | None = None,
     ) -> tuple[
         dict[str, torch.Tensor | Any] | None,
@@ -1371,6 +1372,10 @@ class GroupCoordinator:
         device. Use the CPU group instead.
         """
         torch.distributed.barrier(group=self.cpu_group)
+
+    def cpu_all_reduce_(self, tensor: torch.Tensor) -> torch.Tensor:
+        """In-place SUM all-reduce of a small CPU tensor over `cpu_group`."""
+        return cpu_all_reduce_(tensor, self.cpu_group)
 
     def send(self, tensor: torch.Tensor, dst: int | None = None) -> None:
         """Sends a tensor to the destination rank in a blocking way."""
@@ -1535,7 +1540,7 @@ def _init_stateless_group(
     coord_store: Store,
     use_device_communicator: bool = True,
     use_all2all: bool = False,
-) -> "StatelessGroupCoordinator":
+) -> StatelessGroupCoordinator:
     """Create a StatelessGroupCoordinator with the given parameters."""
     from vllm.distributed.stateless_coordinator import StatelessGroupCoordinator
 
@@ -1676,6 +1681,11 @@ def get_pcp_group() -> GroupCoordinator:
     return _PCP
 
 
+def _aiter_registers_graph_buffers(group: GroupCoordinator) -> bool:
+    comm = getattr(group.device_communicator, "aiter_ar_comm", None)
+    return comm is not None and comm.registers_graph_buffers
+
+
 @contextmanager
 def graph_capture(device: torch.device):
     """`graph_capture` is a context manager which should surround the code that
@@ -1690,11 +1700,23 @@ def graph_capture(device: torch.device):
     in order to explicitly distinguish the kernels to capture
     from other kernels possibly launched on background in the default stream.
     """
+    from vllm.device_allocator.alloc_conf import non_expandable_allocations
+    from vllm.platforms import current_platform
+
+    tp, pp, dp = get_tp_group(), get_pp_group(), get_dp_group()
     context = GraphCaptureContext(torch.cuda.Stream(device=device))
+    # Let AITER all-reduce register captured buffers instead of copying them.
+    # Not with DP AITER collectives: they reduce workspaces allocated earlier.
+    non_expandable = (
+        current_platform.is_rocm()
+        and _aiter_registers_graph_buffers(tp)
+        and not _aiter_registers_graph_buffers(dp)
+    )
     with (
-        get_tp_group().graph_capture(context),
-        get_pp_group().graph_capture(context),
-        get_dp_group().graph_capture(context),
+        non_expandable_allocations() if non_expandable else nullcontext(),
+        tp.graph_capture(context),
+        pp.graph_capture(context),
+        dp.graph_capture(context),
     ):
         yield context
 

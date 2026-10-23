@@ -191,14 +191,14 @@ class PromptUpdateDetails:
     """
 
     @staticmethod
-    def from_seq(seq: list[int]) -> "PromptUpdateDetails":
+    def from_seq(seq: list[int]) -> PromptUpdateDetails:
         return PromptUpdateDetails(full=seq)
 
     @staticmethod
     def select_token_id(
         seq: list[int],
         embed_token_id: int,
-    ) -> "PromptUpdateDetails":
+    ) -> PromptUpdateDetails:
         def is_embed(full: list[int]) -> torch.Tensor:
             return torch.tensor(full) == embed_token_id
 
@@ -208,7 +208,7 @@ class PromptUpdateDetails:
     def select_token_ids(
         seq: list[int],
         embed_token_ids: list[int],
-    ) -> "PromptUpdateDetails":
+    ) -> PromptUpdateDetails:
         def is_embed(full: list[int]) -> torch.Tensor:
             return torch.isin(
                 torch.tensor(full),
@@ -291,7 +291,7 @@ class PromptUpdate(ABC):
 
         return content
 
-    def resolve(self, item_idx: int) -> "ResolvedPromptUpdate":
+    def resolve(self, item_idx: int) -> ResolvedPromptUpdate:
         """Given the index of the processed item within
         [`modality`][vllm.multimodal.processing.PromptUpdate.modality],
         output a copy of this object with its lazy attributes resolved.
@@ -631,7 +631,7 @@ def _target_key(target: UpdateTarget) -> tuple[str, object]:
 
 
 def _compile_prompt_update_queues(
-    mm_prompt_updates: "MultiModalPromptUpdates",
+    mm_prompt_updates: MultiModalPromptUpdates,
 ) -> dict[
     tuple[tuple[UpdateMode, tuple[str, object]], ...],
     _UpdateQueue,
@@ -658,7 +658,7 @@ def _compile_prompt_update_queues(
 
 _IterMatches: TypeAlias = Callable[
     [ResolvedPromptUpdate, int],
-    Generator[PromptTargetMatch, None, None],
+    Generator[PromptTargetMatch],
 ]
 """Yields each match of an update's target, given the search start index."""
 
@@ -690,9 +690,9 @@ def _next_priority(queue: _UpdateQueue) -> int:
 
 
 def _plan_prompt_updates_with(
-    mm_prompt_updates: "MultiModalPromptUpdates",
+    mm_prompt_updates: MultiModalPromptUpdates,
     iter_matches: _IterMatches,
-) -> tuple[list[_MatchedUpdate], "MultiModalPromptUpdatesApplyResult"]:
+) -> tuple[list[_MatchedUpdate], MultiModalPromptUpdatesApplyResult]:
     """Plan non-overlapping prompt updates before rendering the output."""
     queues = list(_compile_prompt_update_queues(mm_prompt_updates).values())
     result: MultiModalPromptUpdatesApplyResult = {
@@ -784,8 +784,8 @@ def _plan_prompt_updates_with(
 
 def _plan_prompt_updates(
     prompt: list[int],
-    mm_prompt_updates: "MultiModalPromptUpdates",
-) -> tuple[list[_MatchedUpdate], "MultiModalPromptUpdatesApplyResult"]:
+    mm_prompt_updates: MultiModalPromptUpdates,
+) -> tuple[list[_MatchedUpdate], MultiModalPromptUpdatesApplyResult]:
     """Plan non-overlapping prompt updates before rendering the output."""
     return _plan_prompt_updates_with(
         mm_prompt_updates,
@@ -807,8 +807,8 @@ def _all_items_found(
 
 def _apply_matches(
     prompt: list[int],
-    mm_prompt_updates: "MultiModalPromptUpdates",
-) -> tuple[list[list[int]], "MultiModalPromptUpdatesApplyResult"]:
+    mm_prompt_updates: MultiModalPromptUpdates,
+) -> tuple[list[list[int]], MultiModalPromptUpdatesApplyResult]:
     out_seqs = list[list[int]]()
     matched_updates, result = _plan_prompt_updates(prompt, mm_prompt_updates)
 
@@ -835,8 +835,8 @@ def _apply_matches(
 
 def apply_token_matches(
     prompt: list[int],
-    mm_prompt_updates: "MultiModalPromptUpdates",
-) -> tuple[list[int], "MultiModalPromptUpdatesApplyResult"]:
+    mm_prompt_updates: MultiModalPromptUpdates,
+) -> tuple[list[int], MultiModalPromptUpdatesApplyResult]:
     """Apply the updates in `mm_prompt_updates` to `prompt`.
 
     Matches are exclusive even when multiple modalities share
@@ -850,10 +850,10 @@ def apply_token_matches(
 
 def _apply_token_matches_with_placeholders(
     token_ids: list[int],
-    mm_prompt_updates: "MultiModalPromptUpdates",
+    mm_prompt_updates: MultiModalPromptUpdates,
 ) -> tuple[
     list[int],
-    "MultiModalPromptUpdatesApplyResult",
+    MultiModalPromptUpdatesApplyResult,
     Mapping[str, list[PlaceholderFeaturesInfo]],
 ]:
     matched_updates, result = _plan_prompt_updates(token_ids, mm_prompt_updates)
@@ -902,7 +902,7 @@ def _apply_token_matches_with_placeholders(
 
 def _iter_placeholders(
     prompt: list[int],
-    mm_prompt_updates: "MultiModalPromptUpdates",
+    mm_prompt_updates: MultiModalPromptUpdates,
 ) -> Iterable[PlaceholderFeaturesInfo]:
     """Yield each set of placeholder tokens found in `prompt`.
 
@@ -981,7 +981,7 @@ def _iter_placeholders(
 
 def find_mm_placeholders(
     prompt: list[int],
-    mm_prompt_updates: "MultiModalPromptUpdates",
+    mm_prompt_updates: MultiModalPromptUpdates,
 ) -> Mapping[str, list[PlaceholderFeaturesInfo]]:
     it = _iter_placeholders(prompt, mm_prompt_updates)
     return dict(full_groupby_modality(it))
@@ -1040,7 +1040,7 @@ class BaseMultiModalProcessor(ABC, Generic[_I]):
     def __init__(
         self,
         info: _I,
-        dummy_inputs: "BaseDummyInputsBuilder[_I]",
+        dummy_inputs: BaseDummyInputsBuilder[_I],
     ) -> None:
         super().__init__()
 
@@ -1096,7 +1096,7 @@ class BaseMultiModalProcessor(ABC, Generic[_I]):
         mm_counts: Mapping[str, int],
         *,
         cache: BaseMultiModalProcessorCache | None = None,
-        scheduler_config: "SchedulerConfig | None" = None,
+        scheduler_config: SchedulerConfig | None = None,
     ) -> MultiModalInput:
         """Create dummy data for profiling the memory usage of a model."""
         model_config = self.info.ctx.model_config
@@ -1594,7 +1594,7 @@ class BaseMultiModalProcessor(ABC, Generic[_I]):
         tokenizer: TokenizerLike,
         *,
         start_idx: int = 0,
-    ) -> Generator[PromptTargetMatch, None, None]:
+    ) -> Generator[PromptTargetMatch]:
         """Yield each instance of `update.target` found in `prompt_text`."""
         target = update.target
 

@@ -143,8 +143,8 @@ class XPUPlatform(Platform):
     @classmethod
     def get_attn_backend_cls(
         cls,
-        selected_backend: "AttentionBackendEnum",
-        attn_selector_config: "AttentionSelectorConfig",
+        selected_backend: AttentionBackendEnum,
+        attn_selector_config: AttentionSelectorConfig,
         num_heads: int | None = None,
     ) -> str:
         # TurboQuant KV cache: route directly to TQ backend
@@ -213,8 +213,8 @@ class XPUPlatform(Platform):
         elif attn_selector_config.use_mm_prefix:
             # Flash Attention on XPU has no FA4 kernel, so it cannot apply the
             # multimodal prefix-LM bidirectional mask. Honor an explicit Flash
-            # Attention request (for text-only workloads); otherwise fall back
-            # to Triton Attention, which supports mm_prefix.
+            # Attention request (for text-only workloads); otherwise use the
+            # Triton/FlashAttention composite, falling back to Triton Attention.
             if selected_backend == AttentionBackendEnum.FLASH_ATTN:
                 logger.warning_once(
                     "Using Flash Attention on XPU for a multimodal prefix-LM "
@@ -224,6 +224,29 @@ class XPUPlatform(Platform):
                     "text-only workloads."
                 )
                 return AttentionBackendEnum.FLASH_ATTN.get_path()
+            if (
+                selected_backend in (None, AttentionBackendEnum.TRITON_FLASH_ATTN)
+                and dtype != torch.float32
+            ):
+                from vllm.v1.attention.backends.triton_flash_attn import (
+                    TritonFlashAttentionBackend,
+                )
+
+                if TritonFlashAttentionBackend.supports_head_size(
+                    attn_selector_config.head_size
+                ):
+                    logger.info_once(
+                        "Using the Triton/FlashAttention composite backend on "
+                        "XPU: batches with multimodal prefix masks run Triton "
+                        "Attention, causal batches run Flash Attention."
+                    )
+                    return AttentionBackendEnum.TRITON_FLASH_ATTN.get_path()
+                if selected_backend == AttentionBackendEnum.TRITON_FLASH_ATTN:
+                    raise ValueError(
+                        "TRITON_FLASH_ATTN on XPU supports head sizes "
+                        f"{TritonFlashAttentionBackend.get_supported_head_sizes()}"
+                        f", got {attn_selector_config.head_size}."
+                    )
             logger.warning_once(
                 "Flash Attention on XPU does not support multimodal prefix-LM "
                 "attention. Falling back to Triton Attention backend."
@@ -248,7 +271,7 @@ class XPUPlatform(Platform):
         return AttentionBackendEnum.FLASH_ATTN.get_path()
 
     @classmethod
-    def get_supported_vit_attn_backends(cls) -> list["AttentionBackendEnum"]:
+    def get_supported_vit_attn_backends(cls) -> list[AttentionBackendEnum]:
         return [
             AttentionBackendEnum.FLASH_ATTN,
             AttentionBackendEnum.TRITON_ATTN,
@@ -260,8 +283,8 @@ class XPUPlatform(Platform):
         cls,
         head_size: int,
         dtype: torch.dtype,
-        backend: "AttentionBackendEnum | None" = None,
-    ) -> "AttentionBackendEnum":
+        backend: AttentionBackendEnum | None = None,
+    ) -> AttentionBackendEnum:
         if dtype == torch.float32:
             logger.warning_once(
                 "Flash Attention on XPU does not support float32 dtype. "
@@ -447,7 +470,7 @@ class XPUPlatform(Platform):
             )
 
     @classmethod
-    def update_block_size_for_backend(cls, vllm_config: "VllmConfig") -> None:
+    def update_block_size_for_backend(cls, vllm_config: VllmConfig) -> None:
         super().update_block_size_for_backend(vllm_config)
         from vllm.config.vllm import get_layers_from_vllm_config
         from vllm.model_executor.layers.attention_layer_base import (
@@ -548,9 +571,7 @@ class XPUPlatform(Platform):
         return True
 
     @classmethod
-    def get_default_ir_op_priority(
-        cls, vllm_config: "VllmConfig"
-    ) -> "IrOpPriorityConfig":
+    def get_default_ir_op_priority(cls, vllm_config: VllmConfig) -> IrOpPriorityConfig:
         from vllm.config.compilation import CompilationMode
         from vllm.config.kernel import IrOpPriorityConfig
 

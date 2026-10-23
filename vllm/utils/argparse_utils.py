@@ -7,11 +7,14 @@ import json
 import sys
 import textwrap
 from argparse import (
+    Action,
     ArgumentDefaultsHelpFormatter,
     ArgumentParser,
     ArgumentTypeError,
+    BooleanOptionalAction,
     Namespace,
     RawDescriptionHelpFormatter,
+    _ArgumentGroup,
 )
 from collections import defaultdict
 from typing import Any, NoReturn
@@ -114,6 +117,39 @@ class SortedHelpFormatter(ArgumentDefaultsHelpFormatter, RawDescriptionHelpForma
         super().add_arguments(actions)
 
 
+class EnableDisableAction(BooleanOptionalAction):
+    """`BooleanOptionalAction` that pairs `--enable-x` with `--disable-x`.
+
+    `--no-enable-x` and `--no-disable-x` are still accepted for backwards
+    compatibility, but are hidden from help.
+    """
+
+    _inverse_prefixes = {"--enable-": "--disable-", "--disable-": "--enable-"}
+
+    def __init__(self, option_strings, dest, *args, **kwargs):
+        super().__init__(option_strings, dest, *args, **kwargs)
+        inverses = [
+            inverse + opt.removeprefix(prefix)
+            for opt in option_strings
+            for prefix, inverse in self._inverse_prefixes.items()
+            if opt.startswith(prefix)
+        ]
+        negated = {opt for opt in self.option_strings if opt not in option_strings}
+        self.negative_option_strings = negated | set(inverses)
+        self.visible_option_strings = (
+            [*option_strings, *inverses] if inverses else list(self.option_strings)
+        )
+        self.option_strings = [*self.option_strings, *inverses]
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, option_string not in self.negative_option_strings)
+
+
+def _register_action(action: Action):
+    if isinstance(action, EnableDisableAction):
+        action.option_strings = action.visible_option_strings
+
+
 class FlexibleArgumentParser(ArgumentParser):
     """ArgumentParser that allows both underscore and dash in names."""
 
@@ -135,6 +171,7 @@ class FlexibleArgumentParser(ArgumentParser):
         # Pop kwarg "add_json_tip" to control whether to add the JSON tip
         self.add_json_tip = kwargs.pop("add_json_tip", True)
         super().__init__(*args, **kwargs)
+        self.register("action", BooleanOptionalAction, EnableDisableAction)
         self._show_serve_task_hint = False
 
     def error(self, message: str) -> NoReturn:
@@ -151,6 +188,22 @@ class FlexibleArgumentParser(ArgumentParser):
                 "--convert reward."
             )
         super().error(message)
+
+    def add_argument(self, *args, **kwargs):
+        action = super().add_argument(*args, **kwargs)
+        _register_action(action)
+        return action
+
+    class _FlexibleArgumentGroup(_ArgumentGroup):
+        def add_argument(self, *args, **kwargs):
+            action = super().add_argument(*args, **kwargs)
+            _register_action(action)
+            return action
+
+    def add_argument_group(self, *args, **kwargs):
+        group = self._FlexibleArgumentGroup(self, *args, **kwargs)
+        self._action_groups.append(group)
+        return group
 
     def format_help(self):
         # Only use custom help formatting for bottom level parsers

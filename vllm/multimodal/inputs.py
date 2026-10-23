@@ -140,7 +140,7 @@ class PlaceholderRange:
     length: int
     """The length of the placeholder."""
 
-    is_embed: "torch.Tensor | None" = None
+    is_embed: torch.Tensor | None = None
     """
     A boolean mask of shape `(length,)` indicating which positions
     between `offset` and `offset + length` to assign embeddings to.
@@ -349,7 +349,7 @@ class MultiModalFeatureSpec:
     `MultiModalFeatureSpec` per item.
     """
 
-    data: "MultiModalKwargsItem | None"
+    data: MultiModalKwargsItem | None
     """
     Represents multimodal data for this feature.
 
@@ -373,7 +373,7 @@ class MultiModalFeatureSpec:
     """The hash for caching processor outputs (without LoRA prefix)."""
 
     @staticmethod
-    def gather_kwargs(features: list["MultiModalFeatureSpec"], keys: set[str]):
+    def gather_kwargs(features: list[MultiModalFeatureSpec], keys: set[str]):
         kwargs = defaultdict[str, list[NestedTensors]](list)
 
         for f in features:
@@ -402,7 +402,7 @@ class MultiModalFieldElem:
     in `EngineCore`.
     """
 
-    field: "BaseMultiModalField"
+    field: BaseMultiModalField
     """
     Defines how to combine the tensor data of this field with others
     in order to batch multi-modal items together for model inference.
@@ -746,7 +746,7 @@ class MultiModalFieldConfig:
     @staticmethod
     def flat_from_sizes(
         modality: str,
-        size_per_item: "torch.Tensor",
+        size_per_item: torch.Tensor,
         dim: int = 0,
         *,
         keep_on_cpu: bool = False,
@@ -931,7 +931,7 @@ class MultiModalKwargsItems(UserDict[str, Sequence[_I]]):
 
     @staticmethod
     def from_hf_inputs(
-        hf_inputs: "BatchFeature",
+        hf_inputs: BatchFeature,
         config_by_key: Mapping[str, MultiModalFieldConfig],
     ):
         # NOTE: This skips fields in `hf_inputs` that are not in `config_by_key`
@@ -974,7 +974,7 @@ class MultiModalKwargsItems(UserDict[str, Sequence[_I]]):
 
         return super().__getitem__(modality)  # type: ignore[return-value]
 
-    def require_data(self) -> "MultiModalKwargsItems[MultiModalKwargsItem]":
+    def require_data(self) -> MultiModalKwargsItems[MultiModalKwargsItem]:
         for modality, items in self.items():
             for i, item in enumerate(items):
                 if item is None:

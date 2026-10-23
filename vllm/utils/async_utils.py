@@ -82,13 +82,13 @@ def in_loop(event_loop: AbstractEventLoop) -> bool:
 # A hack to pass mypy
 if TYPE_CHECKING:
 
-    def anext(it: AsyncGenerator[T, None]):
+    def anext(it: AsyncGenerator[T]):
         return it.__anext__()
 
 
 async def merge_async_iterators(
-    *iterators: AsyncGenerator[T, None],
-) -> AsyncGenerator[tuple[int, T], None]:
+    *iterators: AsyncGenerator[T],
+) -> AsyncGenerator[tuple[int, T]]:
     """Merge multiple asynchronous iterators into a single iterator.
 
     This method handle the case where some iterators finish before others.
@@ -97,7 +97,7 @@ async def merge_async_iterators(
     """
     if len(iterators) == 1:
         # Fast-path single iterator case.
-        iterator: AsyncGenerator[T, None] | None = iterators[0]
+        iterator: AsyncGenerator[T] | None = iterators[0]
         try:
             async for item in iterator:  # type: ignore[union-attr]
                 yield 0, item
@@ -131,7 +131,7 @@ async def merge_async_iterators(
                 await it.aclose()
 
 
-async def collect_from_async_generator(iterator: AsyncGenerator[T, None]) -> list[T]:
+async def collect_from_async_generator(iterator: AsyncGenerator[T]) -> list[T]:
     """Collect all items from an async generator into a list."""
     items = []
     async for item in iterator:

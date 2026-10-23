@@ -96,8 +96,9 @@ if ccache and env.get("CCACHE_DISABLE") != "1":
         print("[build_deepgemm_C] using ccache for host compilation", flush=True)
 
 print(f"[build_deepgemm_C] building in {src} with {sys.executable}", flush=True)
+# CMake decides when to rebuild; setuptools would only check python_api.cpp.
 subprocess.check_call(
-    [sys.executable, "setup.py", "build_ext", "--inplace"],
+    [sys.executable, "setup.py", "build_ext", "--inplace", "--force"],
     cwd=src,
     env=env,
 )

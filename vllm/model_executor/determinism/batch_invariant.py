@@ -1163,7 +1163,7 @@ def _fixed_order_sum_kernel(
 
 
 def all_reduce_batch_invariant(
-    input_: torch.Tensor, group: "torch.distributed.ProcessGroup | None" = None
+    input_: torch.Tensor, group: torch.distributed.ProcessGroup | None = None
 ) -> torch.Tensor:
     """Sum all-reduce whose result does not depend on the message size.
 
@@ -1200,7 +1200,7 @@ def all_reduce_batch_invariant(
 
 def reduce_scatter_batch_invariant(
     input_: torch.Tensor,
-    group: "torch.distributed.ProcessGroup | None" = None,
+    group: torch.distributed.ProcessGroup | None = None,
     sizes: list[int] | None = None,
 ) -> torch.Tensor:
     """Sum reduce-scatter over dim 0 whose result does not depend on the size.
@@ -1421,6 +1421,10 @@ def override_envs_for_invariance():
 
     # torch.compile settings
     os.environ["VLLM_USE_AOT_COMPILE"] = "0"
+    import torch._inductor.config as inductor_config
+
+    if hasattr(inductor_config, "batch_invariant"):
+        inductor_config.batch_invariant = True
 
 
 def init_batch_invariance():

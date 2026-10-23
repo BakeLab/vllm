@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING, Any, TypeVar
 import numpy as np
 import numpy.typing as npt
 import torch
+from torch._custom_class_base import CustomClassBase
+from torch._library.opaque_object import register_custom_class
 from torch.library import Library, infer_schema
 
 import vllm.envs as envs
@@ -27,6 +29,10 @@ else:
 logger = init_logger(__name__)
 
 
+# NOTE: registration-time-mutable. Platform backends inject custom
+# --kv-cache-dtype entries here via register_kv_cache_dtype(). Never snapshot
+# this dict (no dict(...), .copy(), list(.keys()), etc.) — every consumer must
+# hold a reference to this live object to see later-registered entries.
 STR_DTYPE_TO_TORCH_DTYPE = {
     "float32": torch.float32,
     "half": torch.half,
@@ -78,19 +84,6 @@ def __getattr__(name: str) -> Any:
     if name == "PIN_MEMORY":
         return is_pin_memory_available()
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
-def is_quantized_kv_cache(kv_cache_dtype: str) -> bool:
-    return (
-        kv_cache_dtype.startswith("fp8")
-        or kv_cache_dtype.endswith("per_token_head")
-        or kv_cache_dtype.startswith("nvfp4")
-    )
-
-
-def kv_cache_uses_per_token_head_scales(kv_cache_dtype: str) -> bool:
-    """Return True if *kv_cache_dtype* needs per-token-head scales."""
-    return kv_cache_dtype.endswith("per_token_head")
 
 
 def is_meta_module(module: torch.nn.Module) -> bool:
@@ -943,8 +936,6 @@ def get_accelerator_view_from_cpu_tensor(cpu_tensor: torch.Tensor) -> torch.Tens
 
 
 # The trim PyTorch branch provides the opaque custom-class API unconditionally.
-from torch._custom_class_base import CustomClassBase
-from torch._library.opaque_object import register_custom_class
 
 _USE_LAYERNAME = envs.VLLM_USE_LAYERNAME
 

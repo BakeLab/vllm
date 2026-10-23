@@ -1140,7 +1140,7 @@ class MimoAudioEncoderConfig:
     audio_segment_size: int = 6000
 
     @classmethod
-    def from_dict(cls, d: dict) -> "MimoAudioEncoderConfig":
+    def from_dict(cls, d: dict) -> MimoAudioEncoderConfig:
         known = {f.name for f in dataclasses.fields(cls)}
         return cls(**{k: v for k, v in d.items() if k in known})
 

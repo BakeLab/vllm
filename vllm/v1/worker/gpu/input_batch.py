@@ -120,7 +120,7 @@ class InputBatch:
 
     # Arms the KV-sharing fast prefill path for this step. Absent for dummy
     # (cudagraph capture) batches, which run the KV-sharing layers in full.
-    fast_prefill: "FastPrefillBatchMetadata | None" = None
+    fast_prefill: FastPrefillBatchMetadata | None = None
 
     # [num_reqs] set only under PCP+DCP (see CommonAttentionMetadata).
     dcp_local_seq_lens_cpu_upper_bound: torch.Tensor | None = None
@@ -138,7 +138,7 @@ class InputBatch:
         input_buffers: InputBuffers,
         max_query_len: int | None = None,
         is_padding: bool = True,
-    ) -> "InputBatch":
+    ) -> InputBatch:
         assert 0 < num_reqs <= num_tokens
         device = input_buffers.device
 
@@ -229,13 +229,14 @@ class InputBatch:
 
 def set_dummy_context(
     input_batch: InputBatch,
-    block_tables: "BlockTables",
+    block_tables: BlockTables,
     context_len: int,
     num_kv_blocks: int,
     max_model_len: int,
     input_block_tables: Sequence[torch.Tensor] | None = None,
 ) -> None:
-    """Give each dummy request context_len of context, used when profiling step cost."""
+    """Give each dummy request context_len of context, for profiling step cost
+    and for DCP FULL cudagraph capture."""
     if input_block_tables is None:
         input_block_tables = block_tables.input_block_tables
     if not input_block_tables:

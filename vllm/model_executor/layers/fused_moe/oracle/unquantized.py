@@ -126,10 +126,10 @@ def backend_to_kernel_cls(
 
     elif backend == UnquantizedMoeBackend.AITER:
         from vllm.model_executor.layers.fused_moe.experts.rocm_aiter_moe import (
-            AiterExperts,
+            AiterUnquantizedExperts,
         )
 
-        return [AiterExperts]
+        return [AiterUnquantizedExperts]
 
     elif backend == UnquantizedMoeBackend.TRITON:
         from vllm.model_executor.layers.fused_moe.experts.triton_moe import (
@@ -223,7 +223,6 @@ def select_unquantized_moe_backend(
     """Select the primary Unquantized MoE backend.
     Note: Shape-specific fallbacks may still occur at runtime.
     """
-
     if current_platform.is_cpu():
         # TODO: migrate to MK structure.
         return UnquantizedMoeBackend.CPU, None
@@ -303,9 +302,10 @@ def select_unquantized_moe_backend(
         )
 
     runner_backend = moe_config.moe_backend
-    # 'humming' is quantization-only; an unquantized layer (e.g. excluded via
-    # modules_to_not_convert) falls through to auto instead of erroring.
-    if runner_backend not in ["auto", "humming"]:
+    # 'humming' and 'marlin' are quantization-only; an unquantized layer (e.g.
+    # excluded via modules_to_not_convert, or an unquantized MTP draft of a
+    # quantized model) falls through to auto instead of erroring.
+    if runner_backend not in ["auto", "humming", "marlin"]:
         requested_backend = map_unquantized_backend(runner_backend)
         if (
             activation_format == mk.FusedMoEActivationFormat.BatchedExperts
@@ -587,8 +587,8 @@ class UnquantizedMoEKernelOracle(MoEKernelOracle[UnquantizedMoeBackend]):
     def select_backend(
         self,
         moe_config: FusedMoEConfig,
-        weight_key: "QuantKey | None" = None,
-        activation_key: "QuantKey | None" = None,
+        weight_key: QuantKey | None = None,
+        activation_key: QuantKey | None = None,
     ) -> tuple[UnquantizedMoeBackend, type[mk.FusedMoEExperts] | None]:
         assert weight_key is None and activation_key is None, (
             "Weights and activations will never be quantized for "

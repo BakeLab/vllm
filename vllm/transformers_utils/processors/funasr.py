@@ -11,6 +11,7 @@ import torch.nn as nn
 from torch.nn.utils.rnn import pad_sequence
 from transformers import (
     AutoFeatureExtractor,
+    AutoTokenizer,
     BatchFeature,
 )
 from transformers.feature_extraction_sequence_utils import SequenceFeatureExtractor
@@ -88,9 +89,9 @@ def _kaldi_fbank(
         frames = frames[:frame_count]
     if dither:
         frames = frames + torch.randn_like(frames) * dither
-    raw_log_energy = frames.square().sum(dim=-1).clamp_min(
-        torch.finfo(frames.dtype).eps
-    ).log()
+    raw_log_energy = (
+        frames.square().sum(dim=-1).clamp_min(torch.finfo(frames.dtype).eps).log()
+    )
     if remove_dc_offset:
         frames = frames - frames.mean(dim=-1, keepdim=True)
     if preemphasis_coefficient:
@@ -121,18 +122,19 @@ def _kaldi_fbank(
     if raw_energy:
         log_energy = raw_log_energy
     else:
-        log_energy = windowed.square().sum(dim=-1).clamp_min(
-            torch.finfo(windowed.dtype).eps
-        ).log()
+        log_energy = (
+            windowed.square()
+            .sum(dim=-1)
+            .clamp_min(torch.finfo(windowed.dtype).eps)
+            .log()
+        )
     spectrum = torch.fft.rfft(windowed, n=n_fft).abs().square()
-    filters = _kaldi_mel_filters(
-        num_mel_bins, n_fft, sample_frequency
-    ).to(spectrum)
+    filters = _kaldi_mel_filters(num_mel_bins, n_fft, sample_frequency).to(spectrum)
     # Kaldi omits the Nyquist column from its mel bank, equivalent to a zero
     # padded final column in torchaudio.compliance.kaldi.fbank.
-    energies = (spectrum[:, :-1] @ filters).clamp_min(
-        torch.finfo(spectrum.dtype).eps
-    ).log()
+    energies = (
+        (spectrum[:, :-1] @ filters).clamp_min(torch.finfo(spectrum.dtype).eps).log()
+    )
     if energy_floor > 0:
         log_floor = math.log(energy_floor)
         log_energy = log_energy.clamp_min(log_floor)
@@ -460,6 +462,19 @@ class FunASRProcessor(ProcessorMixin):
 
     feature_extractor_class = "FunASRFeatureExtractor"
     tokenizer_class = ("Qwen2Tokenizer", "Qwen2TokenizerFast")
+
+    @classmethod
+    def from_pretrained(cls, pretrained_model_name_or_path, **kwargs):
+        # Bypass ProcessorMixin's dynamic module lookup, see MiniMaxVLProcessor
+        tokenizer = kwargs.pop("tokenizer", None)
+        if tokenizer is None:
+            tokenizer = AutoTokenizer.from_pretrained(
+                pretrained_model_name_or_path, **kwargs
+            )
+        feature_extractor = FunASRFeatureExtractor.from_pretrained(
+            pretrained_model_name_or_path, **kwargs
+        )
+        return cls(feature_extractor=feature_extractor, tokenizer=tokenizer)
 
     def __init__(
         self,

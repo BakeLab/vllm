@@ -542,8 +542,8 @@ class MultiModalDataParser:
         target_sr (float, optional): Enables automatic resampling of audio
             items to the model's expected sampling rate.
         audio_resample_method (str): Backend used for the resampling above.
-            Defaults to the built-in PyTorch resampler; models with specific needs may override
-            (e.g. phi4mm uses scipy).
+            Defaults to the built-in PyTorch resampler; models with specific
+            needs may override (e.g. phi4mm uses scipy).
         target_channels (int, optional): Target number of audio channels.
             If provided, normalizes audio to this many channels (e.g., 1 for mono).
             If None, audio channels are passed through unchanged.
