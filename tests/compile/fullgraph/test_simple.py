@@ -154,11 +154,10 @@ def _run_simple_model(
         assert torch.allclose(output.cpu(), torch.tensor([19.0, 19.0]))
 
 
-@pytest.mark.parametrize("backend", ["inductor", "eager"])
 @pytest.mark.parametrize("intermediate_unbacked", [True, False])
 @torch.inference_mode()
 @create_new_process_for_each_test("spawn")
-def test_simple_piecewise_compile(backend, intermediate_unbacked, monkeypatch):
+def test_simple_piecewise_compile(intermediate_unbacked, monkeypatch):
     # `intermediate_unbacked` flips a control-flow branch inside
     # `SillyModel.forward`, but the AOT-compile cache key only hashes the
     # forward function's qualname + line number, so both parametrize variants
@@ -169,7 +168,7 @@ def test_simple_piecewise_compile(backend, intermediate_unbacked, monkeypatch):
     _run_simple_model(
         splitting_ops=["silly::attention"],
         use_inductor_graph_partition=False,
-        backend=backend,
+        backend="inductor",
         # 2 * num_layers + 1
         expected_num_piecewise_graphs_seen=5,
         # 1 + num_layers

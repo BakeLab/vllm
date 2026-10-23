@@ -328,7 +328,6 @@ def run_model(llama_config, compile_config: CompilationConfig) -> torch.Tensor:
 @pytest.mark.parametrize(
     "backend, use_inductor_graph_partition",
     [
-        ("eager", False),  # No inductor
         ("inductor", False),  # Inductor, Dynamo partition
         ("inductor", True),  # Inductor, Inductor partition
     ],
@@ -356,7 +355,6 @@ def test_toy_llama(
     compile_config_no_compile = CompilationConfig(
         mode=CompilationMode.NONE,
         cudagraph_mode=CUDAGraphMode.NONE,
-        backend="eager",
     )
 
     compile_config_no_split = CompilationConfig(
@@ -382,10 +380,7 @@ def test_toy_llama(
 
     run_model(tractable_config, compile_config_no_compile)
 
-    if backend == "inductor":
-        kwargs = {"num_inductor_compiles": 1, "num_eager_compiles": 0}
-    else:
-        kwargs = {"num_eager_compiles": 1, "num_inductor_compiles": 0}
+    kwargs = {"num_inductor_compiles": 1}
 
     with compilation_counter.expect(
         num_graphs_seen=1,  # one graph for the model

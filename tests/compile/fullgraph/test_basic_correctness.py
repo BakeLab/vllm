@@ -104,14 +104,3 @@ def test_compile_correctness(
 
     all_envs.clear()
     all_args.clear()
-
-    # Test all compilation modes with eager backend
-    for mode in [
-        CompilationMode.NONE,
-        CompilationMode.STOCK_TORCH_COMPILE,
-        CompilationMode.DYNAMO_TRACE_ONCE,
-        CompilationMode.VLLM_COMPILE,
-    ]:
-        all_args.append(final_args + [f"-cc.mode={mode.name}", "-cc.backend=eager"])
-        all_envs.append(dict(runner_env))
-    compare_all_settings(model, all_args, all_envs, method=method)

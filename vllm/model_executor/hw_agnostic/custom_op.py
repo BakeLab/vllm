@@ -18,8 +18,8 @@ logger = init_logger(__name__)
 # Examples:
 # - MyOp.enabled()
 # - op_registry["my_op"].enabled()
-op_registry: dict[str, type["CustomOp"] | type["PluggableLayer"]] = {}
-op_registry_oot: dict[str, type["CustomOp"] | type["PluggableLayer"]] = {}
+op_registry: dict[str, type[CustomOp] | type[PluggableLayer]] = {}
+op_registry_oot: dict[str, type[CustomOp] | type[PluggableLayer]] = {}
 
 
 def maybe_get_oot_by_class(class_type: type) -> type:
@@ -186,10 +186,6 @@ class CustomOp(nn.Module):
         # Do not compile if global compilation disabled
         compilation_config = get_cached_compilation_config()
         if compilation_config.mode == CompilationMode.NONE:
-            return fn
-
-        # If eager backend is used, do not compile either
-        if compilation_config.backend == "eager":
             return fn
 
         compile_options = maybe_disable_graph_partition(

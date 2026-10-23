@@ -462,7 +462,7 @@ class CompilationConfig:
 
     - "" (empty string): use the default backend ("inductor" on CUDA-alike
     platforms).
-    - "eager"/"openxla"/...: use the specified backend registered in PyTorch.
+    - "openxla"/...: use the specified backend registered in PyTorch.
     - "full.module.name": a qualified name which can be used to import the
 
     backend function.
@@ -470,7 +470,7 @@ class CompilationConfig:
     distributed setting. When the compilation mode is 1 or 2, the backend is
     used for the compilation directly (it sees the whole graph). When the
     compilation mode is 3, the backend supports both whole graph and piecewise
-    compilation, available backends include eager, inductor, and custom backends,
+    compilation, available backends include inductor and custom backends,
     the latter of which can be defined via `get_compile_backend`. Furthermore,
     compilation is only piecewise if splitting ops is set accordingly and
     use_inductor_graph_partition is off. Note that the default options for
@@ -912,6 +912,11 @@ class CompilationConfig:
         return handler(value)
 
     def __post_init__(self) -> None:
+        if self.backend == "eager":
+            raise ValueError(
+                "The eager compilation backend was removed; use mode=NONE "
+                "to disable compilation."
+            )
         # Custom passes (fusion) rely on auto-functionalization V1 and don't
         #    work with V2. Addressing this will take extra engineering effort
         #    and it is not yet a priority. RFC here:
@@ -1000,12 +1005,11 @@ class CompilationConfig:
                 f"{', '.join(conflicting_ops)}. Remove either the '+' or '-' directive"
             )
 
-        # Currently only eager and inductor backend are supported.
-        # for piecewise compilation. Custom backends are not supported for
+        # Only the inductor backend is supported for piecewise compilation.
+        # Custom backends are not supported for
         # piecewise compilation. Update when more backends are supported.
         if self.mode == CompilationMode.VLLM_COMPILE and self.backend not in [
             "",
-            "eager",
             "inductor",
         ]:
             raise ValueError(
@@ -1088,7 +1092,7 @@ class CompilationConfig:
             return resolve_obj_by_qualname(self.backend)
 
         assert self.mode == CompilationMode.VLLM_COMPILE
-        if self.backend not in ["eager", "inductor"]:
+        if self.backend != "inductor":
             logger.info("Using OOT custom backend for compilation.")
 
         from vllm.compilation.backends import VllmBackend

@@ -267,7 +267,7 @@ class InductorStandaloneAdaptor(CompilerInterface):
 
         from torch._inductor import standalone_compile
 
-        compile_kwargs = {
+        compile_kwargs: dict[str, Any] = {
             "dynamic_shapes": dynamic_shapes,
             "options": {
                 "config_patches": current_config,
@@ -717,20 +717,3 @@ def trigger_inductor_lazy_init(device: torch.device | None = None) -> None:
         _inductor_lazy_init(device)
     except Exception as e:  # noqa: BLE001
         logger.info("Skipping inductor lazy_init pre-trigger: %s", e)
-
-
-class EagerAdaptor(CompilerInterface):
-    name = "eager"
-
-    def compile(
-        self,
-        graph: fx.GraphModule,
-        example_inputs: list[Any],
-        compiler_config: dict[str, Any],
-        compile_range: Range,
-        key: str | None = None,
-    ) -> tuple[Callable[..., Any] | None, Any | None]:
-        compilation_counter.num_eager_compiles += 1
-        # we don't need to compile the graph, just return the graph itself.
-        # It does not support caching, return None for the handle.
-        return graph, None

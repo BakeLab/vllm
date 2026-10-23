@@ -38,7 +38,6 @@ from vllm.utils.import_utils import resolve_obj_by_qualname
 
 from .compiler_interface import (
     CompilerInterface,
-    EagerAdaptor,
     InductorAdaptor,
     InductorStandaloneAdaptor,
     is_compile_cache_enabled,
@@ -115,9 +114,6 @@ def make_compiler(
         else:
             logger.debug("Using InductorAdaptor")
             return InductorAdaptor(use_aot_compile=use_aot_compile)
-    elif compilation_config.backend == "eager":
-        logger.debug("Using EagerAdaptor")
-        return EagerAdaptor()
     else:
         logger.debug("Using custom backend: %s", compilation_config.backend)
         compiler = resolve_obj_by_qualname(current_platform.get_compile_backend())()
