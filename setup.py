@@ -22,18 +22,6 @@ from setuptools_rust.build import build_rust
 from setuptools_scm import get_version
 from torch.utils.cpp_extension import CUDA_HOME, ROCM_HOME
 
-# Select vLLM release tags, excluding crate tags such as "proto-v0.3.0".
-VLLM_GIT_DESCRIBE_COMMAND = [
-    "git",
-    "describe",
-    "--dirty",
-    "--tags",
-    "--long",
-    "--abbrev=40",
-    "--match",
-    "v[0-9]*",
-]
-
 
 def load_module_from_path(module_name, path):
     spec = importlib.util.spec_from_file_location(module_name, path)
@@ -47,10 +35,6 @@ ROOT_DIR = Path(__file__).parent
 logger = logging.getLogger(__name__)
 
 PRECOMPILED_RUST_FRONTEND_PATH = ROOT_DIR / "vllm" / "vllm-rs"
-# setuptools-rust installs PyO3 artifacts as `<module>.<ext-suffix>`, where the
-# suffix ends with `.so` on Linux and macOS alike (e.g. `_rust_foo.abi3.so`).
-PRECOMPILED_RUST_EXTENSION_MEMBER_REGEX = re.compile(r"vllm/_rust_[^/]*\.so$")
-
 # cannot import envs directly because it depends on vllm,
 #  which is not installed yet
 envs = load_module_from_path("envs", os.path.join(ROOT_DIR, "vllm", "envs.py"))
@@ -64,27 +48,6 @@ USE_PRECOMPILED_EXTENSIONS = envs.VLLM_USE_PRECOMPILED
 USE_PRECOMPILED_RUST_FRONTEND = (
     envs.VLLM_USE_PRECOMPILED or envs.VLLM_USE_PRECOMPILED_RUST
 )
-
-
-def get_precompiled_rust_extension_paths() -> list[Path]:
-    return sorted((ROOT_DIR / "vllm").glob("_rust_*.so"))
-
-
-def get_missing_precompiled_rust_extension_modules() -> list[str]:
-    present = {
-        path.name.split(".", 1)[0] for path in get_precompiled_rust_extension_paths()
-    }
-    return [
-        module_name
-        for module_name in rust_build.rust_py_extension_module_names()
-        if module_name not in present
-    ]
-
-
-def has_precompiled_rust_extensions() -> bool:
-    if not rust_build.rust_py_extension_module_names():
-        return False
-    return not get_missing_precompiled_rust_extension_modules()
 
 
 def is_metadata_only_build() -> bool:
@@ -484,32 +447,12 @@ class precompiled_build_ext(build_ext):
 
 
 class precompiled_build_rust(build_rust):
-    """Skips local Rust builds when all precompiled Rust artifacts are present."""
+    """Reuse a Rust frontend supplied by a separate build stage or wheel."""
 
     def run(self) -> None:
-        missing = []
-        if not PRECOMPILED_RUST_FRONTEND_PATH.exists():
-            missing.append(str(PRECOMPILED_RUST_FRONTEND_PATH))
-        missing_rust_extensions = get_missing_precompiled_rust_extension_modules()
-        if missing_rust_extensions:
-            missing.extend(
-                str(ROOT_DIR / "vllm" / f"{module_name}*.so")
-                for module_name in missing_rust_extensions
-            )
-
-        if not missing:
-            logger.info(
-                "Skipping local Rust build: using precompiled %s and %s",
-                PRECOMPILED_RUST_FRONTEND_PATH,
-                get_precompiled_rust_extension_paths(),
-            )
+        if PRECOMPILED_RUST_FRONTEND_PATH.is_file():
+            logger.info("Using precompiled %s", PRECOMPILED_RUST_FRONTEND_PATH)
             return
-
-        logger.warning(
-            "Precompiled wheel did not provide all Rust artifacts (%s); "
-            "falling back to local Rust build.",
-            ", ".join(missing),
-        )
         super().run()
 
 
@@ -1158,15 +1101,6 @@ class precompiled_wheel_utils:
                     if member.filename in exact_members:
                         file_members.append(member)
                         continue
-                    if (
-                        extract_rust_frontend
-                        and PRECOMPILED_RUST_EXTENSION_MEMBER_REGEX.match(
-                            member.filename
-                        )
-                    ):
-                        file_members.append(member)
-                        continue
-
                     if not extract_extensions:
                         continue
 
@@ -1348,12 +1282,12 @@ def get_vllm_version() -> str:
         os.environ["SETUPTOOLS_SCM_PRETEND_VERSION"] = env_version
         return get_version(
             write_to="vllm/_version.py",
-            git_describe_command=VLLM_GIT_DESCRIBE_COMMAND,
+            git_describe_command=rust_build.VLLM_GIT_DESCRIBE_COMMAND,
         )
 
     version = get_version(
         write_to="vllm/_version.py",
-        git_describe_command=VLLM_GIT_DESCRIBE_COMMAND,
+        git_describe_command=rust_build.VLLM_GIT_DESCRIBE_COMMAND,
     )
     sep = "+" if "+" not in version else "."  # dev versions might contain +
 
@@ -1600,8 +1534,6 @@ package_data = {
         "libs/*.so*",
         "model_executor/layers/fused_moe/configs/*.json",
         "model_executor/layers/quantization/utils/configs/*.json",
-        "entrypoints/serve/instrumentator/static/*.js",
-        "entrypoints/serve/instrumentator/static/*.css",
         "distributed/kv_transfer/kv_connector/v1/hf3fs/utils/*.cpp",
         # Built-in multimodal chat template fallbacks (registry.py)
         "transformers_utils/chat_templates/*.jinja",
@@ -1646,8 +1578,6 @@ if USE_PRECOMPILED_RUST_FRONTEND and not is_metadata_only_build():
 # pre-built in a separate Docker build stage), ship it as-is.
 if PRECOMPILED_RUST_FRONTEND_PATH.exists():
     add_vllm_package_data("vllm-rs")
-for rust_extension_path in get_precompiled_rust_extension_paths():
-    add_vllm_package_data(rust_extension_path.name)
 
 if _no_device():
     ext_modules = []
@@ -1660,11 +1590,7 @@ else:
         if USE_PRECOMPILED_EXTENSIONS
         else cmake_build_ext,
     }
-if (
-    USE_PRECOMPILED_RUST_FRONTEND
-    or PRECOMPILED_RUST_FRONTEND_PATH.exists()
-    or has_precompiled_rust_extensions()
-):
+if USE_PRECOMPILED_RUST_FRONTEND or PRECOMPILED_RUST_FRONTEND_PATH.exists():
     cmdclass["build_rust"] = precompiled_build_rust
 
 # Resolve the Python version first because get_vllm_version() may set
@@ -1674,7 +1600,7 @@ rust_build.prepare_build_environment()
 
 # Rust artifacts, built via setuptools-rust and installed into the package
 # directory alongside the Python modules.
-rust_extensions = rust_build.rust_extensions(optional=False)
+rust_extensions = rust_build.rust_extensions()
 
 setup(
     # static metadata should rather go in pyproject.toml
@@ -1699,19 +1625,15 @@ setup(
             "soxr",
             "mistral_common[audio]",
         ],  # Required for audio processing
-        "video": [],  # Kept for backwards compatibility
         # NVIDIA DeepStream (NVDEC) GPU video-decode backend. Linux x86-64
         # only; also needs system GStreamer + libv4l (see docs).
         "deepstream": ["nvidia-deepstream-videodecode-cu13>=9.0.2"],
-        "flashinfer": [],  # Kept for backwards compatibility
         "b12x": ["b12x==1.5.1"],
         # Optional deps for Helion kernel development
         # NOTE: When updating helion version, also update CI files:
         #   - .buildkite/test_areas/kernels.yaml
         #   - .buildkite/test-amd.yaml
         "helion": ["helion==1.4.0"],
-        # Optional deps for gRPC server (vllm serve --grpc)
-        "grpc": ["smg-grpc-servicer[vllm] >= 0.5.2"],
         # Optional deps for OpenTelemetry tracing
         "otel": [
             "opentelemetry-sdk>=1.26.0",
