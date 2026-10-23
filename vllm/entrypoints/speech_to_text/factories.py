@@ -41,12 +41,3 @@ def init_speech_to_text_state(
             request_logger=request_logger,
             enable_force_include_usage=args.enable_force_include_usage,
         )
-
-    if "realtime" in supported_tasks:
-        from .realtime.serving import OpenAIServingRealtime
-
-        state.openai_serving_realtime = OpenAIServingRealtime(
-            engine_client,
-            state.openai_serving_models,
-            request_logger=request_logger,
-        )

@@ -72,7 +72,7 @@ from vllm.utils.argparse_utils import FlexibleArgumentParser
 from vllm.utils.mem_constants import MiB_bytes
 from vllm.version import __version__ as VLLM_VERSION
 
-from .api_server.app_state import init_app_state
+from .batch_state import init_batch_state
 
 logger = init_logger(__name__)
 
@@ -772,10 +772,10 @@ async def build_endpoint_registry(
     # Create a state object to hold serving objects
     state = State()
 
-    # Initialize all serving objects using init_app_state
+    # Initialize all serving objects using init_batch_state
     # This provides full functionality including chat template processing,
     # LoRA support, tool servers, etc.
-    await init_app_state(engine_client, state, args, supported_tasks)
+    await init_batch_state(engine_client, state, args, supported_tasks)
 
     # Get serving objects from state (defaulting to None if not set)
     openai_serving_chat = getattr(state, "openai_serving_chat", None)

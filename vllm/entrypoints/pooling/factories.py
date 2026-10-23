@@ -112,13 +112,9 @@ def init_pooling_state(
         return
 
     from vllm.renderers.chat_utils import load_chat_template
-    from vllm.tasks import POOLING_TASKS
 
-    from .classify.serving import ServingClassification
     from .embed.serving import ServingEmbedding
-    from .pooling.serving import ServingPooling
     from .scoring.serving import ServingScores
-    from .token_embed.serving import ServingTokenEmbedding
 
     resolved_chat_template = load_chat_template(args.chat_template)
     pooling_task = model_config.get_pooling_task(supported_tasks)
@@ -130,19 +126,6 @@ def init_pooling_state(
         trust_request_mm_kwargs=args.trust_request_mm_kwargs,
     )
 
-    state.serving_pooling = (
-        (
-            ServingPooling(
-                engine_client,
-                state.openai_serving_models,
-                supported_tasks=supported_tasks,
-                request_logger=request_logger,
-                chat_template_config=chat_template_config,
-            )
-        )
-        if any(t in supported_tasks for t in POOLING_TASKS)
-        else None
-    )
     state.serving_embedding = (
         ServingEmbedding(
             engine_client,
@@ -151,26 +134,6 @@ def init_pooling_state(
             chat_template_config=chat_template_config,
         )
         if pooling_task == "embed"
-        else None
-    )
-    state.serving_token_embedding = (
-        ServingTokenEmbedding(
-            engine_client,
-            state.openai_serving_models,
-            request_logger=request_logger,
-            chat_template_config=chat_template_config,
-        )
-        if pooling_task == "token_embed"
-        else None
-    )
-    state.serving_classification = (
-        ServingClassification(
-            engine_client,
-            state.openai_serving_models,
-            request_logger=request_logger,
-            chat_template_config=chat_template_config,
-        )
-        if pooling_task == "classify"
         else None
     )
     state.serving_scores = (

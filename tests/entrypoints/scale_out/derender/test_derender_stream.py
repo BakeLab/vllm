@@ -20,7 +20,7 @@ Tests are split into two layers:
 import json
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import httpx
 import pytest
@@ -41,10 +41,8 @@ from vllm.entrypoints.generate.base.protocol import (
 )
 from vllm.entrypoints.openai.chat_completion.protocol import (
     ChatCompletionRequest,
-    ChatCompletionStreamResponse,
 )
 from vllm.entrypoints.openai.completion.protocol import CompletionRequest
-from vllm.entrypoints.scale_out.derender.serving import ServingDerender
 from vllm.entrypoints.scale_out.token_in_token_out.protocol import (
     DerenderChatRequest,
     DerenderChatStreamRequest,
@@ -1941,21 +1939,6 @@ def test_negative_prompt_token_ids_rejected(model_cls, payload):
 class TestServingDerenderStreamErrorHandling:
     """Malformed stream_state must surface as 400 and not an unhandled 500."""
 
-    def _make_serving(self, side_effect: Exception):
-        models = MagicMock()
-        models.is_base_model.return_value = True
-        models.model_config = MagicMock()
-        models.model_config.max_model_len = 100_000
-
-        online_derenderer = MagicMock()
-        online_derenderer.parser = None
-        online_derenderer.derender_completion_stream = AsyncMock(
-            side_effect=side_effect
-        )
-        online_derenderer.derender_chat_stream = AsyncMock(side_effect=side_effect)
-
-        return ServingDerender(models=models, online_derenderer=online_derenderer)
-
     @pytest.mark.asyncio
     @pytest.mark.parametrize("exc", [KeyError("bad byte"), IndexError("oob")])
     async def test_completion_stream_bad_state_returns_400(self, exc):
@@ -1989,22 +1972,6 @@ class TestServingDerenderStreamValidation:
     """If checks cannot run in `derender_chat_stream_response`: all must
     reject with 400 before ever calling into `online_derenderer` (i.e.
     before touching the tokenizer)."""
-
-    def _make_serving(self, *, parser_configured: bool, max_model_len: int = 100_000):
-        models = MagicMock()
-        models.is_base_model.return_value = True
-        models.model_config = MagicMock()
-        models.model_config.max_model_len = max_model_len
-
-        online_derenderer = MagicMock()
-        online_derenderer.parser = MagicMock() if parser_configured else None
-        online_derenderer.derender_chat_stream = AsyncMock(
-            return_value=(
-                ChatCompletionStreamResponse(id="t", model=MODEL_NAME, choices=[]),
-                DerenderStreamState(),
-            )
-        )
-        return ServingDerender(models=models, online_derenderer=online_derenderer)
 
     @pytest.mark.asyncio
     async def test_missing_chat_request_with_parser_rejected(self):
