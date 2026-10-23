@@ -54,7 +54,7 @@ class _AsyncLLMActor:
             model=MODEL,
             tensor_parallel_size=2,
             distributed_executor_backend="ray",
-            enforce_eager=True,
+            compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
             max_model_len=256,
             gpu_memory_utilization=0.8,
         )

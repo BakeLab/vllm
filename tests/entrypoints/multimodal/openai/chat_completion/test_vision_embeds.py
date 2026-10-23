@@ -32,7 +32,8 @@ def test_single_content(model_name: str):
         # use half precision for speed and memory savings in CI environment
         "--dtype",
         "float16",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--trust-remote-code",
         "--max-num-seqs",
         "32",
@@ -79,7 +80,8 @@ def test_single_content(model_name: str):
 @pytest.mark.parametrize("model_name", ["Qwen/Qwen3-VL-2B-Instruct"])
 def test_multi_content(model_name: str):
     args = [
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--max-num-seqs",
         "32",
         "--max-model-len",

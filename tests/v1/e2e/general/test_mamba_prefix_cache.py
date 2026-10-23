@@ -1258,7 +1258,7 @@ def _run_mamba_prefix_cache_mrv2(
     engine = LLM(
         model=MODEL,
         load_format="dummy",
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         skip_tokenizer_init=True,
         enable_prefix_caching=True,
         block_size=BLOCK_SIZE,

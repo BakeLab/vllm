@@ -270,7 +270,9 @@ def _compare_tp(
         "8",
     ]
     if eager_mode:
-        common_args.append("--enforce-eager")
+        common_args.extend(
+            ["--compilation-config.mode=0", "--compilation-config.cudagraph_mode=NONE"]
+        )
     if runner != "auto":
         common_args.extend(["--runner", runner])
     if trust_remote_code:

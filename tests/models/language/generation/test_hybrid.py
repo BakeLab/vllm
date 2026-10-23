@@ -911,7 +911,7 @@ def test_apc_common_prefix_same_batch(
     monkeypatch.setenv("VLLM_ENABLE_V1_MULTIPROCESSING", "0")
     llm = LLM(
         model=model,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         block_size=16,
         mamba_block_size=16,
         enable_prefix_caching=True,

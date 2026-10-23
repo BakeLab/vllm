@@ -34,7 +34,8 @@ RERANK_CONFIGS = [
     TestConfig(
         model="jinaai/jina-reranker-v2-base-multilingual",
         args=[
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--max-model-len",
             "1024",
             "--trust-remote-code",
@@ -48,7 +49,8 @@ RERANK_CONFIGS = [
     TestConfig(
         model="Qwen/Qwen3-Reranker-0.6B",
         args=[
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--max-model-len",
             "1024",
             "--hf-overrides",
@@ -71,7 +73,8 @@ RERANK_CONFIGS = [
     TestConfig(
         model="intfloat/multilingual-e5-small",
         args=[
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--max-model-len",
             "512",
             "--trust-remote-code",
@@ -87,7 +90,8 @@ RERANK_CONFIGS = [
     TestConfig(
         model="answerdotai/answerai-colbert-small-v1",
         args=[
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--max-model-len",
             "512",
             "--trust-remote-code",
@@ -101,7 +105,8 @@ RERANK_CONFIGS = [
     TestConfig(
         model="jinaai/jina-reranker-v3",
         args=[
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--max-model-len",
             "1024",
             "--trust-remote-code",

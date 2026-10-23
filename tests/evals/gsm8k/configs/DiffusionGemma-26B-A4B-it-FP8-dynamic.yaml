@@ -9,7 +9,7 @@ use_chat_completions: true
 temperature: 1.0
 seed: null
 server_args: >-
-  --enforce-eager
+  --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE
   --max-model-len 4096
   --tensor-parallel-size 2
   --attention-backend TRITON_ATTN

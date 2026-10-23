@@ -203,7 +203,7 @@ def test_reload_weights():
         model="Qwen/Qwen3-0.6B",
         dtype="bfloat16",
         load_format="dummy",
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         quantization="torchao",
         hf_overrides=hf_overrides,
     )

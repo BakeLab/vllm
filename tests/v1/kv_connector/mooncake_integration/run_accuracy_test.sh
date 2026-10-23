@@ -151,7 +151,7 @@ run_tests_for_model() {
     VLLM_MOONCAKE_BOOTSTRAP_PORT=$BOOTSTRAP_PORT \
     vllm serve $model_name \
     --port $PORT \
-    --enforce-eager \
+    --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
     --block-size ${BLOCK_SIZE} \
     --gpu-memory-utilization $GPU_MEMORY_UTILIZATION \
     --tensor-parallel-size $PREFILLER_TP_SIZE \
@@ -190,7 +190,7 @@ run_tests_for_model() {
     BASE_CMD="CUDA_VISIBLE_DEVICES=$GPU_ID \
     vllm serve $model_name \
     --port $PORT \
-    --enforce-eager \
+    --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
     --block-size ${BLOCK_SIZE} \
     --gpu-memory-utilization $GPU_MEMORY_UTILIZATION \
     --tensor-parallel-size $DECODER_TP_SIZE \

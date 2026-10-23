@@ -208,7 +208,6 @@ def test_model_tensor_schema(model_id: str):
         skip_tokenizer_init=model_info.require_embed_inputs,
         enable_prompt_embeds=model_info.require_embed_inputs,
         enable_mm_embeds=model_info.require_embed_inputs,
-        enforce_eager=model_info.enforce_eager,
         dtype=dtype,
     )
 

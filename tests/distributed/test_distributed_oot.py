@@ -20,7 +20,9 @@ def test_distributed_oot_pp_raw_input_tokens(dummy_opt_path: str, enforce_eager:
     overrides = {"architectures": ["MyOPTRawInputTokensForCausalLM"]}
     extra_args = ["-pp", "2", "--hf-overrides", json.dumps(overrides)]
     if enforce_eager:
-        extra_args.append("--enforce-eager")
+        extra_args.extend(
+            ["--compilation-config.mode=0", "--compilation-config.cudagraph_mode=NONE"]
+        )
     run_and_test_dummy_opt_api_server(
         dummy_opt_path,
         extra_args=extra_args,

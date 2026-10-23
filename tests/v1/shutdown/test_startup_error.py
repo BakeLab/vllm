@@ -63,7 +63,9 @@ def test_async_llm_startup_error(
     monkeypatch.setattr(LlamaForCausalLM, failing_method, evil_method)
 
     engine_args = AsyncEngineArgs(
-        model=model, enforce_eager=True, tensor_parallel_size=tensor_parallel_size
+        model=model,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        tensor_parallel_size=tensor_parallel_size,
     )
 
     # Confirm we get an exception.
@@ -116,7 +118,7 @@ def test_llm_startup_error(
         ):
             _ = LLM(
                 model=model,
-                enforce_eager=True,
+                compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
                 tensor_parallel_size=tensor_parallel_size,
             )
 

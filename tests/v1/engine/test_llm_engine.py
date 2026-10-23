@@ -282,7 +282,7 @@ def test_skip_tokenizer_initialization(model: str):
     llm = LLM(
         model=model,
         skip_tokenizer_init=True,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
     )
     sampling_params = SamplingParams(prompt_logprobs=True, detokenize=True)
 

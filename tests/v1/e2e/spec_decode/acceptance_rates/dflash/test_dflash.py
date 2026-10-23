@@ -85,7 +85,6 @@ def test_dflash_reference_acceptance_lengths(
             "max_model_len": 32768,
             "max_num_seqs": 128,
             "gpu_memory_utilization": 0.85,
-            "enforce_eager": False,
             "disable_log_stats": False,
         },
         # Table 1 in https://arxiv.org/pdf/2602.06036.

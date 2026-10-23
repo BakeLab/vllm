@@ -211,7 +211,8 @@ def server_with_chunked_processing():
         "pooling",
         "--dtype",
         DTYPE,
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--max-model-len",
         "512",  # Set smaller max_model_len to trigger chunking mechanism
         "--pooler-config",

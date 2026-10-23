@@ -59,6 +59,31 @@ from vllm.v1.attention.backend import AttentionCGSupport
 DEVICE_TYPE = current_platform.device_type
 
 
+@pytest.mark.parametrize(
+    "constructor_name",
+    ["LLM", "EngineArgs", "AsyncEngineArgs", "ModelConfig", "SpeculativeConfig"],
+)
+def test_removed_enforce_eager_argument_is_rejected(constructor_name, tmp_path):
+    """Reject the removed API before any model files or accelerator are needed."""
+    from vllm import LLM
+    from vllm.engine.arg_utils import AsyncEngineArgs, EngineArgs
+
+    constructors = {
+        "LLM": LLM,
+        "EngineArgs": EngineArgs,
+        "AsyncEngineArgs": AsyncEngineArgs,
+        "ModelConfig": ModelConfig,
+        "SpeculativeConfig": SpeculativeConfig,
+    }
+    kwargs = (
+        {"method": "ngram", "num_speculative_tokens": 1}
+        if constructor_name == "SpeculativeConfig"
+        else {"model": str(tmp_path)}
+    )
+    with pytest.raises((TypeError, ValidationError), match="enforce_eager"):
+        constructors[constructor_name](enforce_eager=True, **kwargs)
+
+
 def test_nested_rope_validation_patch_preserves_flat_rope_parameters(monkeypatch):
     calls = []
 
@@ -823,7 +848,7 @@ def test_breakable_cudagraph_platform_default(
         ("bf16", 2048, (16, 8), 6144, 1, True),
         ("bi-off", 2048, (16, 8), 6144, 1, False),
         ("opt-out", 2048, (16, 8), 6144, 1, False),
-        ("eager", 2048, (16, 8), 6144, 1, False),
+        ("no-graphs", 2048, (16, 8), 6144, 1, False),
         ("fp16", 2048, (16, 8), 6144, 1, False),
         ("quantized", 2048, (16, 8), 6144, 1, False),
         ("untuned", 4096, (32, 32), 11008, 1, False),
@@ -856,7 +881,6 @@ def test_batch_invariant_breakable_cudagraph(
     config = object.__new__(VllmConfig)
     config.model_config = SimpleNamespace(
         architectures=["Qwen3ForCausalLM"],
-        enforce_eager=case == "eager",
         dtype=torch.float16 if case == "fp16" else torch.bfloat16,
         quantization="fp8" if case == "quantized" else None,
         hf_text_config=SimpleNamespace(intermediate_size=intermediate),
@@ -866,7 +890,9 @@ def test_batch_invariant_breakable_cudagraph(
         get_num_kv_heads=lambda pc: heads[1],
     )
     config.parallel_config = SimpleNamespace(tensor_parallel_size=tp)
-    config.compilation_config = CompilationConfig()
+    config.compilation_config = CompilationConfig(
+        cudagraph_mode=CUDAGraphMode.NONE if case == "no-graphs" else None
+    )
     try:
         assert config._maybe_enable_breakable_cudagraph() is expected
         if expected:

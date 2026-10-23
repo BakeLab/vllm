@@ -146,7 +146,9 @@ def test_speculators_model(vllm_runner, example_prompts, monkeypatch, config):
     """
     monkeypatch.setenv("VLLM_ALLOW_INSECURE_SERIALIZATION", "1")
 
-    runner_kwargs = dict(dtype=torch.bfloat16, enforce_eager=True)
+    runner_kwargs = dict(
+        dtype=torch.bfloat16, compilation_config={"mode": 0, "cudagraph_mode": "NONE"}
+    )
     if config.quantization:
         runner_kwargs["quantization"] = config.quantization
 
@@ -198,7 +200,6 @@ def test_speculators_correctness(monkeypatch, config):
         max_model_len=4096,
         max_num_seqs=128,
         gpu_memory_utilization=0.85,
-        enforce_eager=False,
         disable_log_stats=False,
     )
 

@@ -223,7 +223,11 @@ def can_initialize(
             tokenizer=model_info.tokenizer,
             tokenizer_mode=model_info.tokenizer_mode,
             revision=model_info.revision,
-            enforce_eager=model_info.enforce_eager,
+            compilation_config=(
+                {"mode": 0, "cudagraph_mode": "NONE"}
+                if (model_info.enforce_eager)
+                else {}
+            ),
             skip_tokenizer_init=model_info.require_embed_inputs,
             enable_prompt_embeds=model_info.require_embed_inputs,
             enable_mm_embeds=model_info.require_embed_inputs,

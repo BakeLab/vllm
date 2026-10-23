@@ -309,7 +309,7 @@ def test_engine_core_concurrent_batches():
         enable_prefix_caching=False,
         max_num_batched_tokens=10,
         # Reduce startup time.
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         # Test concurrent batch behaviour independently of async scheduling.
         async_scheduling=False,
     )
@@ -441,7 +441,7 @@ def test_engine_core_tp():
         model=MODEL_NAME,
         tensor_parallel_size=2,
         # Reduce startup time.
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
     )
     vllm_config = engine_args.create_engine_config()
     executor_class = Executor.get_class(vllm_config)
@@ -530,7 +530,6 @@ def test_encoder_instance_zero_kv_cache(
     # Form vllm config
     model_config = ModelConfig(
         model="llava-hf/llava-1.5-7b-hf",  # Multimodal model
-        enforce_eager=True,
         trust_remote_code=True,
         dtype="float16",
         seed=42,
@@ -564,6 +563,7 @@ def test_encoder_instance_zero_kv_cache(
     )
 
     vllm_config = VllmConfig(
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         model_config=model_config,
         cache_config=cache_config,
         scheduler_config=scheduler_config,

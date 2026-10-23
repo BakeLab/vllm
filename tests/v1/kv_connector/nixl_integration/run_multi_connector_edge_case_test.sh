@@ -100,7 +100,7 @@ run_tests_for_model() {
     VLLM_NIXL_SIDE_CHANNEL_PORT=$PREFILL_SIDE_CHANNEL_PORT \
     vllm serve \"$model_name\" \
     --port $PREFILL_PORT \
-    --enforce-eager \
+    --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
     --block-size ${BLOCK_SIZE} \
     --max-model-len $MAX_MODEL_LEN \
     --kv-cache-memory-bytes $KV_CACHE_MEMORY_BYTES \
@@ -126,7 +126,7 @@ run_tests_for_model() {
     VLLM_NIXL_SIDE_CHANNEL_PORT=$DECODE_SIDE_CHANNEL_PORT \
     vllm serve \"$model_name\" \
     --port $DECODE_PORT \
-    --enforce-eager \
+    --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
     --block-size ${BLOCK_SIZE} \
     --max-model-len $MAX_MODEL_LEN \
     --kv-cache-memory-bytes $KV_CACHE_MEMORY_BYTES \

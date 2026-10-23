@@ -69,7 +69,7 @@ def test_watermarked_generation_with_data_parallelism():
                 model=MODEL,
                 dtype="half",
                 data_parallel_size=2,
-                enforce_eager=True,
+                compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
                 max_model_len=128,
                 max_num_seqs=4,
                 watermark_config={"algorithm": "gumbel", "key": 42},

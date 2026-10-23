@@ -54,7 +54,7 @@ VLLM_KV_CACHE_LAYOUT=HND \
 VLLM_NIXL_SIDE_CHANNEL_PORT=5559 \
 vllm serve "$MODEL" \
   --port $PREFILL_PORT \
-  --enforce-eager \
+  --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
   --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
   --max-model-len 16384 \
   --block-size 128 \
@@ -71,7 +71,7 @@ VLLM_KV_CACHE_LAYOUT=HND \
 VLLM_NIXL_SIDE_CHANNEL_PORT=6000 \
 vllm serve "$MODEL" \
   --port $DECODE_PORT \
-  --enforce-eager \
+  --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
   --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
   --max-model-len 16384 \
   --block-size 128 \

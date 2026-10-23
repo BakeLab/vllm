@@ -105,7 +105,8 @@ def default_server_args(
 ):
     args = [
         # use half precision for speed and memory savings in CI environment
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--max-model-len",
         "4096",
         "--reasoning-parser",

@@ -27,7 +27,14 @@ TEXTS_2 = [
 
 @pytest.fixture(scope="module")
 def server():
-    args = ["--enforce-eager", "--max-model-len", "100", "--dtype", DTYPE]
+    args = [
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
+        "--max-model-len",
+        "100",
+        "--dtype",
+        DTYPE,
+    ]
 
     with RemoteOpenAIServer(MODEL_NAME, args) as remote_server:
         yield remote_server

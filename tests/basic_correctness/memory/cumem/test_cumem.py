@@ -146,7 +146,7 @@ def test_release_kv_cache_memory_preserves_generation(full_sleep, monkeypatch):
     llm = LLM(
         "Qwen/Qwen3-0.6B",
         enable_sleep_mode=True,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         kv_cache_memory_bytes=kv_cache_memory_bytes,
         max_model_len=1024,
         max_num_seqs=4,
@@ -204,7 +204,7 @@ def test_sleep_with_only_weights_asleep(first_level, second_level, monkeypatch):
     llm = LLM(
         "Qwen/Qwen3-0.6B",
         enable_sleep_mode=True,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         kv_cache_memory_bytes=256 * 1024 * 1024,
         max_model_len=1024,
         max_num_seqs=4,

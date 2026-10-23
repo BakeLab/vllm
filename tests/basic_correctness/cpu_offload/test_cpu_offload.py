@@ -30,7 +30,9 @@ def test_cpu_offload(disable_pin_memory, disable_uva):
 
     # cuda graph only works with UVA offloading
     if disable_uva:
-        args.append("--enforce-eager")
+        args.extend(
+            ["--compilation-config.mode=0", "--compilation-config.cudagraph_mode=NONE"]
+        )
 
     compare_two_settings(
         model="hmellor/tiny-random-LlamaForCausalLM",

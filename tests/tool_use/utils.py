@@ -55,7 +55,8 @@ CONFIGS: dict[str, ServerConfig] = {
     "hermes": {
         "model": "NousResearch/Hermes-3-Llama-3.1-8B",
         "arguments": [
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--no-enable-prefix-caching",
             "--tool-call-parser",
             "hermes",
@@ -71,7 +72,8 @@ CONFIGS: dict[str, ServerConfig] = {
     "llama": {
         "model": "meta-llama/Meta-Llama-3.1-8B-Instruct",
         "arguments": [
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--no-enable-prefix-caching",
             "--tool-call-parser",
             "llama3_json",
@@ -83,7 +85,8 @@ CONFIGS: dict[str, ServerConfig] = {
     "llama3.2": {
         "model": "meta-llama/Llama-3.2-3B-Instruct",
         "arguments": [
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--no-enable-prefix-caching",
             "--tool-call-parser",
             "llama3_json",
@@ -95,7 +98,8 @@ CONFIGS: dict[str, ServerConfig] = {
     "llama4": {
         "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
         "arguments": [
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--no-enable-prefix-caching",
             "--tool-call-parser",
             "llama4_pythonic",
@@ -110,7 +114,8 @@ CONFIGS: dict[str, ServerConfig] = {
     "llama4_json": {
         "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
         "arguments": [
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--no-enable-prefix-caching",
             "-tp",
             "4",
@@ -127,7 +132,8 @@ CONFIGS: dict[str, ServerConfig] = {
     "mistral-7b": {
         "model": "mistralai/Mistral-7B-Instruct-v0.3",
         "arguments": [
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--no-enable-prefix-caching",
             "--tokenizer_mode",
             "hf",
@@ -151,7 +157,8 @@ CONFIGS: dict[str, ServerConfig] = {
     "mistral-small-3.2": {
         "model": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",
         "arguments": [
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--no-enable-prefix-caching",
             "--tool-call-parser",
             "mistral",
@@ -183,7 +190,6 @@ CONFIGS: dict[str, ServerConfig] = {
     #         str(VLLM_PATH / "examples/tool_chat_template_granite_20b_fc.jinja"),
     #         "--max_num_seqs",
     #         "1",
-    #         "--enforce-eager",
     #         "--cpu-offload-gb",
     #         "20",
     #     ],
@@ -193,7 +199,8 @@ CONFIGS: dict[str, ServerConfig] = {
     "granite-3.0-8b": {
         "model": "ibm-granite/granite-3.0-8b-instruct",
         "arguments": [
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--no-enable-prefix-caching",
             "--tool-call-parser",
             "granite",
@@ -208,7 +215,8 @@ CONFIGS: dict[str, ServerConfig] = {
     "granite-3.1-8b": {
         "model": "ibm-granite/granite-3.1-8b-instruct",
         "arguments": [
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--no-enable-prefix-caching",
             "--tool-call-parser",
             "granite",
@@ -218,7 +226,8 @@ CONFIGS: dict[str, ServerConfig] = {
     "internlm": {
         "model": "internlm/internlm2_5-7b-chat",
         "arguments": [
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--no-enable-prefix-caching",
             "--tool-call-parser",
             "internlm",
@@ -231,7 +240,8 @@ CONFIGS: dict[str, ServerConfig] = {
     "toolACE": {
         "model": "Team-ACE/ToolACE-8B",
         "arguments": [
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--no-enable-prefix-caching",
             "--tool-call-parser",
             "pythonic",

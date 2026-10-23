@@ -68,7 +68,7 @@ run_tests_for_model() {
 
   BASE_CMD="CUDA_VISIBLE_DEVICES=$PREFILL_GPU_ID VLLM_NIXL_SIDE_CHANNEL_PORT=5559 vllm serve $model_name \
   --port $PREFILL_PORT \
-  --enforce-eager \
+  --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
   --gpu-memory-utilization 0.2 \
   --max-model-len 8192 \
   --kv-transfer-config '$KV_CONFIG'"
@@ -83,7 +83,7 @@ run_tests_for_model() {
   # Build the command with or without model-specific args
   BASE_CMD="CUDA_VISIBLE_DEVICES=$DECODE_GPU_ID VLLM_NIXL_SIDE_CHANNEL_PORT=6000 vllm serve $model_name \
   --port $DECODE_PORT \
-  --enforce-eager \
+  --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
   --gpu-memory-utilization 0.2 \
   --max-model-len 8192 \
   --kv-transfer-config '$KV_CONFIG'"

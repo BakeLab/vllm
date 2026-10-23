@@ -244,7 +244,8 @@ def test_gsm8k_offloading_correctness(cfg: OffloadingModelConfig):
 
     # Prefix caching must be explicitly enabled: SimpleCPUOffloadConnector requires it.
     server_args = [
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--max-model-len",
         "4096",
         "--enable-prefix-caching",

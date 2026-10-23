@@ -2099,11 +2099,10 @@ class VllmConfig:
                 self.parallel_config.use_all2all
                 and self.compilation_config.cudagraph_mode != CUDAGraphMode.NONE
             ):
-                logger.info(
-                    "MoonEP: Disabling CUDA Graphs since the MoonEP "
-                    "integration is currently eager-only."
+                raise ValueError(
+                    "MoonEP does not support CUDA graphs. "
+                    "Set cudagraph_mode=NONE in compilation_config."
                 )
-                self.compilation_config.cudagraph_mode = CUDAGraphMode.NONE
 
         # Do this after all the updates to compilation_config.mode
         effective_dp_size = (

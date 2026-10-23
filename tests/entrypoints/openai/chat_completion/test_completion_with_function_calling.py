@@ -141,7 +141,8 @@ def server():
         "qwen3",
         "--gpu-memory-utilization",
         "0.4",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
     ] + ROCM_EXTRA_ARGS
 
     with RemoteOpenAIServer(MODEL_NAME, args) as remote_server:
@@ -168,7 +169,8 @@ def watermarked_server():
         "qwen3",
         "--gpu-memory-utilization",
         "0.4",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--watermark-config",
         '{"algorithm":"gumbel","key":42}',
     ] + ROCM_EXTRA_ARGS

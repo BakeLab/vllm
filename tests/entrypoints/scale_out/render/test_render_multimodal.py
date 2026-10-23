@@ -17,7 +17,8 @@ VISION_MODEL_NAME = "Qwen/Qwen3-VL-2B-Instruct"
 def vision_server():
     """Vision-capable server used for multimodal /render tests."""
     args = [
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--max-model-len",
         "100",
         "--max-num-seqs",

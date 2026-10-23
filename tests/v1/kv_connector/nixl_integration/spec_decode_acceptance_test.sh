@@ -256,7 +256,7 @@ run_test_for_device() {
     VLLM_NIXL_SIDE_CHANNEL_PORT=$SIDE_CHANNEL_PORT \
     vllm serve "$MODEL_NAME" \
       --port $PORT \
-      --enforce-eager \
+      --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
       --max-model-len "$MAX_MODEL_LEN" \
       --block-size "${BLOCK_SIZE}" \
       "${KV_CACHE_ARGS[@]}" \
@@ -295,7 +295,7 @@ run_test_for_device() {
     VLLM_NIXL_SIDE_CHANNEL_PORT=$SIDE_CHANNEL_PORT \
     vllm serve "$MODEL_NAME" \
       --port $PORT \
-      --enforce-eager \
+      --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
       --max-model-len "$MAX_MODEL_LEN" \
       --block-size "${BLOCK_SIZE}" \
       "${KV_CACHE_ARGS[@]}" \
