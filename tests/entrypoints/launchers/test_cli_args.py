@@ -212,31 +212,22 @@ def test_rust_grpc_port_accepts_frontend_launch(
 
 
 @pytest.mark.parametrize(
-    "rust_enabled, extra_args, port",
+    "extra_args, port",
     [
-        (False, [], 50051),
-        (False, ["--grpc"], 50051),
-        (True, ["--grpc"], 50051),
-        (True, ["--headless"], 50051),
-        (True, ["--api-server-count", "0"], 50051),
-        (True, ["--api-server-count", "-1"], 50051),
-        (True, ["--data-parallel-multi-port-external-lb"], 50051),
-        (True, ["--port", "50051"], 50051),
-        (True, [], -1),
-        (True, [], 65536),
+        (["--headless"], 50051),
+        (["--api-server-count", "0"], 50051),
+        (["--api-server-count", "-1"], 50051),
+        (["--data-parallel-multi-port-external-lb"], 50051),
+        (["--port", "50051"], 50051),
+        ([], -1),
+        ([], 65536),
     ],
 )
 def test_rust_grpc_port_rejects_incompatible_launch(
-    vllm_parser, monkeypatch, rust_enabled, extra_args, port
+    vllm_parser, monkeypatch, extra_args, port
 ):
-    monkeypatch.setenv("VLLM_USE_RUST_FRONTEND", "1" if rust_enabled else "0")
     args = vllm_parser.parse_args(["serve", "--grpc-port", str(port), *extra_args])
-    error = (
-        "--grpc and --grpc-port are mutually exclusive"
-        if "--grpc" in extra_args
-        else "--grpc-port"
-    )
-    with pytest.raises(ValueError, match=error):
+    with pytest.raises(ValueError, match="--grpc-port"):
         validate_parsed_serve_args(args)
 
 

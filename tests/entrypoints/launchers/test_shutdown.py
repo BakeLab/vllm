@@ -181,8 +181,8 @@ async def test_shutdown_on_engine_failure(tmp_path: Path):
                 # dtype, max-len etc set so that this can run in CI
                 sys.executable,
                 "-m",
-                "vllm.entrypoints.launchers.api_server.entry",
-                "--model",
+                "vllm.entrypoints.cli.main",
+                "serve",
                 MODEL_NAME,
                 "--dtype",
                 "bfloat16",

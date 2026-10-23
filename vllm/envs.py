@@ -169,9 +169,9 @@ if TYPE_CHECKING:
     VLLM_DISABLE_COMPILE_CACHE: bool = False
     VLLM_REPLICATE_EMBED: bool = False
     VLLM_USE_LAYERNAME: bool = True
-    VLLM_USE_RUST_FRONTEND: bool = False
+    VLLM_USE_RUST_FRONTEND: bool = True
     VLLM_USE_RUST_BENCH: bool = False
-    VLLM_RUST_FRONTEND_PATH: str | None = "auto"
+    VLLM_RUST_FRONTEND_PATH: str = "auto"
     VLLM_SERVER_DEV_MODE: bool = False
     VLLM_V1_OUTPUT_PROC_CHUNK_SIZE: int = 128
     VLLM_MLA_DISABLE: bool = False
@@ -566,26 +566,9 @@ def get_env_or_set_default(
 logger = logging.getLogger(__name__)
 
 
-def _resolve_rust_cli_path() -> str | None:
-    """Resolve the vllm-rs binary path.
-
-    Returns None unless VLLM_USE_RUST_FRONTEND or VLLM_USE_RUST_BENCH is enabled.
-    When enabled, resolves VLLM_RUST_FRONTEND_PATH ("auto" by default)
-    to the actual binary path.
-    """
-    use_rust = bool(int(os.environ.get("VLLM_USE_RUST_FRONTEND", "0"))) or bool(
-        int(os.environ.get("VLLM_USE_RUST_BENCH", "0"))
-    )
+def _resolve_rust_cli_path() -> str:
+    """Resolve the required vllm-rs binary path."""
     raw = os.environ.get("VLLM_RUST_FRONTEND_PATH", "auto")
-
-    if not use_rust:
-        if os.environ.get("VLLM_RUST_FRONTEND_PATH") is not None:
-            logger.warning(
-                "VLLM_RUST_FRONTEND_PATH is set without enabling "
-                "VLLM_USE_RUST_FRONTEND or VLLM_USE_RUST_BENCH. "
-                "Set one of them to 1 to use the vllm-rs binary."
-            )
-        return None
 
     if raw.lower() in ("auto", "1", "true"):
         pkg_dir = os.path.dirname(os.path.abspath(__file__))
@@ -598,6 +581,8 @@ def _resolve_rust_cli_path() -> str | None:
             f"not found at {candidate}. "
             "Build with setuptools-rust or set the path explicitly."
         )
+    if not os.path.isfile(raw) or not os.access(raw, os.X_OK):
+        raise FileNotFoundError(f"Rust frontend is not executable: {raw}")
     return raw
 
 
@@ -1456,16 +1441,12 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # If set to "0", disable LayerName opaque type for layer_name
     # parameters in custom ops.
     "VLLM_USE_LAYERNAME": lambda: bool(int(os.getenv("VLLM_USE_LAYERNAME", "1"))),
-    # If set, use the Rust frontend binary instead of the Python API server
-    # process(es).
-    "VLLM_USE_RUST_FRONTEND": lambda: bool(
-        int(os.getenv("VLLM_USE_RUST_FRONTEND", "0"))
-    ),
+    # The Rust frontend is mandatory in this fork.
+    "VLLM_USE_RUST_FRONTEND": lambda: True,
     # If set, use the packaged Rust client for `vllm bench serve`.
     "VLLM_USE_RUST_BENCH": lambda: bool(int(os.getenv("VLLM_USE_RUST_BENCH", "0"))),
     # Path to the vllm-rs binary. Defaults to "auto" which discovers the
-    # binary installed with the vllm package. Used when VLLM_USE_RUST_FRONTEND=1
-    # or VLLM_USE_RUST_BENCH=1.
+    # binary installed with the vllm package.
     "VLLM_RUST_FRONTEND_PATH": lambda: _resolve_rust_cli_path(),
     # If set, vllm will run in development mode, which will enable
     # some additional endpoints for developing and debugging,

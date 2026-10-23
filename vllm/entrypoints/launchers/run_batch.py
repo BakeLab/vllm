@@ -9,7 +9,7 @@ from argparse import Namespace
 from collections.abc import Awaitable, Callable
 from http import HTTPStatus
 from io import BytesIO, StringIO
-from typing import Any, NoReturn, TypeAlias
+from typing import Any, NoReturn
 from urllib.parse import urlparse
 
 import aiohttp
@@ -67,7 +67,7 @@ from vllm.utils.argparse_utils import FlexibleArgumentParser
 from vllm.utils.mem_constants import MiB_bytes
 from vllm.version import __version__ as VLLM_VERSION
 
-from .api_server.entry import init_app_state
+from .api_server.app_state import init_app_state
 from .cli_args import BaseFrontendArgs
 
 logger = init_logger(__name__)
@@ -145,7 +145,7 @@ class BatchTranslationRequest(TranslationRequest):
         return data
 
 
-BatchRequestInputBody: TypeAlias = (
+type BatchRequestInputBody = (
     ChatCompletionRequest
     | EmbeddingRequest
     | ScoreRequest
@@ -196,7 +196,7 @@ class BatchRequestInput(OpenAIBaseModel):
         return TypeAdapter(BatchRequestInputBody).validate_python(value)
 
 
-AllResponse: TypeAlias = (
+AllResponse = (
     ChatCompletionResponse
     | EmbeddingResponse
     | ScoreResponse
@@ -257,6 +257,7 @@ class BatchFrontendArgs(BaseFrontendArgs):
     port: int = 8000
     """Port number for the Prometheus metrics server
     (only needed if enable-metrics is set)."""
+
     @classmethod
     def _customize_cli_kwargs(
         cls,
@@ -577,7 +578,7 @@ async def run_request(
     return batch_output
 
 
-WrapperFn: TypeAlias = Callable[[Callable], Callable]
+type WrapperFn = Callable[[Callable], Callable]
 
 
 def handle_endpoint_request(
@@ -853,7 +854,7 @@ async def run_batch(
 
 
 async def main(args: Namespace):
-    from vllm.entrypoints.launchers.api_server.entry import build_async_engine_client
+    from vllm.engine.async_client import build_async_engine_client
     from vllm.usage.usage_lib import UsageContext
 
     validate_run_batch_args(args)
