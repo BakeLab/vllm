@@ -2023,13 +2023,6 @@ class ModelConfig:
         # cross_encoder models defaults to using separating token.
         # `llm as reranker` defaults to not using separating token.
 
-        use_pad_token = getattr(self.hf_config, "use_pad_token", None)
-        if use_pad_token is not None:
-            logger.warning_once(
-                "use_pad_token has been deprecated; please use use_sep_token instead."
-            )
-            return use_pad_token
-
         return getattr(self.hf_config, "use_sep_token", True)
 
     @property

@@ -5,7 +5,7 @@ import pytest
 import torch
 from torch import nn
 
-from vllm.config import ModelConfig
+from vllm.config import ModelConfig, VllmConfig
 from vllm.config.load import LoadConfig
 from vllm.model_executor.layers.fused_moe.runner.moe_runner import MoERunner
 from vllm.model_executor.layers.linear import UnquantizedLinearMethod
@@ -13,6 +13,7 @@ from vllm.model_executor.layers.quantization.kv_cache import BaseKVCacheMethod
 from vllm.model_executor.model_loader import get_model_loader, register_model_loader
 from vllm.model_executor.model_loader.base_loader import BaseModelLoader
 from vllm.model_executor.model_loader.default_loader import DefaultModelLoader
+from vllm.model_executor.model_loader.utils import initialize_model
 from vllm.model_executor.models.utils import AutoWeightsLoader
 
 
@@ -170,3 +171,9 @@ def test_moe_runner_reports_registered_expert_names():
     weights = [("experts.w13_weight", torch.zeros(2, 8, 4))]
     loaded = AutoWeightsLoader(model).load_weights(weights)
     assert loaded == {"experts.routed_experts.w13_weight"}
+
+
+def test_initialize_model_rejects_legacy_constructor():
+    """Model loading must pass the canonical config, never guess old arguments."""
+    with pytest.raises(TypeError, match="vllm_config"):
+        initialize_model(VllmConfig(), model_class=nn.Module)

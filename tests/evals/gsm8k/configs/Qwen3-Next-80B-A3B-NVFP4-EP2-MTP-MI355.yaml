@@ -16,4 +16,4 @@ server_args: >-
   --all2all-backend allgather_reducescatter
   --attention-backend TRITON_ATTN
   --no-async-scheduling
-  --speculative-config '{"method":"qwen3_next_mtp","num_speculative_tokens":1}'
+  --speculative-config '{"method":"mtp","num_speculative_tokens":1}'

@@ -72,7 +72,7 @@ features:
         variants: [ascend_w8a8_mxfp8, ascend_w8a8]
         args:
           - "--speculative-config"
-          - '{"method":"qwen3_5_mtp","num_speculative_tokens":3,"enforce_eager":true}'
+          - '{"method":"mtp","num_speculative_tokens":3,"enforce_eager":true}'
   text_only:
     description: "Skip loading the vision encoder for text-only workloads — frees VRAM for KV cache. Mutually exclusive with encoder_parallel."
     args:
