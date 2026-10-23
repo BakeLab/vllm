@@ -100,6 +100,12 @@ uv pip install vllm \
 --8<-- [end:pre-built-wheels]
 --8<-- [start:build-wheel-from-source]
 
+CUDA source builds update CMake-managed DeepGEMM checkouts to the revision pinned
+by vLLM, including when reusing an existing build directory. A matching checkout
+is reused without downloading it again. To use a custom or offline source tree,
+set `DEEPGEMM_SRC_DIR=/absolute/path/to/DeepGEMM`; this explicit source is not
+updated by CMake. The environment variable takes precedence over the CMake option.
+
 #### Set up using Python-only build (without compilation) {#python-only-build}
 
 If you only need to change Python code, you can build and install vLLM without compilation. Using `uv pip`'s [`--editable` flag](https://docs.astral.sh/uv/pip/packages/#editable-packages), changes you make to the code will be reflected when you run vLLM:
