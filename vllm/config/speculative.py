@@ -69,7 +69,7 @@ NgramGPUTypes = Literal["ngram_gpu"]
 DFlashModelTypes = Literal["dflash"]
 DSparkModelTypes = Literal["dspark"]
 EagleModelTypes = Literal[
-    "eagle", "eagle3", "extract_hidden_states", MTPModelTypes, DFlashModelTypes
+    "eagle", "eagle3", "extract_hidden_states", "mtp", DFlashModelTypes
 ]
 SpeculativeMethod = Literal[
     "ngram",
@@ -1204,12 +1204,6 @@ class SpeculativeConfig:
                 self.method = "ngram"
             else:
                 self.method = "draft_model"
-
-        if self.method in get_args(MTPModelTypes) and self.method != "mtp":
-            logger.warning(
-                "method `%s` is deprecated and replaced with mtp.", self.method
-            )
-            self.method = "mtp"
 
         if self.model is None and self.num_speculative_tokens is not None:
             if self.method == "mtp":

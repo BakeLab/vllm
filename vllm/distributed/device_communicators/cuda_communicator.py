@@ -251,16 +251,7 @@ class CudaCommunicator(DeviceCommunicatorBase):
                 self.all2all_manager = NixlEPAll2AllManager(
                     self.cpu_group, tcp_store_group
                 )
-            elif (
-                self.all2all_backend == "flashinfer_all2allv"
-                or self.all2all_backend == "flashinfer_nvlink_two_sided"
-            ):
-                if self.all2all_backend == "flashinfer_all2allv":
-                    logger.warning_once(
-                        "'flashinfer_all2allv' is deprecated and has been renamed to"
-                        "'flashinfer_nvlink_two_sided'. It will be removed in a future"
-                        "release."
-                    )
+            elif self.all2all_backend == "flashinfer_nvlink_two_sided":
                 from .all2all import FlashInferNVLinkTwoSidedManager
 
                 self.all2all_manager = FlashInferNVLinkTwoSidedManager(

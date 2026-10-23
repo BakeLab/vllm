@@ -53,7 +53,6 @@ All2AllBackend = Literal[
     "moonep",
     "nixl_ep",
     "allgather_reducescatter",
-    "flashinfer_all2allv",  # temporary alias for flashinfer_nvlink_two_sided
     "flashinfer_nvlink_two_sided",
     "flashinfer_nvlink_one_sided",
     "passthrough",
