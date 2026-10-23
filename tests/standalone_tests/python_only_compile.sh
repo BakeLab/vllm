@@ -187,11 +187,13 @@ fi
 rm -f /tmp/changed.file
 echo 'import os; os.system("touch /tmp/changed.file")' >> vllm/__init__.py
 
-# ROCm CI uses setuptools develop for editable installs (see Dockerfile.rocm and run-amd-test.sh).
+# Reuse the ROCm environment's torch and dependencies for the editable build.
 if [[ -n "${rocm_wheel}" ]]; then
-    VLLM_PRECOMPILED_WHEEL_LOCATION="${rocm_wheel}" VLLM_USE_PRECOMPILED=1 python3 setup.py develop --no-deps
+    VLLM_PRECOMPILED_WHEEL_LOCATION="${rocm_wheel}" VLLM_USE_PRECOMPILED=1 \
+        uv pip install --python "$(command -v python3)" --editable . --no-build-isolation --no-deps
 elif [[ "${is_rocm}" == "1" ]]; then
-    VLLM_PRECOMPILED_WHEEL_COMMIT=$merge_base_commit VLLM_USE_PRECOMPILED=1 python3 setup.py develop --no-deps
+    VLLM_PRECOMPILED_WHEEL_COMMIT=$merge_base_commit VLLM_USE_PRECOMPILED=1 \
+        uv pip install --python "$(command -v python3)" --editable . --no-build-isolation --no-deps
 elif [[ -n "${PYTHON_ONLY_COMPILE_PYTHON:-}" ]]; then
     # Use the CUDA build the image's own torch was installed with, for both the
     # new venv's torch and the precompiled wheel variant.
