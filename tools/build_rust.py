@@ -45,7 +45,7 @@ def prepare_build_environment() -> str | None:
     return version
 
 
-def rust_extensions(*, optional: bool = False) -> list[RustExtension]:
+def rust_extensions() -> list[RustExtension]:
     return [
         RustExtension(
             target="vllm.vllm-rs",
@@ -53,31 +53,9 @@ def rust_extensions(*, optional: bool = False) -> list[RustExtension]:
             args=["--bin", "vllm-rs"],
             features=["native-tls-vendored"],
             binding=Binding.Exec,
-            optional=optional,
+            optional=False,
         ),
-        # Example PyO3 module (the removed tool-parser bridge):
-        # RustExtension(
-        #     target="vllm._rust_tool_parser",
-        #     path="rust/src/parser/python/Cargo.toml",
-        #     features=["pyo3/abi3-py38"],
-        #     binding=Binding.PyO3,
-        #     optional=optional,
-        #     py_limited_api=True,
-        # ),
     ]
-
-
-def rust_py_extension_module_names() -> list[str]:
-    module_names = []
-    for extension in rust_extensions():
-        if extension.binding != Binding.PyO3:
-            continue
-
-        for target_name in extension.target.values():
-            if target_name.startswith("vllm._rust_"):
-                module_names.append(target_name.rsplit(".", 1)[-1])
-
-    return module_names
 
 
 def build_binary(build_rust_args: list[str]) -> None:
@@ -86,7 +64,7 @@ def build_binary(build_rust_args: list[str]) -> None:
     setup(
         name="vllm-rust-frontend-build",
         packages=[],
-        rust_extensions=rust_extensions(optional=False),
+        rust_extensions=rust_extensions(),
         script_args=["build_rust", "--quiet", "--inplace", *build_rust_args],
     )
 
