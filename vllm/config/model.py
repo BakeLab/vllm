@@ -270,14 +270,6 @@ class ModelConfig:
     (linear, moe) and ignore patterns; see :class:`QuantizationConfigArgs`.
     Auto-populated from the matching online shorthand when `quantization` is
     one of the values in `ONLINE_QUANT_SHORTHAND_NAMES`."""
-    enforce_eager: bool = False
-    """Whether to always use eager-mode PyTorch. If True, we will disable CUDA
-    graph and always execute the model in eager mode. If False, we will use
-    CUDA graph and eager execution in hybrid for maximal performance and
-    flexibility.
-
-    NOTE: This disables both `torch.compile` and CUDA graphs, and is
-    equivalent to setting `-cc.mode=none -cc.cudagraph_mode=none`."""
     return_sampling_mask: bool = False
     """Whether to return the post-processing token support for each sample."""
     max_logprobs: int = Field(default=20, ge=-1)
@@ -469,7 +461,6 @@ class ModelConfig:
             "allowed_media_domains",
             "tokenizer_revision",
             "spec_target_max_model_len",
-            "enforce_eager",
             "return_sampling_mask",
             "logprobs_mode",
             "use_fp64_gumbel",
@@ -911,7 +902,6 @@ class ModelConfig:
         self.config_updated = False
         self._try_verify_and_update_model_config()
         self._verify_quantization()
-        self._verify_cuda_graph()
 
     def _supports_multimodal_inputs(self) -> bool:
         """Checks if the model supports multimodal inputs.
@@ -1411,17 +1401,6 @@ class ModelConfig:
                     f"be one of {supported_quantization}."
                 )
             current_platform.verify_quantization(self.quantization)
-
-    def _verify_cuda_graph(self) -> None:
-        # CUDAGraph capture not supported for encoder-decoder models on ROCm
-        unsupported_rocm = self.is_encoder_decoder
-        if unsupported_rocm and not self.enforce_eager and current_platform.is_rocm():
-            logger.warning(
-                "CUDA graph is not supported for %s on ROCm yet, fallback "
-                "to eager mode.",
-                self.model_arch_config.model_type,
-            )
-            self.enforce_eager = True
 
     def _verify_with_expert_parallelism(self) -> None:
         if not self.is_moe:

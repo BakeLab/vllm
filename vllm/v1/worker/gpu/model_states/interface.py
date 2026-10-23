@@ -64,8 +64,7 @@ class ModelState(ABC):
         self.supports_mm_inputs = encoder_cache is not None
         if encoder_cache is not None:
             enable_encoder_cuda_graph = (
-                not self.model_config.enforce_eager
-                and vllm_config.compilation_config.cudagraph_mm_encoder
+                vllm_config.compilation_config.cudagraph_mm_encoder
                 and supports_encoder_cudagraph(model)
             )
             cudagraph_manager = (

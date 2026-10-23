@@ -217,7 +217,7 @@ def _copy_942_at_load(layer: "DeepseekV4DecoderLayer", ffn_only: bool) -> None:
     them when vLLM processes the weights at load, so that they count as model
     memory when vLLM sizes the KV cache. Copies made at the first decode step
     would count only when that step is also the CUDA graph memory profile, so
-    with that profile off or with ``enforce_eager`` they would not count. A
+    with that profile off or CUDA graphs disabled they would not count. A
     layer that takes only the FFN launch needs no attention copies."""
     ffn = layer.ffn
     _capture_plain_experts(ffn.experts.routed_experts)

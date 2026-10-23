@@ -980,7 +980,7 @@ class Worker(WorkerBase):
                 )
 
         cuda_graph_memory_bytes = 0
-        if not self.model_config.enforce_eager:
+        if self.compilation_config.cudagraph_mode != CUDAGraphMode.NONE:
             with self._get_cudagraph_capture_context():
                 cuda_graph_memory_bytes = self.model_runner.capture_model()
 
@@ -1115,7 +1115,7 @@ class Worker(WorkerBase):
         )
 
     def _maybe_activate_jit_monitor(self) -> None:
-        # When JIT warmup is disabled (e.g. enforce_eager), runtime JIT
+        # When JIT warmup is disabled, runtime JIT
         # compilation is expected, so monitoring would only produce noise
         # (or spurious errors in "error" mode).
         if not self.vllm_config.kernel_config.enable_jit_warmup:
