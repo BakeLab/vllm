@@ -77,11 +77,10 @@ def main():
     from vllm.entrypoints.common.startup import VLLM_SUBCMD_PARSER_EPILOG, cli_env_setup
     from vllm.utils.argparse_utils import FlexibleArgumentParser
 
-    def make_parser(command=None, *, selecting=False):
+    def make_parser(command=None):
         parser = FlexibleArgumentParser(
             description="vLLM CLI",
             epilog=VLLM_SUBCMD_PARSER_EPILOG.format(subcmd="[subcommand]"),
-            add_help=not selecting,
         )
         parser.add_argument(
             "-v",
@@ -99,8 +98,10 @@ def main():
                 subparsers.add_parser(name, help=help_text, add_help=False)
         return parser
 
-    parser = make_parser(selecting=True)
-    selected, _ = parser.parse_known_args()
+    parser = make_parser()
+    selected, _ = parser.parse_known_args(
+        [arg for arg in sys.argv[1:] if not arg.startswith("--help=")]
+    )
     if selected.subparser is None:
         parser = make_parser()
         parser.parse_args()
