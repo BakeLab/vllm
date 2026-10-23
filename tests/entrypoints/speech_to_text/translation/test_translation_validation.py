@@ -20,7 +20,10 @@ from vllm.multimodal.media.audio import load_audio
 
 logger = init_logger(__name__)
 
-SERVER_ARGS = ["--enforce-eager"]
+SERVER_ARGS = [
+    "--compilation-config.mode=0",
+    "--compilation-config.cudagraph_mode=NONE",
+]
 
 
 def _get_rocm_attention_config(model_name):
@@ -112,7 +115,8 @@ async def test_basic_audio_with_lora(mary_had_lamb):
     model_name = "ibm-granite/granite-speech-3.3-2b"
     lora_model_name = "speech"
     server_args = [
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--enable-lora",
         "--max-lora-rank",
         "64",

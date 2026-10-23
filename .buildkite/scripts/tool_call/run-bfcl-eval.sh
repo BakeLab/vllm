@@ -100,7 +100,7 @@ SERVE_ARGS=(
     --tool-call-parser "$TOOL_CALL_PARSER"
     --tensor-parallel-size "$TP_SIZE"
     --max-model-len "$MAX_MODEL_LEN"
-    --enforce-eager
+    -cc.mode=none -cc.cudagraph_mode=none
     --enable-prefix-caching
 )
 

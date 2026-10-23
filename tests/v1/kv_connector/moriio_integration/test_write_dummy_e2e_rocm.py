@@ -344,7 +344,10 @@ HETEROGENEOUS_TP_CASES = [
 
 def _graph_args(mode: str) -> list[str]:
     if mode == "NONE":
-        return ["--enforce-eager"]
+        return [
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
+        ]
     # Inductor otherwise picks launch configs by timing them, so separately
     # compiled servers may drift by a few bf16 logit steps: reductions sum in a
     # different order, and on ROCm the pointwise block size changes which

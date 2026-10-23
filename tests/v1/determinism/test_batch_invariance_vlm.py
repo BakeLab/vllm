@@ -122,7 +122,9 @@ def _run_vlm_batch_invariance(
     llm = LLM(
         model=VLM_TEST_MODEL,
         dtype="bfloat16",
-        enforce_eager=enforce_eager,
+        compilation_config=(
+            {"mode": 0, "cudagraph_mode": "NONE"} if (enforce_eager) else {}
+        ),
         max_num_seqs=16,
         max_model_len=4096,
         max_num_batched_tokens=2048,

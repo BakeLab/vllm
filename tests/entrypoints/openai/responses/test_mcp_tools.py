@@ -32,7 +32,8 @@ from .conftest import (
 MODEL_NAME = "openai/gpt-oss-20b"
 
 _BASE_SERVER_ARGS = [
-    "--enforce-eager",
+    "--compilation-config.mode=0",
+    "--compilation-config.cudagraph_mode=NONE",
     "--tool-server",
     "demo",
     "--max_model_len",

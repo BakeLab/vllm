@@ -35,7 +35,7 @@ ENGINE_CONFIG = {
     "config_format": "mistral",
     "load_format": "mistral",
     "tokenizer_mode": "mistral",
-    "enforce_eager": True,
+    "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
     "gpu_memory_utilization": 0.9,
     **ROCM_ENGINE_KWARGS,
 }

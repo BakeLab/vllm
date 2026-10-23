@@ -3,4 +3,4 @@ accuracy_threshold: 0.72
 num_questions: 1319
 num_fewshot: 5
 rocm_request_timeout_seconds: 1800
-server_args: "--enforce-eager --max-model-len 4096"
+server_args: "--compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE --max-model-len 4096"

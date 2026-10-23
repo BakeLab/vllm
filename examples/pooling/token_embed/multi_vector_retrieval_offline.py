@@ -16,7 +16,7 @@ def parse_args():
         model="BAAI/bge-m3",
         pooler_config=PoolerConfig(task="token_embed"),
         runner="pooling",
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
     )
     return parser.parse_args()
 

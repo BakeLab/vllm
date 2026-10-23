@@ -40,7 +40,8 @@ def server_args() -> list[str]:
         "2048",
         "--max-num-seqs",
         "128",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--chat-template",
         str(CHAT_TEMPLATE),
         # Prompt Embeds server args

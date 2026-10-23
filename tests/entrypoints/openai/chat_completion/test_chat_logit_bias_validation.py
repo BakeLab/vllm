@@ -27,7 +27,8 @@ def server():
         "bfloat16",
         "--max-model-len",
         "1024",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
     ]
 
     with RemoteOpenAIServer(MODEL_NAME, args) as remote_server:

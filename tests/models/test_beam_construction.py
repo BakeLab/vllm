@@ -93,7 +93,9 @@ def test_beam_builds_and_generates(
         max_num_batched_tokens=256,
         kv_cache_memory_bytes=16 * 1024**2,
         gpu_memory_utilization=0.25,
-        enforce_eager=enforce_eager,
+        compilation_config=(
+            {"mode": 0, "cudagraph_mode": "NONE"} if (enforce_eager) else {}
+        ),
         tensor_parallel_size=tp_size,
         enable_expert_parallel=enable_ep,
     )

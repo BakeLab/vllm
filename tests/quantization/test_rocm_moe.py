@@ -112,7 +112,9 @@ def test_rocm_quantized_moe_generation(
         *extra_args,
     ]
     if enforce_eager:
-        args.append("--enforce-eager")
+        args.extend(
+            ["--compilation-config.mode=0", "--compilation-config.cudagraph_mode=NONE"]
+        )
 
     with RemoteOpenAIServer(
         model,

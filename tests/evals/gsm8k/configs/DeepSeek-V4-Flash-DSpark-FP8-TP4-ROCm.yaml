@@ -20,7 +20,7 @@ server_args: >-
   --attention_config.indexer_kv_dtype=fp8
   --max-num-batched-tokens 16384
   --max-num-seqs 128
-  --enforce-eager
+  --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE
   --speculative-config '{"method":"dspark",
   "model":"deepseek-ai/DeepSeek-V4-Flash-DSpark",
   "num_speculative_tokens":7,

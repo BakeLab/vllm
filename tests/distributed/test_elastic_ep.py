@@ -215,7 +215,9 @@ def _base_serve_args(
     if leader_address:
         args.extend(["--data-parallel-address", leader_address])
     if enforce_eager:
-        args.append("--enforce-eager")
+        args.extend(
+            ["--compilation-config.mode=0", "--compilation-config.cudagraph_mode=NONE"]
+        )
 
     return args
 

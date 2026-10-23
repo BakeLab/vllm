@@ -29,7 +29,8 @@ def server():
         # use half precision for speed and memory savings in CI environment
         "--dtype",
         "float16",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--max-model-len",
         "4080",
         "--max-logprobs",  # test prompt_logprobs equal to -1

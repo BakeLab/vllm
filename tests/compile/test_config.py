@@ -16,6 +16,7 @@ from vllm.compilation.passes.utility.fix_functionalization import (
 from vllm.config import (
     CompilationConfig,
     CUDAGraphMode,
+    KernelConfig,
     ModelConfig,
     ParallelConfig,
     SchedulerConfig,
@@ -217,7 +218,7 @@ def test_no_compilation(vllm_runner, monkeypatch):
 
 # forked needed to workaround https://github.com/vllm-project/vllm/issues/21073
 @pytest.mark.forked
-def test_enforce_eager(vllm_runner, monkeypatch):
+def test_no_compile_reference(vllm_runner, monkeypatch):
     # Disable multiprocessing so that the counter is in the same process
     monkeypatch.setenv("VLLM_ENABLE_V1_MULTIPROCESSING", "0")
 
@@ -231,19 +232,17 @@ def test_enforce_eager(vllm_runner, monkeypatch):
         pass
 
 
-@pytest.mark.parametrize("enable_fault_tolerance", [False, True])
-def test_enforce_eager_jit_warmup(enable_fault_tolerance):
-    """Enforce-eager disables JIT warmup unless fault tolerance is on.
-
-    FT fault detection runs against deadlines that in-inference Triton
-    compilation latency spikes can blow past, so warmup stays enabled.
-    """
+@pytest.mark.parametrize("enable_jit_warmup", [False, True])
+def test_no_compilation_preserves_requested_jit_warmup(enable_jit_warmup):
+    """Disabling compile and graphs must not override an explicit warmup policy."""
     config = VllmConfig(
-        model_config=ModelConfig(model="facebook/opt-125m", enforce_eager=True),
-        parallel_config=ParallelConfig(enable_fault_tolerance=enable_fault_tolerance),
+        compilation_config=CompilationConfig(
+            mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+        ),
+        kernel_config=KernelConfig(enable_jit_warmup=enable_jit_warmup),
     )
     assert config.compilation_config.mode == CompilationMode.NONE
-    assert config.kernel_config.enable_jit_warmup == enable_fault_tolerance
+    assert config.kernel_config.enable_jit_warmup == enable_jit_warmup
 
 
 @pytest.mark.forked
@@ -522,7 +521,6 @@ def _mock_config_for_cudagraph_sizes(
     )
     config.parallel_config = ParallelConfig()
     config.model_config = MagicMock()
-    config.model_config.enforce_eager = False
     config.performance_mode = None
     config.diffusion_config = None
     schedule = num_speculative_tokens_per_batch_size
@@ -944,7 +942,7 @@ def test_default_cudagraph_capture_size_still_clamped_by_token_budget():
 )
 def test_blackwell_cudagraph_default(is_blackwell, expected_max_size):
     vllm_config = VllmConfig()
-    vllm_config.model_config = MagicMock(enforce_eager=False)
+    vllm_config.model_config = MagicMock()
     vllm_config.scheduler_config = SchedulerConfig(
         max_num_seqs=512,
         max_num_batched_tokens=2048,

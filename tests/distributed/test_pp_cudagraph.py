@@ -36,6 +36,9 @@ def test_pp_cudagraph(
     if ATTN_BACKEND is not None:
         cudagraph_args.append(f"--attention-backend={ATTN_BACKEND}")
 
-    eager_args = cudagraph_args + ["--enforce-eager"]
+    eager_args = cudagraph_args + [
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
+    ]
 
     compare_two_settings(MODEL_NAME, eager_args, cudagraph_args)

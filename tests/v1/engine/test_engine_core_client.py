@@ -816,7 +816,9 @@ def test_engine_core_client(
         # Monkey-patch core engine utility function to test.
         m.setattr(EngineCore, "echo", echo, raising=False)
 
-        engine_args = EngineArgs(model=MODEL_NAME, enforce_eager=True)
+        engine_args = EngineArgs(
+            model=MODEL_NAME, compilation_config={"mode": 0, "cudagraph_mode": "NONE"}
+        )
         vllm_config = engine_args.create_engine_config(UsageContext.UNKNOWN_CONTEXT)
         executor_class = Executor.get_class(vllm_config)
 
@@ -905,7 +907,9 @@ async def test_engine_core_client_asyncio(
         # Monkey-patch core engine utility function to test.
         m.setattr(EngineCore, "echo", echo, raising=False)
 
-        engine_args = EngineArgs(model=MODEL_NAME, enforce_eager=True)
+        engine_args = EngineArgs(
+            model=MODEL_NAME, compilation_config={"mode": 0, "cudagraph_mode": "NONE"}
+        )
         vllm_config = engine_args.create_engine_config(
             usage_context=UsageContext.UNKNOWN_CONTEXT
         )
@@ -1005,7 +1009,9 @@ async def test_engine_core_client_util_method_custom_return(
         # Monkey-patch core engine utility function to test.
         m.setattr(EngineCore, "echo_dc", echo_dc, raising=False)
 
-        engine_args = EngineArgs(model=MODEL_NAME, enforce_eager=True)
+        engine_args = EngineArgs(
+            model=MODEL_NAME, compilation_config={"mode": 0, "cudagraph_mode": "NONE"}
+        )
         vllm_config = engine_args.create_engine_config(
             usage_context=UsageContext.UNKNOWN_CONTEXT
         )
@@ -1053,7 +1059,9 @@ async def test_engine_core_client_util_method_custom_dict_return(
         # Monkey-patch core engine utility function to test.
         m.setattr(EngineCore, "echo_dc_dict", echo_dc_dict, raising=False)
 
-        engine_args = EngineArgs(model=MODEL_NAME, enforce_eager=True)
+        engine_args = EngineArgs(
+            model=MODEL_NAME, compilation_config={"mode": 0, "cudagraph_mode": "NONE"}
+        )
         vllm_config = engine_args.create_engine_config(
             usage_context=UsageContext.UNKNOWN_CONTEXT
         )
@@ -1110,7 +1118,9 @@ async def test_engine_core_client_util_method_nested_structures(
         # Monkey-patch core engine utility function to test.
         m.setattr(EngineCore, "echo_dc_nested", echo_dc_nested, raising=False)
 
-        engine_args = EngineArgs(model=MODEL_NAME, enforce_eager=True)
+        engine_args = EngineArgs(
+            model=MODEL_NAME, compilation_config={"mode": 0, "cudagraph_mode": "NONE"}
+        )
         vllm_config = engine_args.create_engine_config(
             usage_context=UsageContext.UNKNOWN_CONTEXT
         )
@@ -1219,7 +1229,9 @@ async def test_engine_core_client_future_utility_async(
     with monkeypatch.context() as m:
         m.setattr(EngineCore, "future_echo", future_echo, raising=False)
 
-        engine_args = EngineArgs(model=MODEL_NAME, enforce_eager=True)
+        engine_args = EngineArgs(
+            model=MODEL_NAME, compilation_config={"mode": 0, "cudagraph_mode": "NONE"}
+        )
         vllm_config = engine_args.create_engine_config(
             usage_context=UsageContext.UNKNOWN_CONTEXT
         )
@@ -1273,7 +1285,7 @@ def test_kv_cache_events(
 
     engine_args = EngineArgs(
         model=model_name,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         enable_prefix_caching=True,
         prefix_cache_retention_interval=None,
         block_size=block_size,
@@ -1355,7 +1367,7 @@ async def test_kv_cache_events_dp(
 
     engine_args = EngineArgs(
         model=MODEL_NAME,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         enable_prefix_caching=True,
         data_parallel_size=dp_size,
         tensor_parallel_size=tp_size,

@@ -32,7 +32,7 @@ from vllm.sampling_params import BeamSearchParams, StructuredOutputsParams
 EXTRA_ENGINE_KWARGS: dict = (
     dict(
         async_scheduling=False,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         enable_prefix_caching=False,
         max_num_seqs=1,
     )
@@ -333,7 +333,10 @@ def test_beam_search_structured_output(
             backend="xgrammar",
             disable_any_whitespace=True,
         ),
-        **(dict(enforce_eager=True) | EXTRA_ENGINE_KWARGS),
+        **(
+            dict(compilation_config={"mode": 0, "cudagraph_mode": "NONE"})
+            | EXTRA_ENGINE_KWARGS
+        ),
     )
 
     params = BeamSearchParams(

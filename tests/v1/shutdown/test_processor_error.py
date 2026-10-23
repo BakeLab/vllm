@@ -25,7 +25,9 @@ async def test_async_llm_processor_error(model: str) -> None:
     Test empty tokens prompt (failure) and non-empty prompt (no failure.)
     AsyncLLM always uses an MP client.
     """
-    engine_args = AsyncEngineArgs(model=model, enforce_eager=True)
+    engine_args = AsyncEngineArgs(
+        model=model, compilation_config={"mode": 0, "cudagraph_mode": "NONE"}
+    )
     async_llm = AsyncLLM.from_engine_args(engine_args)
 
     async def generate(request_id: str):

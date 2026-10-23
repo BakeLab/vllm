@@ -47,7 +47,6 @@ def _make_vllm_config(
     model_config = ModelConfig(
         model="facebook/opt-125m",
         max_model_len=max_model_len,
-        enforce_eager=True,
     )
     scheduler_config = SchedulerConfig.default_factory(
         max_num_seqs=max_num_seqs,
@@ -60,6 +59,7 @@ def _make_vllm_config(
         num_speculative_tokens=k,
     )
     return VllmConfig(
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         model_config=model_config,
         scheduler_config=scheduler_config,
         speculative_config=speculative_config,

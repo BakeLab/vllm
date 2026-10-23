@@ -392,8 +392,6 @@ _DRAFT_VLLM_CONFIG_OVERRIDES = (
 class SpeculativeConfig:
     """Configuration for speculative decoding."""
 
-    enforce_eager: bool | None = None
-    """Override the default enforce_eager from model_config"""
     # General speculative decoding control
     num_speculative_tokens: int = Field(default=None, gt=0)  # type: ignore[assignment]
     """The number of speculative tokens, if provided. It will default to the
@@ -1357,7 +1355,6 @@ class SpeculativeConfig:
                     max_model_len=self.max_model_len,  # type: ignore[arg-type]
                     spec_target_max_model_len=self.target_model_config.max_model_len,
                     quantization=self.quantization,
-                    enforce_eager=self.target_model_config.enforce_eager,
                     max_logprobs=self.target_model_config.max_logprobs,
                     hf_overrides=draft_hf_overrides,
                     config_format=self.target_model_config.config_format,

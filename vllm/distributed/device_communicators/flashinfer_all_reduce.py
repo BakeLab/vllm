@@ -85,7 +85,7 @@ def _create_workspace(
     try:
         random.seed(int.from_bytes(os.urandom(16), byteorder="big"))
         # Creation may run lazily inside the first sync-checked forward (e.g.
-        # with enforce_eager, which skips warmup).
+        # with JIT warmup disabled).
         with gpu_sync_allowed(first_only=True):
             workspace = flashinfer_comm.create_allreduce_fusion_workspace(
                 backend=backend,

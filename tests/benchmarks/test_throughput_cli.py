@@ -40,7 +40,8 @@ def test_bench_throughput():
         "32",
         "--output-len",
         "1",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--load-format",
         "dummy",
     ]

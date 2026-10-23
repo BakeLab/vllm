@@ -179,7 +179,7 @@ if current_platform.is_rocm():
 # Build platform-specific LLM kwargs
 llm_kwargs = dict(
     model=MODEL_NAME_V1,
-    enforce_eager=True,
+    compilation_config={"mode": "none", "cudagraph_mode": "none"},
     max_model_len=8192,
     distributed_executor_backend="ray",
     attention_backend=ATTN_BACKEND,
@@ -293,7 +293,7 @@ ray.kill(train_model)
 
 llm_v2_kwargs = dict(
     model=MODEL_NAME_V2,
-    enforce_eager=True,
+    compilation_config={"mode": "none", "cudagraph_mode": "none"},
     max_model_len=8192,
     gpu_memory_utilization=0.75,
     distributed_executor_backend="ray",

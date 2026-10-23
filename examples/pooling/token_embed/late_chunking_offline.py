@@ -23,7 +23,7 @@ def parse_args():
         runner="pooling",
         pooler_config=PoolerConfig(task="token_embed"),
         max_model_len=512,
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
     )
     return parser.parse_args()
 

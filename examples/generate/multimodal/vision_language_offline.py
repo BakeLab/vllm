@@ -440,7 +440,7 @@ def run_gemma3n(questions: list[str], modality: str) -> ModelRequestData:
         max_model_len=2048,
         max_num_seqs=2,
         limit_mm_per_prompt={modality: 1},
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
     )
 
     prompts = [
@@ -506,7 +506,7 @@ def run_glm4v(questions: list[str], modality: str) -> ModelRequestData:
         max_model_len=2048,
         max_num_seqs=2,
         trust_remote_code=True,
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
         hf_overrides={"architectures": ["GLM4VForCausalLM"]},
         limit_mm_per_prompt={modality: 1},
     )
@@ -542,7 +542,7 @@ def run_glm4_1v(questions: list[str], modality: str) -> ModelRequestData:
             "fps": 1,
         },
         limit_mm_per_prompt=mm_limit,
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
     )
 
     image_placeholder = "<|begin_of_image|><|image|><|end_of_image|>"
@@ -584,7 +584,7 @@ def run_glm4_5v(questions: list[str], modality: str) -> ModelRequestData:
             "fps": 1,
         },
         limit_mm_per_prompt=mm_limit,
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
         tensor_parallel_size=4,
     )
 
@@ -627,7 +627,7 @@ def run_glm4_5v_fp8(questions: list[str], modality: str) -> ModelRequestData:
             "fps": 1,
         },
         limit_mm_per_prompt=mm_limit,
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
         tensor_parallel_size=4,
     )
 
@@ -670,7 +670,7 @@ def run_glm_ocr(questions: list[str], modality: str) -> ModelRequestData:
             "fps": 1,
         },
         limit_mm_per_prompt=mm_limit,
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
     )
 
     image_placeholder = "<|begin_of_image|><|image|><|end_of_image|>"
@@ -764,7 +764,7 @@ def run_idefics3(questions: list[str], modality: str) -> ModelRequestData:
         model=model_name,
         max_model_len=8192,
         max_num_seqs=2,
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
         # if you are running out of memory, you can reduce the "longest_edge".
         # see: https://huggingface.co/HuggingFaceM4/Idefics3-8B-Llama3#model-optimizations
         mm_processor_kwargs={
@@ -794,7 +794,7 @@ def run_interns1(questions: list[str], modality: str) -> ModelRequestData:
         max_model_len=8192,
         max_num_seqs=2,
         limit_mm_per_prompt=mm_limit,
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
     )
 
     image_placeholder = "<IMG_CONTEXT>"
@@ -833,7 +833,7 @@ def run_interns1_pro(questions: list[str], modality: str) -> ModelRequestData:
         max_model_len=8192,
         max_num_seqs=2,
         limit_mm_per_prompt=mm_limit,
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
         tensor_parallel_size=4,
     )
 
@@ -1501,7 +1501,7 @@ def run_openpangu_vl(questions: list[str], modality: str) -> ModelRequestData:
         max_model_len=4096,
         max_num_seqs=4,
         trust_remote_code=True,
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
         limit_mm_per_prompt=mm_limit,
     )
 
@@ -2135,7 +2135,7 @@ def run_smolvlm(questions: list[str], modality: str) -> ModelRequestData:
         model=model_name,
         max_model_len=8192,
         max_num_seqs=2,
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
         mm_processor_kwargs={
             "max_image_size": {"longest_edge": 384},
         },

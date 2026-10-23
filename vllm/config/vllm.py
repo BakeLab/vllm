@@ -795,7 +795,7 @@ class VllmConfig:
         if (
             not envs.VLLM_BATCH_INVARIANT
             or model is None
-            or model.enforce_eager
+            or self.compilation_config.cudagraph_mode == CUDAGraphMode.NONE
             or model.dtype != torch.bfloat16
             or model.quantization is not None
             or not current_platform.is_cuda()
@@ -1741,26 +1741,6 @@ class VllmConfig:
                 "precision for chunked prefill triton kernels."
             )
 
-        if self.model_config is not None and self.model_config.enforce_eager:
-            self.compilation_config.mode = CompilationMode.NONE
-            self.compilation_config.cudagraph_mode = CUDAGraphMode.NONE
-            if self.parallel_config.enable_fault_tolerance:
-                # Keep JIT warmup: in-inference Triton compilation latency
-                # spikes can delay peer-fault detection past its deadline.
-                logger.warning_once(
-                    "Enforce eager set, disabling torch.compile and CUDAGraphs. "
-                    "This is equivalent to setting -cc.mode=none "
-                    "-cc.cudagraph_mode=none"
-                )
-            else:
-                logger.warning_once(
-                    "Enforce eager set, disabling torch.compile, CUDAGraphs, and "
-                    "JIT kernel warmup. This is equivalent to setting "
-                    "-cc.mode=none -cc.cudagraph_mode=none and "
-                    "--kernel_config.enable_jit_warmup=False"
-                )
-                self.kernel_config.enable_jit_warmup = False
-
         if os.environ.get("TORCH_COMPILE_DISABLE") == "1":
             logger.warning_once(
                 "TORCH_COMPILE_DISABLE is set, disabling torch.compile. "
@@ -1967,15 +1947,21 @@ class VllmConfig:
                     )
                     self.compilation_config.cudagraph_mode = CUDAGraphMode.PIECEWISE
 
-            # disable cudagraph when enforce eager execution
-            if self.model_config is not None and self.model_config.enforce_eager:
-                logger.info_once("Cudagraph is disabled under eager mode")
-                self.compilation_config.cudagraph_mode = CUDAGraphMode.NONE
-                # override related settings when enforce eager
-                self.compilation_config.max_cudagraph_capture_size = 0
-                self.compilation_config.cudagraph_capture_sizes = []
-            else:
-                self.compilation_config.cudagraph_num_of_warmups = 1
+            if (
+                current_platform.is_rocm()
+                and self.model_config is not None
+                and self.model_config.is_encoder_decoder
+                and (
+                    self.compilation_config.cudagraph_mode != CUDAGraphMode.NONE
+                    or self.compilation_config.cudagraph_mm_encoder
+                )
+            ):
+                raise ValueError(
+                    "CUDA graphs are not supported for encoder-decoder models "
+                    "on ROCm. Set cudagraph_mode=NONE and "
+                    "cudagraph_mm_encoder=False in compilation_config."
+                )
+            self.compilation_config.cudagraph_num_of_warmups = 1
 
             self._set_cudagraph_sizes()
 
@@ -2113,11 +2099,10 @@ class VllmConfig:
                 self.parallel_config.use_all2all
                 and self.compilation_config.cudagraph_mode != CUDAGraphMode.NONE
             ):
-                logger.info(
-                    "MoonEP: Disabling CUDA Graphs since the MoonEP "
-                    "integration is currently eager-only."
+                raise ValueError(
+                    "MoonEP does not support CUDA graphs. "
+                    "Set cudagraph_mode=NONE in compilation_config."
                 )
-                self.compilation_config.cudagraph_mode = CUDAGraphMode.NONE
 
         # Do this after all the updates to compilation_config.mode
         effective_dp_size = (
@@ -2413,7 +2398,6 @@ class VllmConfig:
         """
         if (
             self.model_config is not None
-            and not self.model_config.enforce_eager
             and self.compilation_config.cudagraph_mode != CUDAGraphMode.NONE
         ):
             # determine the initial max_cudagraph_capture_size
@@ -2773,7 +2757,6 @@ class VllmConfig:
             f"disable_custom_all_reduce={self.parallel_config.disable_custom_all_reduce}, "  # noqa
             f"quantization={self.model_config.quantization}, "
             f"quantization_config={self.model_config.quantization_config}, "  # noqa
-            f"enforce_eager={self.model_config.enforce_eager}, "
             f"aux_output_config={self.aux_output_config!r}, "
             f"kv_cache_dtype={self.cache_config.cache_dtype}, "
             f"device_config={self.device_config.device}, "
@@ -3206,10 +3189,7 @@ class VllmConfig:
 
         has_cuda_graphs = (
             self.compilation_config.cudagraph_mode != CUDAGraphMode.NONE
-            or (
-                self.compilation_config.cudagraph_mm_encoder
-                and not (self.model_config and self.model_config.enforce_eager)
-            )
+            or self.compilation_config.cudagraph_mm_encoder
         )
         if not has_cuda_graphs:
             return
@@ -3217,13 +3197,13 @@ class VllmConfig:
         if mode and mode.split(":", 1)[0].lower() == "pcsampling":
             raise ValueError(
                 "Proton PC sampling requires CUDA graphs to be disabled. "
-                "Use --enforce-eager."
+                "Set cudagraph_mode=NONE and cudagraph_mm_encoder=False."
             )
         if not self.profiler_config.proton_graph_attribution:
             raise ValueError(
                 "Proton profiling with CUDA graphs requires "
                 "proton_graph_attribution=True to capture replayed kernels. "
-                "Enable attribution or use --enforce-eager."
+                "Enable attribution or disable CUDA graphs in compilation_config."
             )
 
     def _disable_cudagraphs_for_v2_stock_torch_compile(self) -> None:

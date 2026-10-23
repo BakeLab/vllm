@@ -61,7 +61,7 @@ vllm serve "$MODEL_NAME" \
     --data-parallel-size "$DATA_PARALLEL_SIZE" \
     --data-parallel-size-local "$DATA_PARALLEL_SIZE" \
     --data-parallel-backend ray \
-    --enforce-eager \
+    -cc.mode=none -cc.cudagraph_mode=none \
     --enable-expert-parallel \
     --enable-eplb \
     --all2all-backend allgather_reducescatter \

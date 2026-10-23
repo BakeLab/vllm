@@ -296,7 +296,7 @@ Instead of NumPy arrays, you can also pass `'torch.Tensor'` instances, as shown 
     llm = LLM(
         model=model_path,
         gpu_memory_utilization=0.8,
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
         limit_mm_per_prompt={"video": 1},
     )
 

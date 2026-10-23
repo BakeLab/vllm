@@ -55,7 +55,6 @@ def parse_args():
     parser.add_argument("--prompt-lookup-max", type=int, default=5)
     parser.add_argument("--prompt-lookup-min", type=int, default=2)
     parser.add_argument("--tp", type=int, default=1)
-    parser.add_argument("--enforce-eager", action="store_true")
     parser.add_argument("--enable-chunked-prefill", action="store_true")
     parser.add_argument("--max-model-len", type=int, default=16384)
     parser.add_argument("--temp", type=float, default=0)
@@ -133,7 +132,6 @@ def main(args):
             "method": args.method,
             "model": args.draft_model,
             "num_speculative_tokens": args.num_spec_tokens,
-            "enforce_eager": args.enforce_eager,
             "max_model_len": args.max_model_len,
             "parallel_drafting": args.parallel_drafting,
             "use_heterogeneous_vocab": args.use_heterogeneous_vocab,
@@ -151,7 +149,6 @@ def main(args):
         trust_remote_code=True,
         tensor_parallel_size=args.tp,
         enable_chunked_prefill=args.enable_chunked_prefill,
-        enforce_eager=args.enforce_eager,
         gpu_memory_utilization=args.gpu_memory_utilization,
         speculative_config=speculative_config,
         disable_log_stats=False,

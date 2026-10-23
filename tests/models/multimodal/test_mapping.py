@@ -320,7 +320,6 @@ def test_hf_model_weights_mapper(model_arch: str):
         skip_tokenizer_init=model_info.require_embed_inputs,
         enable_prompt_embeds=model_info.require_embed_inputs,
         enable_mm_embeds=model_info.require_embed_inputs,
-        enforce_eager=model_info.enforce_eager,
         dtype=model_info.dtype,
     )
     model_cls = MULTIMODAL_REGISTRY._get_model_cls(model_config)

@@ -30,7 +30,8 @@ def server():
         "1024",
         "--max-num-seqs",
         "8",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
     ]
     with RemoteOpenAIServer(MODEL_NAME, args) as remote_server:
         yield remote_server

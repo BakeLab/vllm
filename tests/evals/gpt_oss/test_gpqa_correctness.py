@@ -128,7 +128,8 @@ def test_gpqa_correctness(config_filename):
     server_args.extend(
         [
             "--trust-remote-code",
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--disable-uvicorn-access-log",
         ]
     )

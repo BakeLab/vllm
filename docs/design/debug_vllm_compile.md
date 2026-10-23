@@ -7,7 +7,7 @@ TL;DR:
 
 | Online Flag                    | Offline Flag                                                                   | Result                                               |
 |--------------------------------|--------------------------------------------------------------------------------|------------------------------------------------------|
-| --enforce-eager                | enforce_eager=True                                                             | Turn off torch.compile and CUDAGraphs                |
+| -cc.mode=none -cc.cudagraph_mode=none                | compilation_config={"mode": "none", "cudagraph_mode": "none"}                                                             | Turn off torch.compile and CUDAGraphs                |
 | -cc.mode=0                     | compilation_config=CompilationConfig(mode=CompilationMode.NONE)                | Turn off torch.compile only                          |
 | -cc.mode=1                     | compilation_config=CompilationConfig(mode=CompilationMode.STOCK_TORCH_COMPILE) | Turn off vLLM-compile modifications to torch.compile |
 | -cc.cudagraph_mode=NONE        | compilation_config=CompilationConfig(cudagraph_mode=CUDAGraphMode.NONE)        | Turn off CUDAGraphs only                             |
@@ -80,17 +80,17 @@ Open it to see the logs. It'll look something like the following:
 
 ## Turn off vLLM-torch.compile integration
 
-Pass `--enforce-eager` to turn off the vLLM-torch.compile integration and run entirely
+Pass `-cc.mode=none -cc.cudagraph_mode=none` to turn off the vLLM-torch.compile integration and run entirely
 in eager mode. This includes turning off CUDAGraphs.
 
 ```sh
 # Online
-vllm serve --enforce-eager
+vllm serve -cc.mode=none -cc.cudagraph_mode=none
 ```
 
 ```py
 # Offline
-LLM(model, enforce_eager=True)
+LLM(model, compilation_config={"mode": "none", "cudagraph_mode": "none"})
 ```
 
 To turn off just torch.compile, pass `mode = NONE` to the compilation config.

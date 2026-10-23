@@ -378,7 +378,8 @@ def default_server_args():
     return [
         "--max-model-len",
         "18192",
-        "--enforce-eager",  # For faster startup.
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",  # For faster startup.
         "--enable-auto-tool-choice",
         "--structured-outputs-config.backend",
         "xgrammar",

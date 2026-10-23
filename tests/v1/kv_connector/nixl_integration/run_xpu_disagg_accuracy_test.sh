@@ -85,7 +85,7 @@ launch_baseline() {
       --block-size ${BLOCK_SIZE} \
       --gpu-memory-utilization ${GPU_MEMORY_UTILIZATION} \
       --dtype float16 \
-      --enforce-eager"
+      --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE"
   echo "${BASELINE_BASE_CMD}"
   bash -c "${BASELINE_BASE_CMD}" &
   sleep 10
@@ -114,7 +114,7 @@ launch_pd() {
     --max-model-len "${MAX_MODEL_LEN}" \
     --seed 42 \
     --block-size "${BLOCK_SIZE}" \
-    --enforce-eager \
+    --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
     --dtype float16 \
     -tp "${PREFILLER_TP_SIZE}" \
     --gpu-memory-utilization "${GPU_MEMORY_UTILIZATION}" \
@@ -131,7 +131,7 @@ launch_pd() {
     --max-model-len "${MAX_MODEL_LEN}" \
     --seed 42 \
     --block-size "${BLOCK_SIZE}" \
-    --enforce-eager \
+    --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
     -tp "${DECODER_TP_SIZE}" \
     --dtype float16 \
     --gpu-memory-utilization "${GPU_MEMORY_UTILIZATION}" \

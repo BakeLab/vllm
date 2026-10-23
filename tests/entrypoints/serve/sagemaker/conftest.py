@@ -34,7 +34,8 @@ def basic_server_with_lora(smollm2_lora_files):
         "bfloat16",
         "--max-model-len",
         "8192",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         # lora config below
         "--enable-lora",
         "--max-lora-rank",

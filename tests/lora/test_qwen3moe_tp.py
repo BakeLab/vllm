@@ -74,7 +74,7 @@ def test_qwen3moe_lora(qwen3moe_lora_files):
         max_model_len=1024,
         enable_lora=True,
         max_loras=4,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         enable_chunked_prefill=True,
         enable_mixed_moe_lora_format=True,

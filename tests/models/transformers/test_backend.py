@@ -136,7 +136,10 @@ def test_models(
 
 def test_hybrid_attention(vllm_runner: type[VllmRunner]) -> None:
     prompts, _, _ = prep_prompts(4, (800, 801))
-    kwargs_ref = {"max_model_len": 8192, "enforce_eager": True}
+    kwargs_ref = {
+        "max_model_len": 8192,
+        "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
+    }
     kwargs_test = {"model_impl": "transformers", **kwargs_ref}
     check_implementation(
         vllm_runner,
@@ -187,7 +190,10 @@ def test_sinks(hf_runner: type[HfRunner], vllm_runner: type[VllmRunner]) -> None
 def test_mla(vllm_runner: type[VllmRunner], example_prompts: list[str]) -> None:
     model = "hmellor/tiny-random-DeepseekV2ForCausalLM"
     args = (example_prompts, 32, 5)
-    kwargs: dict[str, Any] = {"max_model_len": 2048, "enforce_eager": True}
+    kwargs: dict[str, Any] = {
+        "max_model_len": 2048,
+        "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
+    }
 
     with vllm_runner(
         model, model_impl="transformers", trust_remote_code=False, **kwargs

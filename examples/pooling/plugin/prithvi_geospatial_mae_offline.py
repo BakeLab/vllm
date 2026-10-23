@@ -47,7 +47,7 @@ class PrithviMAE:
             model=model,
             skip_tokenizer_init=True,
             dtype="float16",
-            enforce_eager=True,
+            compilation_config={"mode": "none", "cudagraph_mode": "none"},
             model_impl="terratorch",
             enable_mm_embeds=True,
         )

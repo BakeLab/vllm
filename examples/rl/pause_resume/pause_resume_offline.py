@@ -25,7 +25,7 @@ async def main():
     # Create engine with a small model
     engine_args = AsyncEngineArgs(
         model="facebook/opt-125m",
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
     )
     engine = AsyncLLM.from_engine_args(engine_args)
 

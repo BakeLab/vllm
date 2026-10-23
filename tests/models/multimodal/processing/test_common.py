@@ -327,7 +327,6 @@ def _test_processing_correctness(
         skip_tokenizer_init=model_info.require_embed_inputs,
         enable_prompt_embeds=model_info.require_embed_inputs,
         enable_mm_embeds=model_info.require_embed_inputs,
-        enforce_eager=model_info.enforce_eager,
         dtype=model_info.dtype,
         model_impl=model_impl,
     )

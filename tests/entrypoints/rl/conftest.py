@@ -39,7 +39,8 @@ _BASE_ARGS = [
     "--gpu-memory-utilization",
     "0.75",
     "--enable-sleep-mode",
-    "--enforce-eager",
+    "--compilation-config.mode=0",
+    "--compilation-config.cudagraph_mode=NONE",
 ]
 
 
@@ -55,7 +56,8 @@ _DUMMY_ARGS = [
     "--gpu-memory-utilization",
     "0.5",
     "--enable-sleep-mode",
-    "--enforce-eager",
+    "--compilation-config.mode=0",
+    "--compilation-config.cudagraph_mode=NONE",
     "--load-format",
     "dummy",
 ]

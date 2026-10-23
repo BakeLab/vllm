@@ -33,7 +33,8 @@ def server():
         "pooling",
         "--dtype",
         "bfloat16",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--max-model-len",
         str(max_model_len),
     ]

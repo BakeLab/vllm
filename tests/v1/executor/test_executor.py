@@ -163,7 +163,10 @@ def test_custom_executor(distributed_executor_backend, tmp_path):
             gpu_memory_utilization=0.2,
             max_model_len=8192,
             distributed_executor_backend=distributed_executor_backend,
-            enforce_eager=True,  # reduce test time
+            compilation_config={
+                "mode": 0,
+                "cudagraph_mode": "NONE",
+            },  # reduce test time
         )
         engine = LLMEngine.from_engine_args(engine_args)
         sampling_params = SamplingParams(max_tokens=1)
@@ -194,7 +197,10 @@ def test_custom_executor_async(distributed_executor_backend, tmp_path):
             gpu_memory_utilization=0.2,
             max_model_len=8192,
             distributed_executor_backend=distributed_executor_backend,
-            enforce_eager=True,  # reduce test time
+            compilation_config={
+                "mode": 0,
+                "cudagraph_mode": "NONE",
+            },  # reduce test time
         )
         engine = AsyncLLM.from_engine_args(engine_args)
         sampling_params = SamplingParams(max_tokens=1)

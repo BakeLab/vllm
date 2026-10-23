@@ -56,7 +56,7 @@ def test_gemma4_lora(gemma4_vision_lora_files):
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         max_loras=4,
         trust_remote_code=True,
         limit_mm_per_prompt={"image": 1},
@@ -73,7 +73,7 @@ def test_gemma4_lora_tp2(gemma4_vision_lora_files):
     llm = vllm.LLM(
         MODEL_PATH,
         max_model_len=1024,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         enable_lora=True,
         max_loras=4,
         trust_remote_code=True,
@@ -92,7 +92,7 @@ def test_gemma4_lora_tp4(gemma4_vision_lora_files):
     llm = vllm.LLM(
         MODEL_PATH,
         max_model_len=1024,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         enable_lora=True,
         max_loras=4,
         trust_remote_code=True,

@@ -48,7 +48,10 @@ def test_engine_log_metrics_ray(
     """Simple smoke test, verifying this can be used without exceptions.
     Need to start a Ray cluster in order to verify outputs."""
     engine_args = AsyncEngineArgs(
-        model=model, dtype=dtype, disable_log_stats=False, enforce_eager=True
+        model=model,
+        dtype=dtype,
+        disable_log_stats=False,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
     )
 
     @ray.remote(num_gpus=1)

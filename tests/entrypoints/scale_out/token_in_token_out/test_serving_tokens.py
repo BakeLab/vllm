@@ -50,7 +50,8 @@ def server(request):
         "bfloat16",
         "--max-model-len",
         "1024",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         # On ROCm (e.g. MI355X/gfx950), bf16 GEMM results can differ by
         # 1 ULP when the batch dimension (M) changes, because different M
         # values cause the Tensile backend to select different tile

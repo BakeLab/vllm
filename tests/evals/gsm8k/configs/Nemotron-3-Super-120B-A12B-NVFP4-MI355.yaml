@@ -7,7 +7,7 @@ rocm_request_timeout_seconds: 1800
 min_acceptance_length: 2.0
 startup_max_wait_seconds: 1200
 server_args: >-
-  --enforce-eager
+  --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE
   --max-model-len 4096
   --max-num-seqs 16
   --max-num-batched-tokens 32768

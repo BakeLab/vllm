@@ -101,7 +101,6 @@ class EvaluationConfig:
             "gpu_memory_utilization": 0.95,
             "trust_remote_code": False,
             "enable_prefix_caching": False,
-            "enforce_eager": False,
         }
 
 

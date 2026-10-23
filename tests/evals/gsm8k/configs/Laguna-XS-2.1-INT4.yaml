@@ -6,6 +6,6 @@ max_tokens: 1024
 use_chat_completions: true
 startup_max_wait_seconds: 1200
 server_args: >-
-  --enforce-eager
+  --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE
   --max-model-len 4096
   --trust-remote-code

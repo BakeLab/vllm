@@ -49,7 +49,6 @@ def build_llm(args: argparse.Namespace) -> LLM:
         "model": args.model,
         "trust_remote_code": args.trust_remote_code,
         "tensor_parallel_size": args.tensor_parallel_size,
-        "enforce_eager": args.enforce_eager,
         "gpu_memory_utilization": args.gpu_memory_utilization,
         "max_num_seqs": args.max_num_seqs,
         "enable_trace_replay": True,
@@ -158,11 +157,6 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=1,
         help="Number of tensor parallel replicas",
-    )
-    parser.add_argument(
-        "--enforce-eager",
-        action="store_true",
-        help="Always use eager-mode PyTorch (disable CUDA graph)",
     )
     parser.add_argument(
         "--gpu-memory-utilization",

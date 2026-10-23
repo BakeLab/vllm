@@ -152,7 +152,8 @@ def default_server_args():
         "2048",
         "--max-num-seqs",
         "128",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
     ]
 
 
