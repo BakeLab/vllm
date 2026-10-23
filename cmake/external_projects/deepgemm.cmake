@@ -57,21 +57,17 @@ else()
   set(_deepgemm_bin "${_deepgemm_fc_root}/deepgemm-build")
   set(_deepgemm_sub "${_deepgemm_fc_root}/deepgemm-subbuild")
 
-  if(EXISTS "${_deepgemm_src}/deep_gemm/_C.py")
-    set(deepgemm_SOURCE_DIR "${_deepgemm_src}")
-    set(deepgemm_BINARY_DIR "${_deepgemm_bin}")
-  else()
-    FetchContent_Populate(
-      deepgemm
-      SUBBUILD_DIR "${_deepgemm_sub}"
-      SOURCE_DIR "${_deepgemm_src}"
-      BINARY_DIR "${_deepgemm_bin}"
-      GIT_REPOSITORY "${_DEEPGEMM_UPSTREAM_REPO}"
-      GIT_TAG "${_DEEPGEMM_UPSTREAM_TAG}"
-      GIT_SUBMODULES "third-party/cutlass" "third-party/deep_jit"
-      GIT_PROGRESS TRUE
-    )
-  endif()
+  # FetchContent's Git update step honors pin changes and reuses matching HEADs.
+  FetchContent_Populate(
+    deepgemm
+    SUBBUILD_DIR "${_deepgemm_sub}"
+    SOURCE_DIR "${_deepgemm_src}"
+    BINARY_DIR "${_deepgemm_bin}"
+    GIT_REPOSITORY "${_DEEPGEMM_UPSTREAM_REPO}"
+    GIT_TAG "${_DEEPGEMM_UPSTREAM_TAG}"
+    GIT_SUBMODULES "third-party/cutlass" "third-party/deep_jit"
+    GIT_PROGRESS TRUE
+  )
   message(STATUS "DeepGEMM is available at ${deepgemm_SOURCE_DIR}")
 endif()
 

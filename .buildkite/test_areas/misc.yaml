@@ -643,6 +643,7 @@ steps:
   - vllm/v1/
   - vllm/version.py
   - cmake/utils.cmake
+  - cmake/external_projects/deepgemm.cmake
   - tests/test_uvicorn_logging.py
   - tests/test_attention_backend_registry.py
   - tests/test_audio_media_size_precheck.py
