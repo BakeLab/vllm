@@ -984,7 +984,7 @@ def _run_mamba_prefix_cache_mrv1(
         block_size=BLOCK_SIZE,
         additional_config=GDN_PREFILL_CONFIG,
         speculative_config={
-            "method": "qwen3_next_mtp",
+            "method": "mtp",
             "num_speculative_tokens": num_speculative_tokens,
         },
         max_num_batched_tokens=3072,
@@ -1264,7 +1264,7 @@ def _run_mamba_prefix_cache_mrv2(
         block_size=BLOCK_SIZE,
         additional_config=additional_config,
         speculative_config={
-            "method": "qwen3_next_mtp",
+            "method": "mtp",
             "num_speculative_tokens": num_speculative_tokens,
         },
         max_num_batched_tokens=3072,

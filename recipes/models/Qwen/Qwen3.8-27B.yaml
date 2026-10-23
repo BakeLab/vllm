@@ -124,7 +124,7 @@ features:
         variants: [ascend_w8a8, fp8]
         args:
           - "--speculative-config"
-          - '{"method":"qwen3_5_mtp","num_speculative_tokens":3,"enforce_eager":true}'
+          - '{"method":"mtp","num_speculative_tokens":3,"enforce_eager":true}'
       dflash:
         label: "DFlash2"
         description: "External DFlash2 drafter (incoai/Qwen3.8-27B-DFlash2). method is dflash; DFlash2 is selected by the draft architecture. Needs vLLM >=0.28.0, which shipped vllm-project/vllm#52816. num_speculative_tokens must be 7 (block_size 8 minus one)."
@@ -484,7 +484,7 @@ guide: |
     --reasoning-parser qwen3 \
     --tool-call-parser qwen3_coder \
     --mm-encoder-tp-mode data \
-    --speculative-config '{"method":"qwen3_5_mtp","num_speculative_tokens":3,"enforce_eager":true}' \
+    --speculative-config '{"method":"mtp","num_speculative_tokens":3,"enforce_eager":true}' \
     --compilation-config '{"cudagraph_mode":"FULL_DECODE_ONLY"}' \
     --additional-config '{"enable_cpu_binding":true}'
   ```
@@ -523,7 +523,7 @@ guide: |
     --reasoning-parser qwen3 \
     --tool-call-parser qwen3_coder \
     --mm-encoder-tp-mode data \
-    --speculative-config '{"method": "qwen3_5_mtp", "num_speculative_tokens": 3, "enforce_eager": true}'
+    --speculative-config '{"method": "mtp", "num_speculative_tokens": 3, "enforce_eager": true}'
   ```
   
   ### DFlash2 (opt-in)

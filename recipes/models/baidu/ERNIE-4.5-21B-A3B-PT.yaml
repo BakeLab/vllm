@@ -25,7 +25,7 @@ features:
     description: "ERNIE-MTP (multi-token prediction) speculative decoding"
     args:
       - "--speculative-config"
-      - '{"method":"ernie_mtp","model":"baidu/ERNIE-4.5-21B-A3B-PT","num_speculative_tokens":1}'
+      - '{"method":"mtp","model":"baidu/ERNIE-4.5-21B-A3B-PT","num_speculative_tokens":1}'
 
 opt_in_features:
   - spec_decoding
@@ -121,7 +121,7 @@ guide: |
 
   ```bash
   vllm serve baidu/ERNIE-4.5-21B-A3B-PT \
-    --speculative-config '{"method":"ernie_mtp","model":"baidu/ERNIE-4.5-21B-A3B-PT","num_speculative_tokens":1}'
+    --speculative-config '{"method":"mtp","model":"baidu/ERNIE-4.5-21B-A3B-PT","num_speculative_tokens":1}'
   ```
 
   ## Client Usage

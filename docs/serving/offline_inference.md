@@ -9,6 +9,20 @@
     The unused cascade-attention compatibility fields and scheduler helper
     are also removed; custom integrations must stop passing them.
 
+    Custom model constructors must accept `vllm_config` and `prefix`; the loader
+    no longer guesses individual configuration arguments. Use the
+    `flashinfer_nvlink_two_sided` all-to-all backend and speculative method `mtp`;
+    the old `flashinfer_all2allv` and model-specific MTP method aliases are removed.
+    MTP model architecture detection is unchanged. Reranker configurations use
+    `use_sep_token`; the `use_pad_token` alias is removed. Tensorizer detects vLLM
+    checkpoints from `.vllm_tensorized_marker`; `vllm_tensorized` is removed.
+
+    MoRIIO settings belong in `kv_transfer_config.kv_connector_extra_config`.
+    The old `VLLM_MORIIO_CONNECTOR_READ_MODE`, `VLLM_MORIIO_QP_PER_TRANSFER`,
+    `VLLM_MORIIO_POST_BATCH_SIZE`, `VLLM_MORIIO_NUM_WORKERS`, and
+    `VLLM_MORIIO_TRANSFER_TIMEOUT_S` variables are ignored. Set
+    `recv_abort_timeout` in the connector configuration instead of the last one.
+
 Offline inference is possible in your own code using vLLM's [`LLM`][vllm.LLM] class.
 
 ## Model Types

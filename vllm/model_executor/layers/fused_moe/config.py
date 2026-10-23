@@ -2,7 +2,6 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Union
 
 import torch
 
@@ -193,7 +192,7 @@ class FusedMoEQuantDesc:
 
     # Quantization scales.
     # TODO(bnell): maybe put PrecisionConfigs in subclass of QuantDesc?
-    scale: Union[torch.Tensor, "PrecisionConfig", None] = None
+    scale: torch.Tensor | PrecisionConfig | None = None
 
     # Quantization alphas or gscales, used for nvfp4 types.
     # W4A8 FP8: used for per-channel scales
@@ -345,7 +344,7 @@ class FusedMoEQuantConfig:
         return self._w1.bias
 
     @property
-    def w1_precision(self) -> "PrecisionConfig | None":
+    def w1_precision(self) -> PrecisionConfig | None:
         assert self._w1.scale is None or isinstance(self._w1.scale, PrecisionConfig)
         return self._w1.scale
 
@@ -367,7 +366,7 @@ class FusedMoEQuantConfig:
         return self._w2.bias
 
     @property
-    def w2_precision(self) -> "PrecisionConfig | None":
+    def w2_precision(self) -> PrecisionConfig | None:
         assert self._w2.scale is None or isinstance(self._w2.scale, PrecisionConfig)
         return self._w2.scale
 
@@ -491,8 +490,8 @@ class FusedMoEQuantConfig:
         per_act_token_quant: bool = False,
         per_out_ch_quant: bool = False,
         block_shape: list[int] | None = None,
-        w1_scale: Union[torch.Tensor, "PrecisionConfig", None] = None,
-        w2_scale: Union[torch.Tensor, "PrecisionConfig", None] = None,
+        w1_scale: torch.Tensor | PrecisionConfig | None = None,
+        w2_scale: torch.Tensor | PrecisionConfig | None = None,
         a1_scale: torch.Tensor | None = None,
         a2_scale: torch.Tensor | None = None,
         g1_alphas: torch.Tensor | None = None,
@@ -509,7 +508,7 @@ class FusedMoEQuantConfig:
         gemm1_alpha: float | None = None,
         gemm1_beta: float | None = None,
         gemm1_clamp_limit: float | None = None,
-    ) -> "FusedMoEQuantConfig":
+    ) -> FusedMoEQuantConfig:
         """General builder function for a FusedMoEQuantConfig.
         - quant_dtype: Optional quantization type. None if activations are
           unquantized or quantized prior to calling.  Note: "nvfp4", "mxfp4",
@@ -691,8 +690,8 @@ def gptq_marlin_moe_quant_config(
 
 
 def mxfp4_w4a16_moe_quant_config(
-    w1_scale: Union[torch.Tensor, "PrecisionConfig"],
-    w2_scale: Union[torch.Tensor, "PrecisionConfig"],
+    w1_scale: torch.Tensor | PrecisionConfig,
+    w2_scale: torch.Tensor | PrecisionConfig,
     w1_bias: torch.Tensor | None = None,
     w2_bias: torch.Tensor | None = None,
     gemm1_alpha: float | None = None,
@@ -712,8 +711,8 @@ def mxfp4_w4a16_moe_quant_config(
 
 
 def mxfp4_mxfp8_moe_quant_config(
-    w1_scale: Union[torch.Tensor, "PrecisionConfig"],
-    w2_scale: Union[torch.Tensor, "PrecisionConfig"],
+    w1_scale: torch.Tensor | PrecisionConfig,
+    w2_scale: torch.Tensor | PrecisionConfig,
     a1_scale: torch.Tensor | None = None,
     a2_scale: torch.Tensor | None = None,
     w1_bias: torch.Tensor | None = None,
@@ -740,8 +739,8 @@ def mxfp4_mxfp8_moe_quant_config(
 
 
 def mxfp4_w4a8_moe_quant_config(
-    w1_scale: Union[torch.Tensor, "PrecisionConfig"],
-    w2_scale: Union[torch.Tensor, "PrecisionConfig"],
+    w1_scale: torch.Tensor | PrecisionConfig,
+    w2_scale: torch.Tensor | PrecisionConfig,
     a1_scale: torch.Tensor | None = None,
     a2_scale: torch.Tensor | None = None,
     w1_bias: torch.Tensor | None = None,
@@ -761,8 +760,8 @@ def mxfp4_w4a8_moe_quant_config(
 
 def ocp_mx_moe_quant_config(
     quant_dtype: str,
-    w1_scale: Union[torch.Tensor, "PrecisionConfig"],
-    w2_scale: Union[torch.Tensor, "PrecisionConfig"],
+    w1_scale: torch.Tensor | PrecisionConfig,
+    w2_scale: torch.Tensor | PrecisionConfig,
     weight_dtype: str | None = None,
     a1_scale: torch.Tensor | None = None,
     a2_scale: torch.Tensor | None = None,
@@ -1050,9 +1049,9 @@ class FusedMoEParallelConfig:
 
     @property
     def use_fi_nvl_two_sided_kernels(self):
-        return self.use_all2all_kernels and (
-            self.all2all_backend == "flashinfer_all2allv"
-            or self.all2all_backend == "flashinfer_nvlink_two_sided"
+        return (
+            self.use_all2all_kernels
+            and self.all2all_backend == "flashinfer_nvlink_two_sided"
         )
 
     @property
@@ -1120,7 +1119,7 @@ class FusedMoEParallelConfig:
         dp_size_: int,
         sp_size_: int,
         vllm_parallel_config: ParallelConfig,
-    ) -> "FusedMoEParallelConfig":
+    ) -> FusedMoEParallelConfig:
         """Determine MoE parallel configuration. Based on the input `tp_size_`,
         `dp_size_` and vllm's parallel config, determine what
         level's of parallelism to use in the fused moe layer.
@@ -1245,7 +1244,7 @@ class FusedMoEParallelConfig:
         )
 
     @classmethod
-    def make_no_parallel(cls) -> "FusedMoEParallelConfig":
+    def make_no_parallel(cls) -> FusedMoEParallelConfig:
         """For usage in CI/CD and testing."""
         return FusedMoEParallelConfig(
             tp_size=1,

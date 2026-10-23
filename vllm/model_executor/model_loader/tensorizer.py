@@ -159,7 +159,6 @@ class _NoInitOrTensorImpl:
 class TensorizerConfig(MutableMapping):
     tensorizer_uri: str | None = None
     tensorizer_dir: str | None = None
-    vllm_tensorized: bool | None = None
     verify_hash: bool | None = None
     num_readers: int | None = None
     encryption_keyfile: str | None = None
@@ -191,13 +190,6 @@ class TensorizerConfig(MutableMapping):
             configs and tokenizer files. Can be passed instead of
             `tensorizer_uri` where the `model.tensors` file will be assumed
             to be in this directory.
-        vllm_tensorized: If True, indicates that the serialized model is a
-            vLLM model. This is used to determine the behavior of the
-            TensorDeserializer when loading tensors from a serialized model.
-            It is far faster to deserialize a vLLM model as it utilizes
-            tensorizer's optimized GPU loading. Note that this is now
-            deprecated, as serialized vLLM models are now automatically
-            inferred as vLLM models.
         verify_hash: If True, the hashes of each tensor will be verified
             against the hashes stored in the metadata. A `HashMismatchError`
             will be raised if any of the hashes do not match.
@@ -533,13 +525,6 @@ def is_vllm_tensorized(tensorizer_config: TensorizerConfig) -> bool:
         **tensorizer_args.deserialization_kwargs,
         lazy_load=True,
     )
-    if tensorizer_config.vllm_tensorized:
-        logger.warning(
-            "Please note that newly serialized vLLM models are automatically "
-            "inferred as vLLM models, so setting vllm_tensorized=True is "
-            "only necessary for models serialized prior to this change."
-        )
-        return True
     return ".vllm_tensorized_marker" in deserializer
 
 

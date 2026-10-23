@@ -2,7 +2,6 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 import contextlib
 import math
-import os
 import threading
 import time
 from collections.abc import Iterator
@@ -78,7 +77,7 @@ class WriteTask:
     remote_dp_size: int = 1
     # Consumer ranks this producer rank writes, and what each receives. None
     # writes the whole shard to the consumer rank with this producer's index.
-    tp_mapping: "MoRIIOWriteTPMapping | None" = None
+    tp_mapping: MoRIIOWriteTPMapping | None = None
     enqueue_time: float = field(default_factory=time.perf_counter)
     retried: int = 0
 
@@ -151,14 +150,14 @@ class MoRIIOAgentMetadata(
 class RoleManager:
     """Manages role state across the connector."""
 
-    _instance: "RoleManager | None" = None
+    _instance: RoleManager | None = None
     _lock = threading.Lock()
 
     def __init__(self) -> None:
         self._role: ROLE = ROLE.NOTINIT
 
     @classmethod
-    def get_instance(cls) -> "RoleManager":
+    def get_instance(cls) -> RoleManager:
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -268,26 +267,6 @@ def resolve_host_ip(extra_config: dict) -> str:
     return extra_config.get("host_ip") or get_ip()
 
 
-_DEPRECATED_ENV_VARS: dict[str, str] = {
-    "VLLM_MORIIO_CONNECTOR_READ_MODE": "read_mode",
-    "VLLM_MORIIO_QP_PER_TRANSFER": "qp_per_transfer",
-    "VLLM_MORIIO_POST_BATCH_SIZE": "post_batch_size",
-    "VLLM_MORIIO_NUM_WORKERS": "num_workers",
-}
-
-
-def _warn_deprecated_env_vars() -> None:
-    for env_var, new_key in _DEPRECATED_ENV_VARS.items():
-        if env_var in os.environ:
-            logger.warning_once(
-                "The environment variable %s is deprecated and ignored. "
-                "Set %r inside kv_transfer_config.kv_connector_extra_config "
-                "instead.",
-                env_var,
-                new_key,
-            )
-
-
 @dataclass
 class MoRIIOConfig:
     local_ip: str
@@ -312,7 +291,7 @@ class MoRIIOConfig:
     backend: str = "rdma"
 
     @classmethod
-    def from_vllm_config(cls, vllm_config: VllmConfig) -> "MoRIIOConfig":
+    def from_vllm_config(cls, vllm_config: VllmConfig) -> MoRIIOConfig:
         # Port Configuration:
         # local_ping_port   -> Outgoing heartbeat to proxy
         # proxy_ping_port   -> Remote proxy's heartbeat ingress port
@@ -344,7 +323,6 @@ class MoRIIOConfig:
         assert vllm_config.kv_transfer_config is not None, (
             "kv_transfer_config must be set for MoRIIOConnector"
         )
-        _warn_deprecated_env_vars()
         kv_transfer_config = vllm_config.kv_transfer_config
         extra_config = kv_transfer_config.kv_connector_extra_config
         tp_rank = get_tensor_model_parallel_rank()
@@ -372,18 +350,11 @@ class MoRIIOConfig:
             "kv_connector_extra_config.defer_timeout",
             extra_config.get("defer_timeout", MoRIIOConstants.DEFAULT_DEFER_TIMEOUT),
         )
-        legacy_recv_abort_timeout = os.environ.get("VLLM_MORIIO_TRANSFER_TIMEOUT_S")
-        if legacy_recv_abort_timeout is not None:
-            logger.warning_once(
-                "The environment variable VLLM_MORIIO_TRANSFER_TIMEOUT_S is "
-                "deprecated. Set 'recv_abort_timeout' inside "
-                "kv_transfer_config.kv_connector_extra_config instead."
-            )
         recv_abort_timeout = _positive_finite_timeout(
             "kv_connector_extra_config.recv_abort_timeout",
             extra_config.get(
                 "recv_abort_timeout",
-                legacy_recv_abort_timeout or MoRIIOConstants.DEFAULT_RECV_ABORT_TIMEOUT,
+                MoRIIOConstants.DEFAULT_RECV_ABORT_TIMEOUT,
             ),
         )
 
