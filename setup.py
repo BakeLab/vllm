@@ -66,11 +66,6 @@ USE_PRECOMPILED_RUST_FRONTEND = (
 )
 
 
-def should_require_rust_frontend() -> bool:
-    value = os.getenv("VLLM_REQUIRE_RUST_FRONTEND", "")
-    return value.lower() not in ("", "0", "false", "no")
-
-
 def get_precompiled_rust_extension_paths() -> list[Path]:
     return sorted((ROOT_DIR / "vllm").glob("_rust_*.so"))
 
@@ -1679,9 +1674,7 @@ rust_build.prepare_build_environment()
 
 # Rust artifacts, built via setuptools-rust and installed into the package
 # directory alongside the Python modules.
-rust_extensions = rust_build.rust_extensions(
-    optional=not should_require_rust_frontend()
-)
+rust_extensions = rust_build.rust_extensions(optional=False)
 
 setup(
     # static metadata should rather go in pyproject.toml

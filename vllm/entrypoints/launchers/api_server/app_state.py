@@ -24,7 +24,7 @@ async def init_app_state(
     engine_client: EngineClient,
     state: State,
     args: Namespace,
-    supported_tasks: tuple["SupportedTask", ...],
+    supported_tasks: tuple[SupportedTask, ...],
 ) -> None:
     vllm_config = engine_client.vllm_config
 
@@ -119,7 +119,7 @@ async def init_app_state(
     )
 
     if "generate" in supported_tasks:
-        from vllm.entrypoints.generate.api_router import init_generate_state
+        from vllm.entrypoints.generate.state import init_generate_state
 
         await init_generate_state(
             engine_client,
@@ -146,7 +146,7 @@ async def init_app_state(
 
         init_pooling_state(engine_client, state, args, request_logger, supported_tasks)
 
-    from vllm.entrypoints.generate.structured_decisions.api_router import (
+    from vllm.entrypoints.generate.structured_decisions.state import (
         init_structured_decisions_state,
     )
 

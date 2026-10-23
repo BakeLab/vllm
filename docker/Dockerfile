@@ -809,23 +809,6 @@ ENV CUDA_HOME=/usr/local/cuda
 ENV PATH="${CUDA_HOME}/bin:${PATH}"
 ENV LD_LIBRARY_PATH="${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}"
 
-# Install the initialized-snapshot runtime on the architecture supported by
-# `vllm snapshot`. CRIU and its CUDA plugin are built from the same pinned
-# source. The `cuda-checkpoint`-compatible helper is built from NVIDIA Dynamo's
-# Apache-2.0 source against the public CUDA Driver checkpoint APIs instead of
-# redistributing NVIDIA's proprietary cuda-checkpoint binary. The helper uses
-# checkpoint APIs (CUcheckpointGpuPair) that first appear in the CUDA 13
-# headers, so CUDA 12.x images skip the snapshot runtime.
-COPY tools/install_snapshot_runtime.sh /usr/local/bin/install_snapshot_runtime.sh
-RUN if [ "${TARGETPLATFORM}" = "linux/amd64" ] \
-        && [ "${CUDA_VERSION%%.*}" -ge 13 ]; then \
-        MAX_JOBS="${max_jobs}" /usr/local/bin/install_snapshot_runtime.sh; \
-    else \
-        echo "Initialized snapshots are not installed for ${TARGETPLATFORM} with CUDA ${CUDA_VERSION}"; \
-    fi
-
-ENV CRIU_CUDA_PLUGIN_DIR=/usr/local/lib/criu
-
 # Install uv for faster pip installs
 RUN python3 -m pip install uv
 
