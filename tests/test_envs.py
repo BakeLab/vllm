@@ -646,3 +646,20 @@ def test_shm_wait_defaults_and_invalid_budget(monkeypatch):
     monkeypatch.setenv("VLLM_SHM_FUTEX_SPIN_US", "-1")
     with pytest.raises(ValueError, match="non-negative"):
         _ = envs.VLLM_SHM_FUTEX_SPIN_US
+
+
+def test_rust_frontend_requires_packaged_binary(monkeypatch, tmp_path):
+    monkeypatch.setattr(envs, "__file__", str(tmp_path / "envs.py"))
+    monkeypatch.delenv("VLLM_RUST_FRONTEND_PATH", raising=False)
+    monkeypatch.setenv("VLLM_USE_RUST_FRONTEND", "0")
+    with pytest.raises(FileNotFoundError, match="vllm-rs binary"):
+        envs._resolve_rust_cli_path()
+
+
+def test_rust_frontend_rejects_non_executable_override(monkeypatch, tmp_path):
+    binary = tmp_path / "vllm-rs"
+    binary.write_text("not executable")
+    binary.chmod(0o600)
+    monkeypatch.setenv("VLLM_RUST_FRONTEND_PATH", str(binary))
+    with pytest.raises(FileNotFoundError, match="not executable"):
+        envs._resolve_rust_cli_path()

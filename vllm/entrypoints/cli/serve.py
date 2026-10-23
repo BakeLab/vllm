@@ -5,8 +5,6 @@ import argparse
 import signal
 import time
 
-import uvloop
-
 import vllm
 import vllm.envs as envs
 from vllm.entrypoints.cli.types import CLISubcommand
@@ -16,9 +14,8 @@ from vllm.entrypoints.common.cli_args import (
     validate_parsed_serve_args,
 )
 from vllm.entrypoints.common.startup import VLLM_SUBCMD_PARSER_EPILOG
-from vllm.entrypoints.launchers.api_server.entry import run_server, setup_server
 from vllm.entrypoints.launchers.dp_supervisor import run_dp_supervisor
-from vllm.entrypoints.launchers.launcher import create_server_socket
+from vllm.entrypoints.launchers.launcher import create_server_socket, setup_server
 from vllm.logger import init_logger
 from vllm.reasoning import ReasoningParserManager
 from vllm.usage.usage_lib import UsageContext
@@ -27,9 +24,7 @@ from vllm.utils.network_utils import get_tcp_uri
 from vllm.v1.engine.utils import CoreEngineProcManager, launch_core_engines
 from vllm.v1.executor import Executor
 from vllm.v1.executor.multiproc_executor import MultiprocExecutor
-from vllm.v1.metrics.prometheus import setup_multiprocess_prometheus
 from vllm.v1.utils import (
-    APIServerProcessManager,
     RustFrontendProcessManager,
     wait_for_completion_or_failure,
 )
@@ -55,16 +50,6 @@ class ServeSubcommand(CLISubcommand):
         # If model is specified in CLI (as positional arg), it takes precedence
         if hasattr(args, "model_tag") and args.model_tag is not None:
             args.model = args.model_tag
-
-        if getattr(args, "grpc", False):
-            from vllm.entrypoints.launchers.grpc_server import serve_grpc
-
-            uvloop.run(serve_grpc(args))
-            return
-
-        rust_frontend_path = (
-            envs.VLLM_RUST_FRONTEND_PATH if envs.VLLM_USE_RUST_FRONTEND else None
-        )
 
         if args.headless:
             if args.api_server_count is not None and args.api_server_count > 0:
@@ -104,56 +89,17 @@ class ServeSubcommand(CLISubcommand):
                 "--data-parallel-hybrid-lb (or --data-parallel-start-rank)."
             )
 
-        # Default api_server_count if not explicitly set.
-        # - Multi-port: 1 (supervisor spawns one server per local DP rank)
-        # - Rust frontend: 1 (not applicable as it's multithreaded)
-        # - External LB: 1 (external LB handles distribution)
-        # - Hybrid LB: Use local DP size (internal LB for local ranks only)
-        # - Internal LB: Use full DP size
         if args.api_server_count is None:
-            if is_multi_port or is_external_lb or rust_frontend_path:
-                args.api_server_count = 1
-            elif is_hybrid_lb:
-                args.api_server_count = args.data_parallel_size_local or 1
-                if args.api_server_count > 1:
-                    logger.info(
-                        "Defaulting api_server_count to data_parallel_size_local "
-                        "(%d) for hybrid LB mode.",
-                        args.api_server_count,
-                    )
-            else:
-                args.api_server_count = args.data_parallel_size
-                if args.api_server_count > 1:
-                    logger.info(
-                        "Defaulting api_server_count to data_parallel_size (%d).",
-                        args.api_server_count,
-                    )
-        elif rust_frontend_path and args.api_server_count > 1:
-            logger.warning(
-                "Ignoring --api-server-count=%d when using rust front-end process",
-                args.api_server_count,
-            )
             args.api_server_count = 1
-
-        # Elastic EP currently only supports running with at most one API server.
-        if getattr(args, "enable_elastic_ep", False) and args.api_server_count > 1:
-            logger.warning(
-                "Elastic EP only supports running with with at most one API server. "
-                "Capping api_server_count from %d to 1.",
-                args.api_server_count,
-            )
-            args.api_server_count = 1
+        elif args.api_server_count > 1:
+            raise ValueError("The Rust frontend uses one multithreaded API process")
 
         if is_multi_port:
             run_dp_supervisor(args)
         elif args.api_server_count < 1:
             run_headless(args)
-        elif args.api_server_count > 1 or rust_frontend_path:
-            run_multi_api_server(args)
         else:
-            # Single API server (this process).
-            args.api_server_count = None
-            uvloop.run(run_server(args))
+            run_multi_api_server(args)
 
     def validate(self, args: argparse.Namespace) -> None:
         validate_parsed_serve_args(args)
@@ -268,19 +214,8 @@ def run_headless(args: argparse.Namespace):
 
 def run_multi_api_server(args: argparse.Namespace):
     assert not args.headless
-    rust_frontend_path = (
-        envs.VLLM_RUST_FRONTEND_PATH if envs.VLLM_USE_RUST_FRONTEND else None
-    )
-    num_api_servers: int = args.api_server_count
-    assert num_api_servers > 0
-
-    if rust_frontend_path and num_api_servers > 1:
-        raise ValueError(
-            "VLLM_RUST_FRONTEND_PATH does not support api_server_count > 1"
-        )
-
-    if num_api_servers > 1:
-        setup_multiprocess_prometheus()
+    rust_frontend_path = envs.VLLM_RUST_FRONTEND_PATH
+    num_api_servers = 1
 
     shutdown_requested = False
 
@@ -312,11 +247,6 @@ def run_multi_api_server(args: argparse.Namespace):
     usage_context = UsageContext.OPENAI_API_SERVER
     vllm_config = engine_args.create_engine_config(usage_context=usage_context)
 
-    if num_api_servers > 1 and envs.VLLM_ALLOW_RUNTIME_LORA_UPDATING:
-        raise ValueError(
-            "VLLM_ALLOW_RUNTIME_LORA_UPDATING cannot be used with api_server_count > 1"
-        )
-
     executor_class = Executor.get_class(vllm_config)
     log_stats = not engine_args.disable_log_stats
 
@@ -324,9 +254,7 @@ def run_multi_api_server(args: argparse.Namespace):
     dp_rank = parallel_config.data_parallel_rank
     assert parallel_config.local_engines_only or dp_rank == 0
 
-    api_server_manager: APIServerProcessManager | RustFrontendProcessManager | None = (
-        None
-    )
+    api_server_manager: RustFrontendProcessManager | None = None
 
     from vllm.v1.engine.utils import bind_engine_zmq_listeners
 
@@ -343,38 +271,25 @@ def run_multi_api_server(args: argparse.Namespace):
             coordinator.get_stats_publish_address() if coordinator else None
         )
 
-        if rust_frontend_path:
-            if parallel_config.local_engines_only:
-                expected_engine_start_index = parallel_config.data_parallel_rank
-                expected_engine_count = parallel_config.data_parallel_size_local
-            else:
-                expected_engine_start_index = 0
-                expected_engine_count = parallel_config.data_parallel_size
-            # Start rust front-end process.
-            api_server_manager = RustFrontendProcessManager(
-                binary_path=rust_frontend_path,
-                sock=sock,
-                grpc_sock=grpc_sock,
-                args=args,
-                input_listener=zmq_listeners.inputs[0],
-                output_listener=zmq_listeners.outputs[0],
-                engine_start_index=expected_engine_start_index,
-                engine_count=expected_engine_count,
-                data_parallel_size=parallel_config.data_parallel_size,
-                stats_update_address=stats_update_address,
-            )
+        if parallel_config.local_engines_only:
+            expected_engine_start_index = parallel_config.data_parallel_rank
+            expected_engine_count = parallel_config.data_parallel_size_local
         else:
-            # Start API server(s).
-            api_server_manager = APIServerProcessManager(
-                listen_address=listen_address,
-                sock=sock,
-                args=args,
-                num_servers=num_api_servers,
-                input_listeners=zmq_listeners.inputs,
-                output_listeners=zmq_listeners.outputs,
-                stats_update_address=stats_update_address,
-                tensor_queue=engine_launch.tensor_queue,
-            )
+            expected_engine_start_index = 0
+            expected_engine_count = parallel_config.data_parallel_size
+        # Start rust front-end process.
+        api_server_manager = RustFrontendProcessManager(
+            binary_path=rust_frontend_path,
+            sock=sock,
+            grpc_sock=grpc_sock,
+            args=args,
+            input_listener=zmq_listeners.inputs[0],
+            output_listener=zmq_listeners.outputs[0],
+            engine_start_index=expected_engine_start_index,
+            engine_count=expected_engine_count,
+            data_parallel_size=parallel_config.data_parallel_size,
+            stats_update_address=stats_update_address,
+        )
 
         # Set frontend processes to watch during engine startup.
         # If any of these processes exit before the engines are up, the engine startup

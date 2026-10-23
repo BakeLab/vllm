@@ -3,34 +3,29 @@
 import argparse
 import contextlib
 import json
-import multiprocessing
 import threading
 import time
 import weakref
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from multiprocessing import connection
 from multiprocessing.process import BaseProcess
-from multiprocessing.queues import Queue
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generic,
     TypeVar,
-    Union,
     overload,
 )
 
 import torch
-import uvloop
 from torch.autograd.profiler import record_function
 
 import vllm.envs as envs
 from vllm.logger import init_logger
 from vllm.usage.usage_lib import UsageContext, is_usage_stats_enabled, usage_message
 from vllm.utils.network_utils import ZmqListener, get_open_zmq_ipc_path, get_tcp_uri
-from vllm.utils.system_utils import decorate_logs, kill_process_tree, set_process_title
+from vllm.utils.system_utils import kill_process_tree
 from vllm.utils.torch_utils import PIN_MEMORY
 from vllm.v1.core.sched.output import SchedulerOutput
 
@@ -45,7 +40,7 @@ logger = init_logger(__name__)
 T = TypeVar("T")
 
 
-class ConstantList(Generic[T], Sequence):
+class ConstantList[T](Sequence):
     def __init__(self, x: list[T]) -> None:
         self._x = x
 
@@ -164,125 +159,11 @@ def get_engine_client_zmq_addr(
     return get_tcp_uri(host, port)
 
 
-class APIServerProcessManager:
-    """Manages a group of API server processes.
-
-    Handles creation, monitoring, and termination of API server worker
-    processes. Also monitors extra processes to check if they are healthy.
-    """
-
-    def __init__(
-        self,
-        listen_address: str,
-        sock: Any,
-        args: argparse.Namespace,
-        num_servers: int,
-        input_listeners: list[ZmqListener],
-        output_listeners: list[ZmqListener],
-        target_server_fn: Callable | None = None,
-        stats_update_address: str | None = None,
-        tensor_queue: Queue | None = None,
-    ):
-        """Initialize and start API server worker processes.
-
-        Args:
-            target_server_fn: Override function to call for each API server process
-            listen_address: Address to listen for client connections
-            sock: Socket for client connections
-            args: Command line arguments
-            num_servers: Number of API server processes to start
-            input_listeners: Input listeners for each API server
-            output_listeners: Output listeners for each API server
-            stats_update_address: Optional stats update address
-            tensor_queue: Optional tensor IPC queue for sharing MM tensors
-
-        """
-        self.listen_address = listen_address
-        self.sock = sock
-        self.args = args
-
-        spawn_context = multiprocessing.get_context("spawn")
-        self.processes: list[BaseProcess] = []
-
-        admission_counters = None
-        if num_servers > 1 and getattr(args, "max_num_queued_reqs", None) is not None:
-            from vllm.v1.engine.admission_control import SharedAdmissionStats
-
-            admission_counters = spawn_context.RawArray(
-                "q",
-                SharedAdmissionStats.num_counters(num_servers),
-            )
-
-        # Open connections per API server, to accept on the least loaded one;
-        # a server that has not started yet is never the least loaded.
-        api_server_loads = (
-            spawn_context.RawArray("i", [2**31 - 1] * num_servers)
-            if num_servers > 1
-            else None
-        )
-
-        listeners = [*input_listeners, *output_listeners]
-        self._listeners = listeners
-        try:
-            listener_pairs = zip(
-                range(num_servers), input_listeners, output_listeners, strict=True
-            )
-            for i, input_listener, output_listener in listener_pairs:
-                client_config: dict[str, Any] = {
-                    "input_address": input_listener.address,
-                    "output_address": output_listener.address,
-                    "input_listener": input_listener.socket,
-                    "output_listener": output_listener.socket,
-                    "client_count": num_servers,
-                    "client_index": i,
-                }
-                if api_server_loads is not None:
-                    client_config["api_server_loads"] = api_server_loads
-                if admission_counters is not None:
-                    client_config["mp_admission_counters"] = admission_counters
-                if stats_update_address is not None:
-                    client_config["stats_update_address"] = stats_update_address
-                if tensor_queue is not None:
-                    client_config["tensor_queue"] = tensor_queue
-
-                proc = spawn_context.Process(
-                    target=target_server_fn or run_api_server_worker_proc,
-                    name=f"ApiServer_{i}",
-                    args=(listen_address, sock, args, client_config),
-                )
-                self.processes.append(proc)
-                proc.start()
-                input_listener.close()
-                output_listener.close()
-        except BaseException:
-            _shutdown_processes_and_cleanup_listeners(self.processes, listeners)
-            raise
-
-        logger.info("Started %d API server processes", len(self.processes))
-
-        # Shutdown only the API server processes on garbage collection
-        # The extra processes are managed by their owners
-        self._finalizer = weakref.finalize(
-            self,
-            _shutdown_processes_and_cleanup_listeners,
-            self.processes,
-            listeners,
-        )
-
-    def shutdown(self, timeout: float | None = None) -> None:
-        """Shutdown API server processes with configurable timeout"""
-        if self._finalizer.detach() is not None:
-            _shutdown_processes_and_cleanup_listeners(
-                self.processes, self._listeners, timeout=timeout
-            )
-
-
 class RustFrontendProcessManager:
     """Manages a single Rust frontend subprocess.
 
     Launches the Rust vllm-rs binary in 'frontend' mode, passing the
-    HTTP and ZMQ listener file descriptors. Provides the same
-    interface as APIServerProcessManager for process monitoring.
+    HTTP and ZMQ listener file descriptors for engine process monitoring.
     """
 
     def __init__(
@@ -506,34 +387,10 @@ def _shutdown_subprocesses_and_cleanup_listeners(
             listener.cleanup()
 
 
-def run_api_server_worker_proc(
-    listen_address, sock, args, client_config=None, **uvicorn_kwargs
-) -> None:
-    """Entrypoint for individual API server worker processes."""
-    if logging_config := getattr(args, "logging_config", None):
-        from vllm.logger import configure_logging
-
-        configure_logging(logging_config)
-
-    from vllm.entrypoints.launchers.api_server.entry import run_server_worker
-
-    client_config = client_config or {}
-    server_index = client_config.get("client_index", 0)
-
-    # Set process title and process-specific log metadata.
-    set_process_title("APIServer", str(server_index))
-    decorate_logs()
-
-    uvloop.run(
-        run_server_worker(listen_address, sock, args, client_config, **uvicorn_kwargs)
-    )
-
-
 def wait_for_completion_or_failure(
-    api_server_manager: "APIServerProcessManager | RustFrontendProcessManager",
-    engine_manager: Union["CoreEngineProcManager", "CoreEngineActorManager"]
-    | None = None,
-    coordinator: "DPCoordinator | None" = None,
+    api_server_manager: RustFrontendProcessManager,
+    engine_manager: CoreEngineProcManager | CoreEngineActorManager | None = None,
+    coordinator: DPCoordinator | None = None,
 ) -> None:
     """Wait for all processes to complete or detect if any fail.
 
@@ -658,18 +515,6 @@ def shutdown(procs: list[BaseProcess], timeout: float | None = None) -> None:
         kill_process_tree(pid)
 
     logger.debug_once("[shutdown] Process manager: complete")
-
-
-def _shutdown_processes_and_cleanup_listeners(
-    procs: list[BaseProcess],
-    listeners: list[ZmqListener],
-    timeout: float | None = None,
-) -> None:
-    try:
-        shutdown(procs, timeout=timeout)
-    finally:
-        for listener in listeners:
-            listener.cleanup()
 
 
 def copy_slice(

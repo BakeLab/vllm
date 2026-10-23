@@ -37,35 +37,39 @@ def maybe_run_omni() -> bool:
 
 
 def main():
+    if sys.argv[1:2] == ["launch"]:
+        import os
+
+        import vllm.envs as envs
+
+        binary = envs.VLLM_RUST_FRONTEND_PATH
+        os.execv(binary, [binary, *sys.argv[2:]])
+        return
+
     if maybe_run_omni():
         return
 
     import vllm.entrypoints.cli.benchmark.main
     import vllm.entrypoints.cli.collect_env
     import vllm.entrypoints.cli.download_kernels
-    import vllm.entrypoints.cli.launch
     import vllm.entrypoints.cli.openai
     import vllm.entrypoints.cli.preload
     import vllm.entrypoints.cli.run_batch
     import vllm.entrypoints.cli.serve
-    import vllm.entrypoints.cli.snapshot
     from vllm.entrypoints.common.startup import VLLM_SUBCMD_PARSER_EPILOG, cli_env_setup
     from vllm.utils.argparse_utils import FlexibleArgumentParser
 
     CMD_MODULES = [
         vllm.entrypoints.cli.openai,
         vllm.entrypoints.cli.serve,
-        vllm.entrypoints.cli.launch,
         vllm.entrypoints.cli.benchmark.main,
         vllm.entrypoints.cli.collect_env,
         vllm.entrypoints.cli.download_kernels,
         vllm.entrypoints.cli.preload,
         vllm.entrypoints.cli.run_batch,
-        vllm.entrypoints.cli.snapshot,
     ]
 
-    if sys.argv[1:2] != ["snapshot"]:
-        cli_env_setup()
+    cli_env_setup()
 
     vllm.entrypoints.cli.benchmark.main.maybe_exec_rust_bench()
 
@@ -98,12 +102,7 @@ def main():
     subparsers = parser.add_subparsers(required=False, dest="subparser")
     cmds = {}
     for cmd_module in CMD_MODULES:
-        if cmd_module is vllm.entrypoints.cli.snapshot:
-            new_cmds = cmd_module.cmd_init(
-                create_requested=sys.argv[1:3] == ["snapshot", "create"]
-            )
-        else:
-            new_cmds = cmd_module.cmd_init()
+        new_cmds = cmd_module.cmd_init()
         for cmd in new_cmds:
             cmd.subparser_init(subparsers).set_defaults(dispatch_function=cmd.cmd)
             cmds[cmd.name] = cmd
