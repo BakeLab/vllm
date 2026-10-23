@@ -106,7 +106,7 @@ mkdir -p "$EC_SHARED_STORAGE_PATH"
 env "$DEVICE_AFFINITY_ENV=$GPU_E" vllm serve "$MODEL" \
     --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION_E" \
     --port "$ENCODE_PORT" \
-    --enforce-eager \
+    -cc.mode=none -cc.cudagraph_mode=none \
     --enable-request-id-headers \
     --disable-prefix-caching \
     --max-num-batched-tokens 114688 \
@@ -129,7 +129,7 @@ PIDS+=($!)
 env "$DEVICE_AFFINITY_ENV=$GPU_PD" vllm serve "$MODEL" \
     --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION_PD" \
     --port "$PREFILL_DECODE_PORT" \
-    --enforce-eager \
+    -cc.mode=none -cc.cudagraph_mode=none \
     --enable-request-id-headers \
     --max-num-seqs "$MAX_NUM_SEQS" \
     --max-model-len "$MAX_MODEL_LEN" \

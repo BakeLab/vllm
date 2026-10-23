@@ -360,7 +360,7 @@ llm = LLM(
     model="Qwen/Qwen3-30B-A3B-Thinking-2507",
     quantization="quark_online",
     hf_overrides=HF_QUANTIZATION_CONFIGS["ptpc_fp8"],
-    enforce_eager=True,
+    compilation_config={"mode": "none", "cudagraph_mode": "none"},
     tensor_parallel_size=1,
 )
 out = llm.generate(["The capital of France is"], SamplingParams(temperature=0.0, max_tokens=100))

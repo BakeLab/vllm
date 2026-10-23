@@ -53,7 +53,7 @@ def initialize_engine() -> LLM:
         model="Qwen/Qwen2.5-7B-Instruct-1M",
         max_model_len=1048576,
         tensor_parallel_size=4,
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
         enable_chunked_prefill=True,
         max_num_batched_tokens=131072,
     )

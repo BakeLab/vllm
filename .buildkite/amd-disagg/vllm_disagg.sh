@@ -317,7 +317,7 @@ EOF
 # DP + expert parallel; masters expose the API server + KV transfer, children
 # join headless.
 build_ep_cmd() {
-    #   prefill -> mori_high_throughput  (paired with --enforce-eager in models.yaml)
+    #   prefill -> mori_high_throughput  (paired with -cc.mode=none -cc.cudagraph_mode=none in models.yaml)
     #   decode  -> mori_low_latency      (paired with CUDA graphs in models.yaml)
     local default_backend="mori_low_latency"
     [[ "${ROLE}" == "prefill" ]] && default_backend="mori_high_throughput"

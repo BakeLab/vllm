@@ -67,12 +67,15 @@ You can adjust `compilation_config` to achieve a better balance between inferenc
     )
     ```
 
-You can disable graph capturing completely via the `enforce_eager` flag:
+You can disable graph capturing while retaining compilation through the compilation configuration:
 
 ```python
 from vllm import LLM
 
-llm = LLM(model="meta-llama/Llama-3.1-8B-Instruct", enforce_eager=True)
+llm = LLM(
+    model="meta-llama/Llama-3.1-8B-Instruct",
+    compilation_config={"cudagraph_mode": "none"},
+)
 ```
 
 ## Adjust cache size

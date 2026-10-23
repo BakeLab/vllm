@@ -13,25 +13,25 @@ case "${test_suite}" in
   example)
     pip install tblib==3.1.0
 
-    python3 examples/basic/offline_inference/generate.py --model facebook/opt-125m --block-size 64 --enforce-eager
+    python3 examples/basic/offline_inference/generate.py --model facebook/opt-125m --block-size 64 -cc.mode=none -cc.cudagraph_mode=none
     python3 examples/basic/offline_inference/generate.py --model facebook/opt-125m --block-size 64 -O3 -cc.cudagraph_mode=NONE
-    python3 examples/basic/offline_inference/generate.py --model facebook/opt-125m --block-size 64 --enforce-eager -tp 2 --distributed-executor-backend mp
-    python3 examples/basic/offline_inference/generate.py --model facebook/opt-125m --block-size 64 --enforce-eager --attention-backend=TRITON_ATTN
-    python3 examples/basic/offline_inference/generate.py --model facebook/opt-125m --block-size 64 --enforce-eager --quantization fp8_per_tensor
-    python3 examples/basic/offline_inference/generate.py --model facebook/opt-125m --block-size 64 --enforce-eager --kv-cache-dtype fp8
-    python3 examples/basic/offline_inference/generate.py --model nvidia/Llama-3.1-8B-Instruct-FP8 --block-size 64 --enforce-eager --quantization modelopt --kv-cache-dtype fp8 --attention-backend TRITON_ATTN --max-model-len 4096
-    python3 examples/basic/offline_inference/generate.py --model superjob/Qwen3-4B-Instruct-2507-GPTQ-Int4 --block-size 64 --enforce-eager --max-model-len 8192
-    python3 examples/basic/offline_inference/generate.py --model TheBloke/TinyLlama-1.1B-Chat-v0.3-AWQ --block-size 64 --enforce-eager 
-    python3 examples/basic/offline_inference/generate.py --model ibm-research/PowerMoE-3b --block-size 64 --enforce-eager -tp 2
-    python3 examples/basic/offline_inference/generate.py --model ibm-research/PowerMoE-3b --block-size 64 --enforce-eager -tp 2 --enable-expert-parallel
+    python3 examples/basic/offline_inference/generate.py --model facebook/opt-125m --block-size 64 -cc.mode=none -cc.cudagraph_mode=none -tp 2 --distributed-executor-backend mp
+    python3 examples/basic/offline_inference/generate.py --model facebook/opt-125m --block-size 64 -cc.mode=none -cc.cudagraph_mode=none --attention-backend=TRITON_ATTN
+    python3 examples/basic/offline_inference/generate.py --model facebook/opt-125m --block-size 64 -cc.mode=none -cc.cudagraph_mode=none --quantization fp8_per_tensor
+    python3 examples/basic/offline_inference/generate.py --model facebook/opt-125m --block-size 64 -cc.mode=none -cc.cudagraph_mode=none --kv-cache-dtype fp8
+    python3 examples/basic/offline_inference/generate.py --model nvidia/Llama-3.1-8B-Instruct-FP8 --block-size 64 -cc.mode=none -cc.cudagraph_mode=none --quantization modelopt --kv-cache-dtype fp8 --attention-backend TRITON_ATTN --max-model-len 4096
+    python3 examples/basic/offline_inference/generate.py --model superjob/Qwen3-4B-Instruct-2507-GPTQ-Int4 --block-size 64 -cc.mode=none -cc.cudagraph_mode=none --max-model-len 8192
+    python3 examples/basic/offline_inference/generate.py --model TheBloke/TinyLlama-1.1B-Chat-v0.3-AWQ --block-size 64 -cc.mode=none -cc.cudagraph_mode=none
+    python3 examples/basic/offline_inference/generate.py --model ibm-research/PowerMoE-3b --block-size 64 -cc.mode=none -cc.cudagraph_mode=none -tp 2
+    python3 examples/basic/offline_inference/generate.py --model ibm-research/PowerMoE-3b --block-size 64 -cc.mode=none -cc.cudagraph_mode=none -tp 2 --enable-expert-parallel
     python3 examples/basic/offline_inference/generate.py --model superjob/Qwen3-4B-Instruct-2507-GPTQ-Int4 --max-model-len 8192
     ;;
   w8a8-fp8-linear)
-    python3 examples/basic/offline_inference/generate.py --linear-backend xpu --model RedHatAI/Meta-Llama-3.1-8B-Instruct-FP8 --enforce-eager --max-model-len 4096
-    python3 examples/basic/offline_inference/generate.py --linear-backend torch --model RedHatAI/Meta-Llama-3.1-8B-Instruct-FP8 --enforce-eager --max-model-len 4096
-    python3 examples/basic/offline_inference/generate.py --linear-backend xpu --model neuralmagic/Llama-3.2-1B-Instruct-FP8-dynamic --enforce-eager --max-model-len 4096
-    python3 examples/basic/offline_inference/generate.py --linear-backend xpu --model meta-llama/Llama-3.2-1B-Instruct --quantization fp8_per_tensor --enforce-eager --max-model-len 4096
-    python3 examples/basic/offline_inference/generate.py --linear-backend torch --model meta-llama/Llama-3.2-1B-Instruct --quantization fp8_per_tensor --enforce-eager --max-model-len 4096
+    python3 examples/basic/offline_inference/generate.py --linear-backend xpu --model RedHatAI/Meta-Llama-3.1-8B-Instruct-FP8 -cc.mode=none -cc.cudagraph_mode=none --max-model-len 4096
+    python3 examples/basic/offline_inference/generate.py --linear-backend torch --model RedHatAI/Meta-Llama-3.1-8B-Instruct-FP8 -cc.mode=none -cc.cudagraph_mode=none --max-model-len 4096
+    python3 examples/basic/offline_inference/generate.py --linear-backend xpu --model neuralmagic/Llama-3.2-1B-Instruct-FP8-dynamic -cc.mode=none -cc.cudagraph_mode=none --max-model-len 4096
+    python3 examples/basic/offline_inference/generate.py --linear-backend xpu --model meta-llama/Llama-3.2-1B-Instruct --quantization fp8_per_tensor -cc.mode=none -cc.cudagraph_mode=none --max-model-len 4096
+    python3 examples/basic/offline_inference/generate.py --linear-backend torch --model meta-llama/Llama-3.2-1B-Instruct --quantization fp8_per_tensor -cc.mode=none -cc.cudagraph_mode=none --max-model-len 4096
     ;;
   v1)
     cd tests

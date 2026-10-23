@@ -161,7 +161,7 @@ vllm bench latency \
     --model meta-llama/Llama-3.2-1B-Instruct \
     --input-len 32 \
     --output-len 1 \
-    --enforce-eager \
+    -cc.mode=none -cc.cudagraph_mode=none \
     --load-format dummy
 ```
 
@@ -192,7 +192,7 @@ vllm bench throughput \
     --model meta-llama/Llama-3.2-1B-Instruct \
     --input-len 32 \
     --output-len 1 \
-    --enforce-eager \
+    -cc.mode=none -cc.cudagraph_mode=none \
     --load-format dummy
 ```
 

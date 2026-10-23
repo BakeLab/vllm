@@ -45,7 +45,7 @@ trap cleanup EXIT
 for BACK in "${BACKENDS[@]}"; do
   VLLM_DEEP_GEMM_WARMUP=skip \
   vllm serve "$MODEL" \
-    --enforce-eager \
+    -cc.mode=none -cc.cudagraph_mode=none \
     --enable-eplb \
     --all2all-backend "$BACK" \
     --eplb-config '{"window_size":10, "step_interval":100, "num_redundant_experts":0, "log_balancedness":true, "use_async":false}' \

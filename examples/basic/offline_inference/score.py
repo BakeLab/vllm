@@ -14,7 +14,7 @@ def parse_args():
     parser.set_defaults(
         model="BAAI/bge-reranker-v2-m3",
         runner="pooling",
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
     )
     return parser.parse_args()
 

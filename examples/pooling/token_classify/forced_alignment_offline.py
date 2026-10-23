@@ -29,7 +29,7 @@ def parse_args():
     parser.set_defaults(
         model="Qwen/Qwen3-ForcedAligner-0.6B",
         runner="pooling",
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
         hf_overrides={"architectures": ["Qwen3ASRForcedAlignerForTokenClassification"]},
     )
     return parser.parse_args()

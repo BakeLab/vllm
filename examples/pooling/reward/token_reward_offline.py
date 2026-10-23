@@ -23,7 +23,7 @@ def parse_args():
     parser.set_defaults(
         model="internlm/internlm2-1_8b-reward",
         runner="pooling",
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
         max_model_len=1024,
         trust_remote_code=True,
     )
