@@ -1,6 +1,6 @@
 # vllm-frontend-rs
 
-This is a Rust drop-in alternative frontend for vLLM. The current goal is to rebuild the northbound serving layer in Rust while still talking to the core Python vLLM engine process(es) via ZMQ over the existing engine boundary.
+The BakeLab `trim` branch requires this Rust frontend for `vllm serve`. The Python engine remains responsible for scheduling and GPU execution. `vllm launch render` runs the native renderer without starting an engine. The current goal is to rebuild the northbound serving layer in Rust while still talking to the core Python vLLM engine process(es) via ZMQ over the existing engine boundary.
 
 It should still be considered experimental, and is not feature-complete. We are working to add more functionality from the python front-end.
 

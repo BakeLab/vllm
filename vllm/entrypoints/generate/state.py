@@ -1,8 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-from typing import TYPE_CHECKING, Any
 
-from fastapi import FastAPI
+from typing import TYPE_CHECKING, Any
 
 import vllm.envs as envs
 
@@ -18,48 +17,12 @@ else:
     RequestLogger = object
 
 
-def register_generate_api_routers(app: FastAPI):
-    from vllm.entrypoints.openai.chat_completion.api_router import (
-        attach_router as register_chat_api_router,
-    )
-
-    register_chat_api_router(app)
-
-    from vllm.entrypoints.openai.responses.api_router import (
-        attach_router as register_responses_api_router,
-    )
-
-    register_responses_api_router(app)
-
-    from vllm.entrypoints.openai.completion.api_router import (
-        attach_router as register_completion_api_router,
-    )
-
-    register_completion_api_router(app)
-
-    from vllm.entrypoints.anthropic.api_router import (
-        attach_router as register_anthropic_api_router,
-    )
-
-    register_anthropic_api_router(app)
-
-    from vllm.entrypoints.cohere.api_router import (
-        attach_router as register_cohere_api_router,
-    )
-
-    register_cohere_api_router(app)
-
-    from .generative_scoring.api_router import register_generative_scoring_api_router
-
-    register_generative_scoring_api_router(app)
-
-
 async def init_generate_state(
-    engine_client: "EngineClient",
-    state: "State",
-    args: "Namespace",
+    engine_client: EngineClient,
+    state: State,
+    args: Namespace,
     request_logger: RequestLogger | None,
-    supported_tasks: tuple["SupportedTask", ...],
+    supported_tasks: tuple[SupportedTask, ...],
     default_chat_template_kwargs: dict[str, Any],
 ):
     from vllm.entrypoints.anthropic.serving import AnthropicServingMessages

@@ -3,14 +3,12 @@
 
 from typing import TYPE_CHECKING
 
-from fastapi import FastAPI
-
-from vllm.config import ModelConfig, VllmConfig
+from vllm.config import VllmConfig
 from vllm.logger import init_logger
 from vllm.plugins.io_processors import has_io_processor
 from vllm.renderers import BaseRenderer
 from vllm.renderers.chat_utils import ChatTemplateConfig
-from vllm.tasks import POOLING_TASKS, SCORE_TYPE_MAP, SupportedTask
+from vllm.tasks import SCORE_TYPE_MAP, SupportedTask
 
 from .base.io_processor import PoolingIOProcessor
 from .utils import enable_scoring_api
@@ -21,11 +19,6 @@ if TYPE_CHECKING:
     from starlette.datastructures import State
 
     from vllm.engine.protocol import EngineClient
-    from vllm.entrypoints.serve.sagemaker.api_router import (
-        EndpointFn,
-        GetHandlerFn,
-        RequestType,
-    )
     from vllm.entrypoints.serve.utils.request_logger import RequestLogger
 
 else:
@@ -107,49 +100,12 @@ def init_pooling_io_processors(
     }
 
 
-def register_pooling_api_routers(
-    app: FastAPI,
-    supported_tasks: tuple["SupportedTask", ...],
-    model_config: ModelConfig | None = None,
-):
-    if model_config is None:
-        return
-
-    pooling_task = model_config.get_pooling_task(supported_tasks)
-
-    if pooling_task is not None:
-        from .pooling.api_router import router as pooling_router
-
-        app.include_router(pooling_router)
-
-    if "classify" in supported_tasks:
-        from .classify.api_router import (
-            router as classify_router,
-        )
-
-        app.include_router(classify_router)
-
-    if pooling_task == "token_embed":
-        from .token_embed.api_router import router as token_embed_router
-
-        app.include_router(token_embed_router)
-    elif "embed" in supported_tasks:
-        from .embed.api_router import router as embed_router
-
-        app.include_router(embed_router)
-
-    if enable_scoring_api(supported_tasks, model_config):
-        from .scoring.api_router import router as score_router
-
-        app.include_router(score_router)
-
-
 def init_pooling_state(
-    engine_client: "EngineClient",
-    state: "State",
-    args: "Namespace",
+    engine_client: EngineClient,
+    state: State,
+    args: Namespace,
     request_logger: RequestLogger | None,
-    supported_tasks: tuple["SupportedTask", ...],
+    supported_tasks: tuple[SupportedTask, ...],
 ):
     model_config = engine_client.model_config
     if model_config is None:
@@ -231,57 +187,3 @@ def init_pooling_state(
         if enable_scoring_api(supported_tasks, model_config)
         else None
     )
-
-
-def get_pooling_invocation_types(
-    supported_tasks: tuple["SupportedTask", ...],
-    model_config: ModelConfig | None = None,
-):
-    # NOTE: Items defined earlier take higher priority
-    invocation_types: list[tuple[RequestType, tuple[GetHandlerFn, EndpointFn]]] = []
-
-    if model_config is None:
-        return invocation_types
-
-    pooling_task = model_config.get_pooling_task(supported_tasks)
-
-    if pooling_task == "embed":
-        from .embed.api_router import create_embedding, embedding
-        from .embed.protocol import EmbeddingRequest
-
-        invocation_types += [
-            (EmbeddingRequest, (embedding, create_embedding)),
-        ]
-
-    if pooling_task == "classify":
-        from .classify.api_router import classify, create_classify
-        from .classify.protocol import ClassificationRequest
-
-        invocation_types += [
-            (ClassificationRequest, (classify, create_classify)),
-        ]
-
-    if enable_scoring_api(supported_tasks, model_config):
-        from .scoring.api_router import do_rerank, rerank
-        from .scoring.protocol import RerankRequest
-
-        invocation_types += [
-            (RerankRequest, (rerank, do_rerank)),
-        ]
-
-        from .scoring.api_router import create_score, score
-        from .scoring.protocol import ScoreRequest
-
-        invocation_types += [
-            (ScoreRequest, (score, create_score)),
-        ]
-
-    if any(task in POOLING_TASKS for task in supported_tasks):
-        from .pooling.api_router import create_pooling, pooling
-        from .pooling.protocol import PoolingRequest
-
-        invocation_types += [
-            (PoolingRequest, (pooling, create_pooling)),
-        ]
-
-    return invocation_types
