@@ -14,7 +14,6 @@ from vllm.entrypoints.common.cli_args import (
     validate_parsed_serve_args,
 )
 from vllm.entrypoints.common.startup import VLLM_SUBCMD_PARSER_EPILOG
-from vllm.entrypoints.launchers.dp_supervisor import run_dp_supervisor
 from vllm.entrypoints.launchers.launcher import create_server_socket, setup_server
 from vllm.logger import init_logger
 from vllm.reasoning import ReasoningParserManager
@@ -95,6 +94,8 @@ class ServeSubcommand(CLISubcommand):
             raise ValueError("The Rust frontend uses one multithreaded API process")
 
         if is_multi_port:
+            from vllm.entrypoints.launchers.dp_supervisor import run_dp_supervisor
+
             run_dp_supervisor(args)
         elif args.api_server_count < 1:
             run_headless(args)

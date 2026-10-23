@@ -1,11 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
-import contextlib
 import socket
-from collections.abc import Generator
-
-import uvicorn
 
 from vllm.entrypoints.common.cli_args import (
     init_parser_plugin,
@@ -22,14 +18,6 @@ from vllm.utils.system_utils import set_ulimit
 from vllm.version import __version__ as VLLM_VERSION
 
 logger = init_logger(__name__)
-
-
-class NoSignalServer(uvicorn.Server):
-    """Leave SIGINT/SIGTERM handling to the data-parallel supervisor."""
-
-    @contextlib.contextmanager
-    def capture_signals(self) -> Generator[None]:
-        yield
 
 
 def create_server_socket(
@@ -73,8 +61,6 @@ def setup_server(args, *, reuse_port: bool):
         sock_addr = (args.host or "", args.port)
         sock = create_server_socket(sock_addr, reuse_port=reuse_port)
 
-    # workaround to avoid footguns where uvicorn drops requests with too
-    # many concurrent requests active
     set_ulimit()
 
     if args.uds:

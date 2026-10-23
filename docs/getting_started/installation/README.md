@@ -12,6 +12,19 @@ vLLM supports the following hardware platforms:
     - [ARM AArch64](cpu.md#arm-aarch64)
     - [Apple silicon](cpu.md#apple-silicon)
 
+## Optional Python HTTP tools
+
+The Rust frontend used by `vllm serve` does not require FastAPI, Uvicorn, or
+Starlette. Install the `http` extra when using Python `run-batch`, `preload`,
+the multi-port data-parallel supervisor, or the Mooncake/HF3FS metadata servers:
+
+```bash
+uv pip install 'vllm[http]'
+```
+
+For a source checkout, use `uv pip install -e '.[http]' --no-build-isolation`.
+The extra preserves the minimum versions required by these optional tools.
+
 ## Hardware Plugins
 
 vLLM supports third-party hardware plugins that live **outside** the main `vllm` repository. These follow the [Hardware-Pluggable RFC](../../design/plugin_system.md).
