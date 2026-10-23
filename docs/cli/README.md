@@ -6,6 +6,11 @@ The vllm command-line tool is used to run and manage vLLM models. You can start 
 vllm --help
 ```
 
+Global help and version queries do not load command handlers. Invoking a command
+loads its handler and builds its argument parser, without loading handlers or
+building argument parsers for unrelated commands. Command-specific help, including
+`vllm serve --help=ModelConfig`, uses the selected command's full parser.
+
 Available Commands:
 
 ```bash
