@@ -1570,7 +1570,7 @@ remove_docker_container() {
 }
 trap remove_docker_container EXIT
 
-# python_only_compile.sh runs `python setup.py develop` and needs the full repo tree
+# python_only_compile.sh performs an editable install and needs the full repo tree
 # under /vllm-workspace (Dockerfile.rocm test stage: mkdir src && mv vllm).
 # The ROCm wheel artifact tarball only ships a thin tree (tests, etc.), so
 # artifact images cannot satisfy that test — use the full rocm/vllm-ci image.

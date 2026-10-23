@@ -166,10 +166,13 @@ uv pip install vllm==${VLLM_VERSION} \
 If you only need to change Python code, you can build and install vLLM without
 compilation. Changes you make to the code will be reflected when you run vLLM:
 
+Use a ROCm environment with PyTorch and the project's build dependencies
+installed. `--no-build-isolation` preserves this build environment.
+
 ```bash
 git clone https://github.com/vllm-project/vllm.git
 cd vllm
-VLLM_USE_PRECOMPILED=1 python3 setup.py develop
+VLLM_USE_PRECOMPILED=1 uv pip install --editable . --no-build-isolation
 ```
 
 This command will do the following:
@@ -351,10 +354,13 @@ You can find more information about vLLM's wheels in
         # To build vLLM for multiple arch MI210/MI250/MI300, use this instead
         # export PYTORCH_ROCM_ARCH="gfx90a;gfx942"
 
-        python3 setup.py develop
+        uv pip install --editable . --no-build-isolation
         ```
 
-    This may take 5-10 minutes. Currently, `pip install .` does not work for ROCm when installing vLLM from source.
+    This may take 5-10 minutes. Use `--no-build-isolation` to build against the
+    ROCm PyTorch and build dependencies installed in this environment. The
+    installer resolves runtime dependencies; vLLM does not recursively check
+    installed packages through the legacy `setup.py develop` path.
 
     !!! tip
         - The ROCm version of PyTorch, ideally, should match the ROCm driver version.
