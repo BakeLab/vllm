@@ -3,6 +3,7 @@
 
 import warnings
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any
 
@@ -10,6 +11,7 @@ import torch
 import torch.nn.functional as F
 from transformers import PreTrainedConfig
 
+from vllm.config.compilation import CompilationConfig, CompilationMode, CUDAGraphMode
 from vllm.config.model import AttnTypeStr, ModelConfig, ModelDType, RunnerOption
 from vllm.config.pooler import SequencePoolingType, TokenPoolingType
 from vllm.logprobs import Logprob, PromptLogprobs, SampleLogprobs
@@ -437,9 +439,21 @@ def get_vllm_extra_kwargs(model_info: ModelInfo, vllm_extra_kwargs):
             vllm_extra_kwargs["hf_overrides"] = {}
         vllm_extra_kwargs["hf_overrides"]["head_dtype"] = ci_envs.VLLM_CI_HEAD_DTYPE
 
-    # Allow control over whether tests use enforce_eager
-    if ci_envs.VLLM_CI_ENFORCE_EAGER is not None:
-        vllm_extra_kwargs["enforce_eager"] = ci_envs.VLLM_CI_ENFORCE_EAGER
+    if ci_envs.VLLM_CI_REFERENCE_EXECUTION:
+        compilation_config = deepcopy(vllm_extra_kwargs.get("compilation_config"))
+        if isinstance(compilation_config, CompilationConfig):
+            compilation_config.mode = CompilationMode.NONE
+            compilation_config.cudagraph_mode = CUDAGraphMode.NONE
+            compilation_config.cudagraph_mm_encoder = False
+        else:
+            if not isinstance(compilation_config, dict):
+                compilation_config = {}
+            compilation_config.update(
+                mode=CompilationMode.NONE,
+                cudagraph_mode=CUDAGraphMode.NONE,
+                cudagraph_mm_encoder=False,
+            )
+        vllm_extra_kwargs["compilation_config"] = compilation_config
 
     return vllm_extra_kwargs
 
