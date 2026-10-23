@@ -3,9 +3,16 @@
 import time
 from collections.abc import AsyncGenerator, Callable, Generator, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Generic, NotRequired, TypeAlias, TypedDict, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    NotRequired,
+    TypeAlias,
+    TypedDict,
+    TypeVar,
+)
 
-from fastapi import Request
 from pydantic import ConfigDict
 
 from vllm import PoolingParams, PoolingRequestOutput, PromptType
@@ -41,6 +48,9 @@ from .pooling.protocol import (
 from .scoring.protocol import ScoringRequest, ScoringResponse
 from .scoring.typing import ScoreData, ScoringData
 from .token_embed.protocol import TokenEmbeddingRequest, TokenEmbeddingResponse
+
+if TYPE_CHECKING:
+    from fastapi import Request
 
 PoolingCompletionLikeRequest: TypeAlias = (
     EmbeddingCompletionRequest
