@@ -3,8 +3,6 @@
 
 from typing import TYPE_CHECKING, Any
 
-import vllm.envs as envs
-
 if TYPE_CHECKING:
     from argparse import Namespace
 
@@ -25,31 +23,9 @@ async def init_generate_state(
     supported_tasks: tuple[SupportedTask, ...],
     default_chat_template_kwargs: dict[str, Any],
 ):
-    from vllm.entrypoints.anthropic.serving import AnthropicServingMessages
-    from vllm.renderers.chat_utils import load_chat_template
-
-    # The Cohere serving handler depends on the optional `cohere` SDK for
-    # its wire-format protocol models, and is additionally gated on the
-    # `VLLM_ENABLE_COHERE_API` env flag (see
-    # `vllm.entrypoints.cohere.api_router.attach_router`). Skip the import
-    # entirely when the endpoint isn't going to be exposed, both because
-    # the SDK may not be installed and because the serving object holds
-    # nontrivial state (chat handler, warmup) that would otherwise be
-    # unused.
-    if envs.VLLM_ENABLE_COHERE_API:
-        try:
-            from vllm.entrypoints.cohere.serving import CohereServingChatV2
-        except ImportError:
-            CohereServingChatV2 = None  # type: ignore[assignment,misc]
-    else:
-        CohereServingChatV2 = None  # type: ignore[assignment,misc]
-    from vllm.entrypoints.openai.chat_completion.batch_serving import (
-        OpenAIServingChatBatch,
-    )
     from vllm.entrypoints.openai.chat_completion.serving import OpenAIServingChat
-    from vllm.entrypoints.openai.completion.serving import OpenAIServingCompletion
-    from vllm.entrypoints.openai.responses.serving import OpenAIServingResponses
     from vllm.entrypoints.serve.utils.fingerprint import set_default_fingerprint_mode
+    from vllm.renderers.chat_utils import load_chat_template
 
     # Applied before any serving class is constructed so that each one picks
     # up the chosen mode on its first cache miss.
@@ -60,33 +36,6 @@ async def init_generate_state(
 
     resolved_chat_template = load_chat_template(args.chat_template)
 
-    # Render endpoints are always backed by OnlineRenderer so that chat,
-    # completion, and Responses rendering work on both generate-mode and
-    # render-only servers. Created in init_app_state.
-
-    state.openai_serving_responses = (
-        OpenAIServingResponses(
-            engine_client,
-            state.openai_serving_models,
-            state.online_renderer,
-            request_logger=request_logger,
-            chat_template=resolved_chat_template,
-            chat_template_content_format=args.chat_template_content_format,
-            return_tokens_as_token_ids=args.return_tokens_as_token_ids,
-            enable_auto_tools=args.enable_auto_tool_choice,
-            tool_parser=args.tool_call_parser,
-            tool_strict_level=args.tool_strict_level,
-            tool_server=state.tool_server,
-            reasoning_parser=args.structured_outputs_config.reasoning_parser,
-            enable_prompt_tokens_details=args.enable_prompt_tokens_details,
-            enable_force_include_usage=args.enable_force_include_usage,
-            enable_per_request_metrics=args.enable_per_request_metrics,
-            enable_log_outputs=args.enable_log_outputs,
-            default_chat_template_kwargs=default_chat_template_kwargs,
-        )
-        if "generate" in supported_tasks
-        else None
-    )
     _chat_kwargs = dict(
         engine_client=engine_client,
         models=state.openai_serving_models,
@@ -111,81 +60,4 @@ async def init_generate_state(
     )
     state.openai_serving_chat = (
         OpenAIServingChat(**_chat_kwargs) if "generate" in supported_tasks else None
-    )
-    state.openai_serving_chat_batch = (
-        OpenAIServingChatBatch(**_chat_kwargs)
-        if "generate" in supported_tasks
-        else None
-    )
-    state.openai_serving_completion = (
-        OpenAIServingCompletion(
-            engine_client,
-            state.openai_serving_models,
-            online_renderer=state.online_renderer,
-            request_logger=request_logger,
-            return_tokens_as_token_ids=args.return_tokens_as_token_ids,
-            enable_prompt_tokens_details=args.enable_prompt_tokens_details,
-            enable_force_include_usage=args.enable_force_include_usage,
-            enable_log_outputs=args.enable_log_outputs,
-            enable_log_deltas=args.enable_log_deltas,
-            enable_per_request_metrics=args.enable_per_request_metrics,
-        )
-        if "generate" in supported_tasks
-        else None
-    )
-    state.anthropic_serving_messages = (
-        AnthropicServingMessages(
-            engine_client,
-            state.openai_serving_models,
-            args.response_role,
-            online_renderer=state.online_renderer,
-            request_logger=request_logger,
-            chat_template=resolved_chat_template,
-            chat_template_content_format=args.chat_template_content_format,
-            return_tokens_as_token_ids=args.return_tokens_as_token_ids,
-            enable_auto_tools=args.enable_auto_tool_choice,
-            tool_parser=args.tool_call_parser,
-            tool_strict_level=args.tool_strict_level,
-            reasoning_parser=args.structured_outputs_config.reasoning_parser,
-            enable_prompt_tokens_details=args.enable_prompt_tokens_details,
-            enable_force_include_usage=args.enable_force_include_usage,
-            enable_log_outputs=args.enable_log_outputs,
-            enable_log_deltas=args.enable_log_deltas,
-            default_chat_template_kwargs=default_chat_template_kwargs,
-            disabled_thinking_effort=args.anthropic_disabled_thinking_effort,
-        )
-        if "generate" in supported_tasks
-        else None
-    )
-    state.cohere_serving_chat_v2 = (
-        CohereServingChatV2(
-            engine_client,
-            state.openai_serving_models,
-            args.response_role,
-            online_renderer=state.online_renderer,
-            request_logger=request_logger,
-            chat_template=resolved_chat_template,
-            chat_template_content_format=args.chat_template_content_format,
-            return_tokens_as_token_ids=args.return_tokens_as_token_ids,
-            enable_auto_tools=args.enable_auto_tool_choice,
-            tool_parser=args.tool_call_parser,
-            tool_strict_level=args.tool_strict_level,
-            reasoning_parser=args.structured_outputs_config.reasoning_parser,
-            enable_prompt_tokens_details=args.enable_prompt_tokens_details,
-            enable_force_include_usage=args.enable_force_include_usage,
-            enable_log_outputs=args.enable_log_outputs,
-            enable_log_deltas=args.enable_log_deltas,
-            default_chat_template_kwargs=default_chat_template_kwargs,
-            is_reasoning_model=args.cohere_is_reasoning_model,
-        )
-        if CohereServingChatV2 is not None and "generate" in supported_tasks
-        else None
-    )
-
-    from .generative_scoring.serving import ServingGenerativeScoring
-
-    state.serving_generative_scoring = ServingGenerativeScoring(
-        engine_client,
-        state.openai_serving_models,
-        request_logger=request_logger,
     )

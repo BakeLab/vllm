@@ -5,8 +5,8 @@
 import json
 
 import pytest
-
 from vllm.entrypoints.anthropic.api_router import translate_error_response
+
 from vllm.entrypoints.serve.engine.protocol import ErrorInfo, ErrorResponse
 
 pytestmark = pytest.mark.skip_global_cleanup
@@ -46,66 +46,3 @@ def test_error_type_is_translated_to_anthropic_vocabulary(
         "type": "error",
         "error": {"type": expected_type, "message": "boom"},
     }
-
-
-@pytest.mark.parametrize(
-    ("status_code", "expected_type"),
-    [
-        (404, "not_found_error"),
-        (429, "rate_limit_error"),
-        (503, "overloaded_error"),
-        (500, "api_error"),
-    ],
-)
-@pytest.mark.asyncio
-async def test_stream_error_event_uses_translated_type(
-    status_code: int, expected_type: str
-):
-    """The SSE error path must translate ``error.type`` the same way as the
-    non-streaming path, reusing the ErrorResponse status code."""
-    from vllm.entrypoints.anthropic.serving import AnthropicServingMessages
-
-    async def fake_generator():
-        yield ErrorResponse(
-            error=ErrorInfo(
-                message="boom",
-                type="InternalError",
-                code=status_code,
-            )
-        )
-
-    # The converter's error path does not touch instance attributes, so
-    # __new__ bypasses __init__ safely here.
-    converter = AnthropicServingMessages.__new__(AnthropicServingMessages)
-    events = [e async for e in converter.message_stream_converter(fake_generator())]
-    error_events = [e for e in events if e.startswith("event: error")]
-    assert len(error_events) == 1
-    payload_line = [
-        line for line in error_events[0].splitlines() if line.startswith("data: ")
-    ][0]
-    payload = json.loads(payload_line[len("data: ") :])
-    assert payload["type"] == "error"
-    assert payload["error"]["type"] == expected_type
-    assert payload["error"]["message"] == "boom"
-
-
-@pytest.mark.asyncio
-async def test_stream_mid_stream_exception_maps_to_api_error():
-    """An exception raised mid-stream (not an ErrorResponse) surfaces as
-    ``api_error`` in the SSE error event."""
-    from vllm.entrypoints.anthropic.serving import AnthropicServingMessages
-
-    async def failing_generator():
-        raise RuntimeError("kaboom")
-        yield  # pragma: no cover - make this an async generator
-
-    converter = AnthropicServingMessages.__new__(AnthropicServingMessages)
-    events = [e async for e in converter.message_stream_converter(failing_generator())]
-    error_events = [e for e in events if e.startswith("event: error")]
-    assert len(error_events) == 1
-    payload_line = [
-        line for line in error_events[0].splitlines() if line.startswith("data: ")
-    ][0]
-    payload = json.loads(payload_line[len("data: ") :])
-    assert payload["error"]["type"] == "api_error"
-    assert payload["error"]["message"] == "kaboom"

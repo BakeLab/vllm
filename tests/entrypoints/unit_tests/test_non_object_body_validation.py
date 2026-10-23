@@ -13,7 +13,7 @@ request models whose before-validators were missing the same guard.
 import pytest
 from pydantic import ValidationError
 
-from vllm.entrypoints.generate.generative_scoring.serving import (
+from vllm.entrypoints.generate.generative_scoring.protocol import (
     GenerativeScoringRequest,
 )
 from vllm.entrypoints.generate.structured_decisions.protocol import (

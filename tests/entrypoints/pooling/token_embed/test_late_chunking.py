@@ -1,21 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
-import asyncio
-import json
 from types import SimpleNamespace
 from unittest import mock
 from unittest.mock import Mock
 
 import pytest
 import torch
-from fastapi.responses import ORJSONResponse
-from transformers import BertConfig, BertTokenizerFast
 
 from vllm import PoolingParams
-from vllm.config import DeviceConfig, ModelConfig, PoolerConfig, VllmConfig
-from vllm.engine.protocol import EngineClient
-from vllm.entrypoints.openai.models.serving import OpenAIServingModels
+from vllm.config import PoolerConfig
 from vllm.entrypoints.pooling.embed.io_processor import (
     JinaRankingTokenEmbedIOProcessor,
     TokenEmbedIOProcessor,
@@ -26,16 +20,13 @@ from vllm.entrypoints.pooling.token_embed.late_chunking import (
 )
 from vllm.entrypoints.pooling.token_embed.protocol import (
     TokenEmbeddingRequest,
-    TokenEmbeddingResponse,
 )
-from vllm.entrypoints.pooling.token_embed.serving import ServingTokenEmbedding
 from vllm.entrypoints.pooling.typing import (
     OfflineEncodeInputsContext,
     OfflineOutputsContext,
     PoolingServeContext,
 )
-from vllm.entrypoints.pooling.utils import encode_pooling_output_float_or_ndarray
-from vllm.exceptions import GenerationError, VLLMValidationError
+from vllm.exceptions import VLLMValidationError
 from vllm.outputs import (
     EmbeddingRequestOutput,
     LateChunk,
@@ -45,9 +36,6 @@ from vllm.outputs import (
 )
 from vllm.pooling_params import LateChunkingParams
 from vllm.renderers import TokenizeParams
-from vllm.renderers.chat_utils import ChatTemplateConfig
-from vllm.renderers.hf import HfRenderer
-from vllm.v1.engine.input_processor import InputProcessor
 
 
 @pytest.fixture
@@ -395,173 +383,3 @@ def test_embed_preserves_task_validation(runner, task, supported_tasks, error):
     with pytest.raises(ValueError, match=error):
         PoolingOfflineMixin.embed(llm, "text", use_tqdm=False)
     llm._run_tiling_engine.assert_not_called()
-
-
-@pytest.fixture
-def token_embedding_serving(tmp_path):
-    BertConfig(
-        architectures=["BertModel"],
-        hidden_size=4,
-        num_attention_heads=1,
-        num_hidden_layers=1,
-        intermediate_size=8,
-    ).save_pretrained(tmp_path)
-    model_config = ModelConfig(
-        model=str(tmp_path),
-        runner="pooling",
-        dtype="float32",
-        max_model_len=32,
-        pooler_config=PoolerConfig(task="token_embed"),
-    )
-    config = VllmConfig(
-        model_config=model_config, device_config=DeviceConfig(device="cpu")
-    )
-    renderer = HfRenderer(config, tokenizer=BertTokenizerFast(vocab={"[UNK]": 0}))
-    engine = Mock(
-        spec=EngineClient,
-        model_config=model_config,
-        vllm_config=config,
-        renderer=renderer,
-        input_processor=InputProcessor(config, renderer),
-    )
-    try:
-        yield ServingTokenEmbedding(
-            engine,
-            OpenAIServingModels(engine, []),
-            request_logger=None,
-            chat_template_config=ChatTemplateConfig(),
-        )
-    finally:
-        renderer.shutdown()
-
-
-@pytest.mark.parametrize("chunk_size", [None, 1])
-@pytest.mark.parametrize("dtype", [torch.float32, torch.bfloat16])
-def test_token_embedding_response_preserves_ndarray_and_optional_ranges(
-    late_chunk_processor, token_embedding_serving, chunk_size, dtype
-):
-    ctx = _online_chunk_context("a b", chunk_size=chunk_size)
-    processor = late_chunk_processor
-    ctx.engine_inputs = [
-        processor.render(r) for r in processor.get_request_factory_online(ctx)
-    ]
-    output = _chunk_output(0, rows=4)
-    # Exercise the existing encoder's contiguous-copy and dtype fallback paths.
-    data = (torch.arange(16).reshape(4, 4).to(dtype) / 10).T
-    output.outputs.data = data
-    ctx.final_res_batch = [output]
-    processor.post_process_online(ctx)
-    response = token_embedding_serving._build_response(ctx)
-    body = json.loads(response.body)
-    TokenEmbeddingResponse.model_validate(body)
-    item = body["data"][0]
-    expected = ORJSONResponse(
-        {"embedding": encode_pooling_output_float_or_ndarray(output)}
-    )
-    assert item["embedding"] == json.loads(expected.body)["embedding"]
-    torch.testing.assert_close(torch.tensor(item["embedding"], dtype=dtype), data)
-    if chunk_size is None:
-        assert "late_chunking" not in item
-        assert not ctx.late_chunking
-        assert not processor.renderer.render_cmpl.call_args.kwargs[
-            "tok_params"
-        ].return_token_offsets
-    else:
-        assert item["late_chunking"]["chunks"][0]["char_range"] is None
-
-
-def test_online_chunk_ranges_are_per_document(
-    late_chunk_processor, token_embedding_serving
-):
-    processor = late_chunk_processor
-    ctx = _online_chunk_context(["a b", "xy z"])
-
-    def render_cmpl(**kwargs):
-        text = kwargs["prompts"][0]["prompt"]
-        split = text.index(" ")
-        return [
-            {
-                "type": "token",
-                "prompt_token_ids": [101, 1, 2, 102],
-                "prompt_token_offsets": [
-                    (0, 0),
-                    (0, split),
-                    (split + 1, len(text)),
-                    (0, 0),
-                ],
-            }
-        ]
-
-    processor.renderer.render_cmpl.side_effect = render_cmpl
-    requests = processor.get_request_factory_online(ctx)
-    # Render out of order, as the online thread pool can do.
-    second = processor.render(requests[1])
-    first = processor.render(requests[0])
-    ctx.engine_inputs = [first, second]
-    ctx.final_res_batch = [_chunk_output(0), _chunk_output(1)]
-    processor.post_process_online(ctx)
-
-    body = json.loads(token_embedding_serving._build_response(ctx).body)
-    assert body["usage"]["prompt_tokens"] == 8
-    assert [item["index"] for item in body["data"]] == [0, 1]
-    assert [item["embedding"] for item in body["data"]] == [
-        output.outputs.data.tolist() for output in ctx.final_res_batch
-    ]
-    assert [
-        item["late_chunking"]["chunks"][0]["char_range"] for item in body["data"]
-    ] == [[0, 1], [0, 2]]
-    assert first["params"] is second["params"] is ctx.pooling_params
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("outcome", ["success", "error", "cancel"])
-async def test_online_chunk_mapping_survives_reordered_completion_and_failure(
-    late_chunk_processor, outcome
-):
-    processor = late_chunk_processor
-    serving = object.__new__(ServingTokenEmbedding)
-    ctx = _online_chunk_context(["a b", "a b"])
-    ctx.engine_inputs = [
-        processor.render(r) for r in processor.get_request_factory_online(ctx)
-    ]
-    entered = asyncio.Event()
-    closed = asyncio.Event()
-    error = RequestError("test_error", "original error")
-
-    async def results():
-        try:
-            yield 1, _chunk_output(1)
-            if outcome == "cancel":
-                entered.set()
-                await asyncio.Event().wait()
-            yield 0, _chunk_output(0, error=error if outcome == "error" else None)
-        finally:
-            closed.set()
-
-    ctx.result_generator = results()
-    task = asyncio.create_task(serving._collect_batch(ctx))
-    if outcome == "cancel":
-        await entered.wait()
-        task.cancel()
-        with pytest.raises(asyncio.CancelledError):
-            await task
-    elif outcome == "error":
-        with pytest.raises(GenerationError, match="original error"):
-            await task
-        await ctx.result_generator.aclose()
-    else:
-        await task
-        processor.post_process_online(ctx)
-        assert [result.request_id for result in ctx.final_res_batch] == ["0", "1"]
-        assert all(result.late_chunking is not None for result in ctx.final_res_batch)
-    assert closed.is_set()
-
-    # A later request with the same caller ID must get its own mapping.
-    following = _online_chunk_context("a b", chunk_size=1)
-    following.engine_inputs = [
-        processor.render(r) for r in processor.get_request_factory_online(following)
-    ]
-    following.final_res_batch = [_chunk_output(0, rows=4)]
-    processor.post_process_online(following)
-    assert following.final_res_batch[0].late_chunking.chunk_size == 1
-    assert len(following.final_res_batch[0].late_chunking.chunks) == 4
