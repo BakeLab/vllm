@@ -215,10 +215,6 @@ class CustomOp(nn.Module):
         if compilation_config.mode == CompilationMode.NONE:
             return fn
 
-        # If eager backend is used, do not compile either
-        if compilation_config.backend == "eager":
-            return fn
-
         compile_options = maybe_disable_graph_partition(
             current_platform.simple_compile_backend
         )

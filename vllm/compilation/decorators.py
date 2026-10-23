@@ -31,7 +31,7 @@ from vllm.utils.import_utils import resolve_obj_by_qualname
 
 from .monitor import monitor_profiling_run, monitor_torch_compile
 
-DynamicArgDims: TypeAlias = dict[str, int | list[int] | dict[int, str]]
+DynamicArgDims: TypeAlias = dict[str, int | list[int] | dict[int, str]]  # noqa: UP040
 """Argument name -> the dynamic dimension(s) of that argument."""
 if TYPE_CHECKING:
     from torch._dynamo.package import SourceInfo
@@ -48,7 +48,7 @@ def should_torch_compile_mm_encoder(vllm_config: VllmConfig) -> bool:
     return vllm_config.compilation_config.compile_mm_encoder
 
 
-def ignore_torch_compile(cls: type[_T]) -> type[_T]:
+def ignore_torch_compile(cls: type[_T]) -> type[_T]:  # noqa: UP047
     """A decorator to ignore support_torch_compile decorator
     on the class. This is useful when a parent class has
     a support_torch_compile decorator, but we don't want to
@@ -67,7 +67,7 @@ def ignore_torch_compile(cls: type[_T]) -> type[_T]:
     return cls
 
 
-def _should_ignore_torch_compile(cls: type[_T]) -> bool:
+def _should_ignore_torch_compile(cls: type[_T]) -> bool:  # noqa: UP047
     """Check if the class should be ignored for torch.compile."""
     return getattr(cls, IGNORE_COMPILE_KEY, False)
 
@@ -105,10 +105,10 @@ def support_torch_compile(
 
 
 @overload
-def support_torch_compile(cls: type[_T]) -> type[_T]: ...
+def support_torch_compile(cls: type[_T]) -> type[_T]: ...  # noqa: UP047
 
 
-def support_torch_compile(
+def support_torch_compile(  # noqa: UP047
     cls: type[_T] | None = None,
     *,
     dynamic_arg_dims: DynamicArgDims | None = None,
@@ -336,7 +336,7 @@ def _try_load_aot_compiled_fn(
         return None
 
 
-def _support_torch_compile(
+def _support_torch_compile(  # noqa: UP047
     cls: type[_T],
     dynamic_arg_dims: DynamicArgDims,
     mark_unbacked_dims: dict[str, int | list[int]] | None = None,
@@ -573,10 +573,7 @@ def _support_torch_compile(
                     return output
 
         if self.compiled:
-            assert (
-                not (self._allow_aot_compile and envs.VLLM_USE_AOT_COMPILE)
-                or self.vllm_config.compilation_config.backend == "eager"
-            )
+            assert not (self._allow_aot_compile and envs.VLLM_USE_AOT_COMPILE)
             return TorchCompileWithNoGuardsWrapper.__call__(self, *args, **kwargs)  # type: ignore[arg-type]
 
         # This is the path for the first compilation.
@@ -649,9 +646,6 @@ def _support_torch_compile(
             torch._inductor.config.patch(**inductor_config_patches),
         ):
             use_aot_compile = self._allow_aot_compile and envs.VLLM_USE_AOT_COMPILE
-            if self.vllm_config.compilation_config.backend == "eager":
-                logger.warning("Detected eager backend, disabling AOT compile.")
-                use_aot_compile = False
             if use_aot_compile:
                 # store the path for saving after warmup
                 self._aot_compilation_path = aot_compilation_path

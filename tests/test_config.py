@@ -3098,7 +3098,7 @@ def test_validate_mamba_align_subblock_prefill():
     [
         (
             None,
-            CompilationConfig(backend="eager", custom_ops=["+quant_fp8"]),
+            CompilationConfig(mode=CompilationMode.NONE, custom_ops=["+quant_fp8"]),
             OptimizationLevel.O0,
         ),
         (None, CompilationConfig(), OptimizationLevel.O0),
@@ -3971,19 +3971,23 @@ def test_ir_op_priority_default():
 
 
 @pytest.mark.parametrize("mode", [CompilationMode.NONE, CompilationMode.VLLM_COMPILE])
-@pytest.mark.parametrize("backend", ["inductor", "eager"])
-def test_ir_op_platform_defaults_support_sparse_gelu(mode, backend):
+def test_ir_op_platform_defaults_support_sparse_gelu(mode):
     """Worker initialization must not select an unregistered sparse GELU provider."""
     from vllm import ir
 
     config = SimpleNamespace(
-        compilation_config=CompilationConfig(mode=mode, backend=backend)
+        compilation_config=CompilationConfig(mode=mode, backend="inductor")
     )
     priority = current_platform.get_default_ir_op_priority(config)
     expected = ["triton", "native"] if current_platform.is_cuda() else ["native"]
 
     with priority.set_priority():
         assert ir.ops.gelu_and_mul_sparse.get_priority() == expected
+
+
+def test_eager_compilation_backend_is_removed():
+    with pytest.raises(ValueError, match="eager compilation backend was removed"):
+        CompilationConfig(backend="eager")
 
 
 def test_ir_op_priority_str():

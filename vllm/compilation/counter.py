@@ -23,8 +23,6 @@ class CompilationCounter:
     num_cudagraph_captured: int = 0
     # InductorAdapter.compile calls
     num_inductor_compiles: int = 0
-    # EagerAdapter.compile calls
-    num_eager_compiles: int = 0
     # The number of time vLLM's compiler cache entry was updated
     num_cache_entries_updated: int = 0
     # The number of standalone_compile compiled artifacts saved
@@ -40,11 +38,11 @@ class CompilationCounter:
     # Number of times a model was loaded with CompilationMode.STOCK_TORCH_COMPILE
     stock_torch_compile_count: int = 0
 
-    def clone(self) -> "CompilationCounter":
+    def clone(self) -> CompilationCounter:
         return copy.deepcopy(self)
 
     @contextmanager
-    def expect(self, **kwargs: Any) -> Generator[None, None, None]:
+    def expect(self, **kwargs: Any) -> Generator[None]:
         old = self.clone()
         yield
         for k, v in kwargs.items():
