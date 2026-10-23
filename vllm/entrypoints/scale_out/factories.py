@@ -24,8 +24,8 @@ def init_render_state(
     state: State,
     request_logger: RequestLogger | None,
     *,
-    disabled_thinking_effort: "AnthropicDisabledThinkingEffortOption" = "auto",
-    disabled_thinking_effort_resolver: "DisabledThinkingEffortResolver | None" = None,
+    disabled_thinking_effort: AnthropicDisabledThinkingEffortOption = "auto",
+    disabled_thinking_effort_resolver: DisabledThinkingEffortResolver | None = None,
 ):
     from .derender.serving import ServingDerender
     from .render.serving import ServingRender

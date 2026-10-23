@@ -642,7 +642,7 @@ class Lfm2VLForConditionalGeneration(
     @classmethod
     def get_mamba_state_dtype_from_config(
         cls,
-        vllm_config: "VllmConfig",
+        vllm_config: VllmConfig,
     ) -> tuple[torch.dtype, ...]:
         return MambaStateDtypeCalculator.short_conv_state_dtype(
             vllm_config.model_config.dtype,
@@ -652,7 +652,7 @@ class Lfm2VLForConditionalGeneration(
     @classmethod
     def get_mamba_state_shape_from_config(
         cls,
-        vllm_config: "VllmConfig",
+        vllm_config: VllmConfig,
     ) -> tuple[tuple[int, int]]:
         """Calculate shapes for LFM2's convolutional cache.
 

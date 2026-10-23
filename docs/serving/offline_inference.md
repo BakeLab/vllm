@@ -1,5 +1,14 @@
 # Offline Inference
 
+!!! note "BakeLab trim compatibility"
+    This fork removes deprecated `--log-config-file`, `--mamba-cache-mode`,
+    and `--disable-cascade-attn` options. Configure Python logging with
+    `--logging-config.pylogging_config_file` and Mamba prefix caching with
+    `--enable-prefix-caching`. Use `vllm run_batch` instead of
+    `python -m vllm.entrypoints.openai.run_batch`.
+    The unused cascade-attention compatibility fields and scheduler helper
+    are also removed; custom integrations must stop passing them.
+
 Offline inference is possible in your own code using vLLM's [`LLM`][vllm.LLM] class.
 
 ## Model Types

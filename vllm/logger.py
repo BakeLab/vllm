@@ -108,7 +108,7 @@ DEFAULT_LOGGING_CONFIG: dict[str, dict[str, Any] | Any] = {
     "disable_existing_loggers": False,
 }
 
-_last_configured_logging_config: "LoggingConfig | None" = None
+_last_configured_logging_config: LoggingConfig | None = None
 
 
 @lru_cache
@@ -204,7 +204,7 @@ _METHODS_TO_PATCH = {
 }
 
 
-def _configure_vllm_root_logger(config: "LoggingConfig | None" = None) -> None:
+def _configure_vllm_root_logger(config: LoggingConfig | None = None) -> None:
     """Configure logging from explicit config or bootstrap environment values."""
     logging_config: dict[str, dict[str, Any] | Any] = {}
     if config is None:
@@ -284,7 +284,7 @@ def _configure_vllm_root_logger(config: "LoggingConfig | None" = None) -> None:
         logging.getLogger("httpx2").setLevel(logging.WARNING)
 
 
-def configure_logging(config: "LoggingConfig") -> None:
+def configure_logging(config: LoggingConfig) -> None:
     """Apply a logging configuration in the current process."""
     _configure_vllm_root_logger(config)
     global _last_configured_logging_config
@@ -292,7 +292,7 @@ def configure_logging(config: "LoggingConfig") -> None:
     _log_platform_warnings(config)
 
 
-def _log_platform_warnings(config: "LoggingConfig") -> None:
+def _log_platform_warnings(config: LoggingConfig) -> None:
     """Emit platform diagnostics only after an enabled config is active."""
     if not config.configure_logging:
         return
@@ -303,24 +303,21 @@ def _log_platform_warnings(config: "LoggingConfig") -> None:
     current_platform.log_warnings()
 
 
-def configure_logging_if_needed(config: "LoggingConfig") -> None:
+def configure_logging_if_needed(config: LoggingConfig) -> None:
     """Apply a logging configuration unless it is already active in this process."""
     if config != _last_configured_logging_config:
         configure_logging(config)
 
 
-def configure_logging_from_args(args: Any) -> "LoggingConfig":
+def configure_logging_from_args(args: Any) -> LoggingConfig:
     """Apply parsed logging arguments and retain them for child processes."""
     from vllm.config.logging import LoggingConfig
 
     config = getattr(args, "logging_config", None) or LoggingConfig()
     if hasattr(args, "log_level"):
         config = replace(config, log_level=args.log_level)
-    if hasattr(args, "log_config_file"):
-        config = replace(config, pylogging_config_file=args.log_config_file)
 
     configure_logging_if_needed(config)
-    args.log_config_file = config.pylogging_config_file
     args.logging_config = config
     return config
 
@@ -336,7 +333,7 @@ def init_logger(name: str) -> _VllmLogger:
 
 
 @contextmanager
-def suppress_logging(level: int = logging.INFO) -> Generator[None, Any, None]:
+def suppress_logging(level: int = logging.INFO) -> Generator[None, Any]:
     current_level = logging.root.manager.disable
     logging.disable(level)
     yield

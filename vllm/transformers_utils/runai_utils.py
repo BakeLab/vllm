@@ -11,13 +11,13 @@ except ImportError:
 
 
 def list_safetensors(path: str = "") -> list[str]:
-    """
-    List full file names from a directory and filter by allow pattern.
+    """List full file names from a directory and filter by allow pattern.
 
     Args:
         path: The directory to list from.
 
     Returns:
         list[str]: List of full paths allowed by the pattern
+
     """
     return runai_list_safetensors(path)

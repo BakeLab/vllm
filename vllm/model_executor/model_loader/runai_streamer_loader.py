@@ -1,12 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-import json
 import os
-import posixpath
-import tempfile
 from collections.abc import Callable, Generator
 from typing import Any
-from urllib.parse import urlsplit
 
 import torch
 from torch import nn
@@ -130,7 +126,7 @@ class RunaiModelStreamerLoader(BaseModelLoader):
         model_or_path: str,
         revision: str | None,
         is_unused_weight: Callable[[str], bool] | None = None,
-    ) -> Generator[tuple[str, torch.Tensor], None, None]:
+    ) -> Generator[tuple[str, torch.Tensor]]:
         """Get an iterator for the model weights based on the load format."""
         hf_weights_files = self._prepare_weights(model_or_path, revision)
         selected_files = hf_weights_files
@@ -139,14 +135,9 @@ class RunaiModelStreamerLoader(BaseModelLoader):
         # model-specific group, so retain its existing full-list path with PP.
         can_select = not distributed or get_pp_group().world_size == 1
         if is_unused_weight is not None and can_select:
-            if is_runai_obj_uri(model_or_path):
-                selected_files = _filter_remote_weights(
-                    hf_weights_files, model_or_path, is_unused_weight
-                )
-            else:
-                selected_files = filter_safetensors_files_by_weight_name(
-                    hf_weights_files, is_unused_weight
-                )
+            selected_files = filter_safetensors_files_by_weight_name(
+                hf_weights_files, is_unused_weight
+            )
         if distributed and can_select:
             # RunAI broadcasts across node-local or WORLD groups, not just TP.
             # A rank that cannot filter safely keeps the group on the full list.
@@ -173,7 +164,7 @@ class RunaiModelStreamerLoader(BaseModelLoader):
         self,
         model_config: ModelConfig,
         model: nn.Module,
-    ) -> Generator[tuple[str, torch.Tensor], None, None]:
+    ) -> Generator[tuple[str, torch.Tensor]]:
         model_weights = model_config.model
         if model_weights_override := model_config.model_weights:
             model_weights = model_weights_override

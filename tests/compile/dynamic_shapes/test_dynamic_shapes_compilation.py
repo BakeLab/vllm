@@ -114,7 +114,6 @@ def test_dynamic_shapes_compilation(
     test_case,
 ):
     """Test representative dynamic-shapes configurations end to end."""
-
     monkeypatch.setenv(
         "VLLM_USE_AOT_COMPILE", "1" if test_case.use_aot_compile else "0"
     )

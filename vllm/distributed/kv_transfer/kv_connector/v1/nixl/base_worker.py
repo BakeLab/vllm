@@ -601,9 +601,9 @@ class NixlBaseConnectorWorker:
 
     def __init__(
         self,
-        vllm_config: "VllmConfig",
+        vllm_config: VllmConfig,
         engine_id: str,
-        kv_cache_config: "KVCacheConfig",
+        kv_cache_config: KVCacheConfig,
     ):
         nixl_wrapper_cls = NixlWrapper
         if nixl_wrapper_cls is None:

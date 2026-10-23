@@ -29,8 +29,6 @@ from vllm.platforms import current_platform
 from vllm.utils.math_utils import cdiv
 from vllm.utils.torch_utils import (
     STR_DTYPE_TO_TORCH_DTYPE,
-    is_torch_equal_or_newer,
-    is_quantized_kv_cache,
     nvfp4_kv_cache_full_dim,
     set_random_seed,
 )

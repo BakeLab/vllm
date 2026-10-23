@@ -58,11 +58,11 @@ class ExampleSecondaryTierManager(SecondaryTierManager):
 
     def __init__(
         self,
-        offloading_spec: "OffloadingSpec",
+        offloading_spec: OffloadingSpec,
         primary_kv_view: memoryview,
         tier_type: str,
         custom_param: int = 0,
-        backpressure_detector: "BackpressureDetector | None" = None,
+        backpressure_detector: BackpressureDetector | None = None,
     ):
         """Initialize the example secondary tier.
 

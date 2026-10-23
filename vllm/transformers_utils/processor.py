@@ -107,7 +107,7 @@ def _get_processor_factory_fn(processor_cls: type | tuple[type, ...]):
 
 
 def _merge_mm_kwargs(
-    model_config: "ModelConfig",
+    model_config: ModelConfig,
     processor_cls: type | tuple[type, ...],
     /,
     **kwargs,
@@ -197,7 +197,7 @@ _cached_get_video_processor_cls_name = lru_cache(
 
 
 def get_video_processor_cls_name(
-    model_config: "ModelConfig",
+    model_config: ModelConfig,
 ) -> str | None:
     model = model_config.model
     revision = model_config.revision
@@ -390,7 +390,7 @@ def cached_get_processor_without_dynamic_kwargs(
 
 
 def cached_processor_from_config(
-    model_config: "ModelConfig",
+    model_config: ModelConfig,
     processor_cls: type[_P] | tuple[type[_P], ...] = ProcessorMixin,
     **kwargs: Any,
 ) -> _P:
@@ -443,7 +443,7 @@ cached_get_feature_extractor = lru_cache(get_feature_extractor)
 
 
 def cached_feature_extractor_from_config(
-    model_config: "ModelConfig",
+    model_config: ModelConfig,
     **kwargs: Any,
 ):
     return cached_get_feature_extractor(
@@ -496,7 +496,7 @@ cached_get_image_processor = lru_cache(get_image_processor)
 
 
 def cached_image_processor_from_config(
-    model_config: "ModelConfig",
+    model_config: ModelConfig,
     **kwargs: Any,
 ):
     return cached_get_image_processor(
@@ -549,7 +549,7 @@ cached_get_video_processor = lru_cache(get_video_processor)
 
 
 def cached_video_processor_from_config(
-    model_config: "ModelConfig",
+    model_config: ModelConfig,
     processor_cls: type[_V] | None = None,
     **kwargs: Any,
 ):

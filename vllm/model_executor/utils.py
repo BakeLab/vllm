@@ -9,7 +9,6 @@ from typing import Any
 
 import torch
 
-
 _weights_pre_processed: ContextVar[bool] = ContextVar(
     "weights_pre_processed", default=False
 )

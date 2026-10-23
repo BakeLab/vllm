@@ -34,7 +34,7 @@ class ECConnectorModelRunnerMixin:
 
     @staticmethod
     def maybe_get_ec_connector_output(
-        scheduler_output: "SchedulerOutput",
+        scheduler_output: SchedulerOutput,
         encoder_cache: dict[str, torch.Tensor],
         **kwargs,
     ) -> AbstractContextManager[ECConnectorOutput | None]:
@@ -51,10 +51,10 @@ class ECConnectorModelRunnerMixin:
     @staticmethod
     @contextmanager
     def _get_ec_connector_output(
-        scheduler_output: "SchedulerOutput",
+        scheduler_output: SchedulerOutput,
         encoder_cache: dict[str, torch.Tensor],
         **kwargs,
-    ) -> Generator[ECConnectorOutput, None, None]:
+    ) -> Generator[ECConnectorOutput]:
         output = ECConnectorOutput()
 
         ec_connector = get_ec_transfer()

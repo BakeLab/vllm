@@ -61,13 +61,13 @@ class CUDAGraphMode(enum.Enum):
     FULL_DECODE_ONLY = (FULL, NONE)
     FULL_AND_PIECEWISE = (FULL, PIECEWISE)
 
-    def decode_mode(self) -> "CUDAGraphMode":
+    def decode_mode(self) -> CUDAGraphMode:
         return CUDAGraphMode(self.value[0]) if self.separate_routine() else self
 
-    def mixed_mode(self) -> "CUDAGraphMode":
+    def mixed_mode(self) -> CUDAGraphMode:
         return CUDAGraphMode(self.value[1]) if self.separate_routine() else self
 
-    def has_mode(self, mode: "CUDAGraphMode") -> bool:
+    def has_mode(self, mode: CUDAGraphMode) -> bool:
         assert not mode.separate_routine()
         if self.separate_routine():
             return mode.value in self.value
@@ -76,14 +76,14 @@ class CUDAGraphMode(enum.Enum):
     def requires_piecewise_compilation(self) -> bool:
         return self.has_mode(CUDAGraphMode.PIECEWISE)
 
-    def without_piecewise(self) -> "CUDAGraphMode":
+    def without_piecewise(self) -> CUDAGraphMode:
         if self == CUDAGraphMode.PIECEWISE:
             return CUDAGraphMode.NONE
         if self == CUDAGraphMode.FULL_AND_PIECEWISE:
             return CUDAGraphMode.FULL_DECODE_ONLY
         return self
 
-    def max_cudagraph_mode(self) -> "CUDAGraphMode":
+    def max_cudagraph_mode(self) -> CUDAGraphMode:
         return CUDAGraphMode(max(self.value)) if self.separate_routine() else self
 
     def has_full_cudagraphs(self) -> bool:
@@ -96,7 +96,7 @@ class CUDAGraphMode(enum.Enum):
         return isinstance(self.value, tuple)
 
     @classmethod
-    def valid_runtime_modes(cls) -> frozenset["CUDAGraphMode"]:
+    def valid_runtime_modes(cls) -> frozenset[CUDAGraphMode]:
         return frozenset({cls.NONE, cls.PIECEWISE, cls.FULL})
 
     def is_valid_runtime_mode(self) -> bool:
@@ -1049,7 +1049,7 @@ class CompilationConfig:
 
     def init_backend(
         self,
-        vllm_config: "VllmConfig",
+        vllm_config: VllmConfig,
         prefix: str = "",
         is_encoder: bool = False,
         use_aot_compile: bool = True,
@@ -1342,11 +1342,11 @@ class CompilationConfig:
 
     def resolve_cudagraph_mode_and_sizes(
         self,
-        min_cg_support: "AttentionCGSupport",
+        min_cg_support: AttentionCGSupport,
         min_cg_attn_backend: str | None,
         uniform_decode_query_len: int = 1,
         use_v2_model_runner: bool = False,
-        kv_cache_config: "KVCacheConfig | None" = None,
+        kv_cache_config: KVCacheConfig | None = None,
         max_num_reqs: int | None = None,
         is_profiling: bool = False,
         piecewise_capture_available: bool = True,

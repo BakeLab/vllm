@@ -185,7 +185,7 @@ class ExecutionContext:
     @classmethod
     def from_single_request(
         cls, num_tokens: int, context_len: int, is_prefill: bool
-    ) -> "ExecutionContext":
+    ) -> ExecutionContext:
         """Create an ExecutionContext from a single request.
 
         This is a convenience method primarily for testing.
@@ -247,7 +247,7 @@ class ParserChain:
         return args
 
 
-_COMPONENT_METRICS_REGISTRY: dict[str, type["ComponentMetrics"]] = {}
+_COMPONENT_METRICS_REGISTRY: dict[str, type[ComponentMetrics]] = {}
 
 
 class ComponentMetrics(BaseModel, ABC):
@@ -292,7 +292,7 @@ class ComponentMetrics(BaseModel, ABC):
             raise InvalidComponent(f"Invalid {cls.component_type()} config: {e}") from e
 
     @classmethod
-    def registered_metrics(cls) -> Iterable[type["ComponentMetrics"]]:
+    def registered_metrics(cls) -> Iterable[type[ComponentMetrics]]:
         return iter(_COMPONENT_METRICS_REGISTRY.values())
 
     @abstractmethod

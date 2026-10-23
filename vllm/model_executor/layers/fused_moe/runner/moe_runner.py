@@ -58,7 +58,7 @@ logger = init_logger(__name__)
 
 def register_layer_for_moe_forward_op(
     vllm_config: VllmConfig,
-    layer: "MoERunner",
+    layer: MoERunner,
 ):
     # For smuggling this layer into the fused moe custom op
     prefix = layer.layer_name

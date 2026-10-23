@@ -89,9 +89,9 @@ def _kaldi_fbank(
         frames = frames[:frame_count]
     if dither:
         frames = frames + torch.randn_like(frames) * dither
-    raw_log_energy = frames.square().sum(dim=-1).clamp_min(
-        torch.finfo(frames.dtype).eps
-    ).log()
+    raw_log_energy = (
+        frames.square().sum(dim=-1).clamp_min(torch.finfo(frames.dtype).eps).log()
+    )
     if remove_dc_offset:
         frames = frames - frames.mean(dim=-1, keepdim=True)
     if preemphasis_coefficient:
@@ -122,18 +122,19 @@ def _kaldi_fbank(
     if raw_energy:
         log_energy = raw_log_energy
     else:
-        log_energy = windowed.square().sum(dim=-1).clamp_min(
-            torch.finfo(windowed.dtype).eps
-        ).log()
+        log_energy = (
+            windowed.square()
+            .sum(dim=-1)
+            .clamp_min(torch.finfo(windowed.dtype).eps)
+            .log()
+        )
     spectrum = torch.fft.rfft(windowed, n=n_fft).abs().square()
-    filters = _kaldi_mel_filters(
-        num_mel_bins, n_fft, sample_frequency
-    ).to(spectrum)
+    filters = _kaldi_mel_filters(num_mel_bins, n_fft, sample_frequency).to(spectrum)
     # Kaldi omits the Nyquist column from its mel bank, equivalent to a zero
     # padded final column in torchaudio.compliance.kaldi.fbank.
-    energies = (spectrum[:, :-1] @ filters).clamp_min(
-        torch.finfo(spectrum.dtype).eps
-    ).log()
+    energies = (
+        (spectrum[:, :-1] @ filters).clamp_min(torch.finfo(spectrum.dtype).eps).log()
+    )
     if energy_floor > 0:
         log_floor = math.log(energy_floor)
         log_energy = log_energy.clamp_min(log_floor)

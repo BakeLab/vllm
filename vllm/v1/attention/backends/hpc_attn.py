@@ -167,7 +167,7 @@ class HpcAttnMetadataBuilder(AttentionMetadataBuilder[HpcAttnMetadata]):
     @override  # type: ignore[misc]
     @classmethod
     def get_cudagraph_support(
-        cls: type["HpcAttnMetadataBuilder"],
+        cls: type[HpcAttnMetadataBuilder],
         vllm_config: VllmConfig,
         kv_cache_spec: KVCacheSpec,
     ) -> AttentionCGSupport:
@@ -295,11 +295,11 @@ class HpcAttentionBackend(AttentionBackend):
         return "HPC_ATTN"
 
     @staticmethod
-    def get_impl_cls() -> type["HpcAttentionImpl"]:
+    def get_impl_cls() -> type[HpcAttentionImpl]:
         return HpcAttentionImpl
 
     @staticmethod
-    def get_builder_cls() -> type["HpcAttnMetadataBuilder"]:
+    def get_builder_cls() -> type[HpcAttnMetadataBuilder]:
         return HpcAttnMetadataBuilder
 
     @classmethod
@@ -311,7 +311,7 @@ class HpcAttentionBackend(AttentionBackend):
         return capability == DeviceCapability(9, 0)
 
     @classmethod
-    def supports_kv_cache_dtype(cls, kv_cache_dtype: "CacheDType | None") -> bool:
+    def supports_kv_cache_dtype(cls, kv_cache_dtype: CacheDType | None) -> bool:
         if kv_cache_dtype is None:
             return True
         return kv_cache_dtype in cls.supported_kv_cache_dtypes

@@ -18,7 +18,6 @@ if not has_helion():
 
 import helion
 import helion.language as hl
-
 from helion._compiler._dynamo.higher_order_ops import (
     helion_kernel_side_table,
     helion_kernel_wrapper_mutation,

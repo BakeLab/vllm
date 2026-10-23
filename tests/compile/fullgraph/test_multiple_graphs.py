@@ -201,7 +201,6 @@ def test_multi_graph_piecewise_compile(
     # Set the environment variable for this test
     monkeypatch.setenv("VLLM_USE_BYTECODE_HOOK", "1" if use_bytecode_hook else "0")
 
-
     outputs = []
 
     # vllmcompile compile

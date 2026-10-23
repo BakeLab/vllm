@@ -733,7 +733,7 @@ class MambaCopyBuffers:
         kv_cache_config: KVCacheConfig,
         copy_funcs: MambaStateCopyFuncsByType,
         make_buffer: Callable[..., CpuGpuBuffer],
-    ) -> "MambaCopyBuffers":
+    ) -> MambaCopyBuffers:
         mamba_groups = get_mamba_groups(kv_cache_config)
         mamba_spec = next(iter(mamba_groups))
         assert all(
@@ -837,7 +837,7 @@ class MambaSpecDecodeGPUContext:
         copy_funcs: MambaStateCopyFuncsByType,
         device: torch.device,
         make_buffer: Callable[..., CpuGpuBuffer],
-    ) -> "MambaSpecDecodeGPUContext":
+    ) -> MambaSpecDecodeGPUContext:
         """Create context with allocated buffers (metadata populated later)."""
         mamba_groups = get_mamba_groups(kv_cache_config)
         mamba_group_ids = get_mamba_group_ids(mamba_groups)
@@ -1330,7 +1330,7 @@ class MambaBuffers:
         make_buffer: Callable[..., CpuGpuBuffer],
         device: torch.device,
         with_postprocess_align: bool,
-    ) -> "MambaBuffers":
+    ) -> MambaBuffers:
         return cls(
             preprocess=MambaCopyBuffers.create(
                 max_num_reqs, kv_cache_config, copy_funcs, make_buffer
@@ -1423,14 +1423,14 @@ def cleanup_mamba_state_idx(
 class _FusedPrecopy(NamedTuple):
     """Resolved fused align pre-copy resources (all non-None once resolved)."""
 
-    ctx: "MambaSpecDecodeGPUContext"
+    ctx: MambaSpecDecodeGPUContext
     state_idx: CpuGpuBuffer
     src_col: CpuGpuBuffer
     token_bias: CpuGpuBuffer
 
 
 def _resolve_fused_precopy(
-    align_ctx: "MambaSpecDecodeGPUContext | None",
+    align_ctx: MambaSpecDecodeGPUContext | None,
 ) -> _FusedPrecopy | None:
     """Bundle the fused-path buffers, or None for the scalar path.
 
@@ -1558,7 +1558,7 @@ def preprocess_mamba(
 
 def postprocess_mamba_align_gpu(
     *,
-    bufs: "MambaBuffers",
+    bufs: MambaBuffers,
     num_reqs: int,
     num_accepted_tokens_gpu: torch.Tensor,
     num_accepted_tokens_cpu_tensor: torch.Tensor,

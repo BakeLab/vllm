@@ -49,7 +49,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class FlashInferOneSidedDispatchLayout:
-    dispatch_format: "QuantFormat"
+    dispatch_format: QuantFormat
     extra_payload_bytes_per_token: int = 0
 
 

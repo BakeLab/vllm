@@ -231,6 +231,10 @@ def select_unquantized_moe_backend(
     """Select the primary Unquantized MoE backend.
     Note: Shape-specific fallbacks may still occur at runtime.
     """
+    if current_platform.is_cpu():
+        # TODO: migrate to MK structure.
+        return UnquantizedMoeBackend.CPU, None
+
     if current_platform.is_tpu():
         return UnquantizedMoeBackend.TPU, None
 
@@ -595,8 +599,8 @@ class UnquantizedMoEKernelOracle(MoEKernelOracle[UnquantizedMoeBackend]):
     def select_backend(
         self,
         moe_config: FusedMoEConfig,
-        weight_key: "QuantKey | None" = None,
-        activation_key: "QuantKey | None" = None,
+        weight_key: QuantKey | None = None,
+        activation_key: QuantKey | None = None,
     ) -> tuple[UnquantizedMoeBackend, type[mk.FusedMoEExperts] | None]:
         assert weight_key is None and activation_key is None, (
             "Weights and activations will never be quantized for "

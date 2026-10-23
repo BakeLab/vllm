@@ -144,7 +144,6 @@ def test_custom_compile_config(
     model: str,
     model_kwargs: dict[str, Any],
 ):
-
     print(f"MODEL={model}")
     run_model(compilation_config, model, **model_kwargs)
 

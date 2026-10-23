@@ -124,7 +124,7 @@ class InputBatch:
 
     # Arms the KV-sharing fast prefill path for this step. Absent for dummy
     # (cudagraph capture) batches, which run the KV-sharing layers in full.
-    fast_prefill: "FastPrefillBatchMetadata | None" = None
+    fast_prefill: FastPrefillBatchMetadata | None = None
 
     # Set only on a PCP rank-local batch.
     pcp: "PCPBatchMetadata | None" = None
@@ -146,7 +146,7 @@ class InputBatch:
         input_buffers: InputBuffers,
         max_query_len: int | None = None,
         is_padding: bool = True,
-    ) -> "InputBatch":
+    ) -> InputBatch:
         assert 0 < num_reqs <= num_tokens
         device = input_buffers.device
 
@@ -237,7 +237,7 @@ class InputBatch:
 
 def set_dummy_context(
     input_batch: InputBatch,
-    block_tables: "BlockTables",
+    block_tables: BlockTables,
     context_len: int,
     num_kv_blocks: int,
     max_model_len: int,

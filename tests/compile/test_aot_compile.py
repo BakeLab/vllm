@@ -37,6 +37,7 @@ from vllm.forward_context import set_forward_context
 from vllm.ir import ops
 from vllm.model_executor.layers.activation import GeluAndMulSparse
 from vllm.platforms import current_platform
+
 from ..utils import create_new_process_for_each_test
 
 
@@ -996,7 +997,6 @@ def graph_cache_probe(tmp_path):
     return run
 
 
-@pytest.mark.skipif(not is_torch_equal_or_newer("2.10.0"), reason="requires torch 2.10")
 @pytest.mark.parametrize("standalone", ["0", "1"])
 def test_compile_opt_out_retraces_changed_closure(graph_cache_probe, standalone):
     """A warm graph is reused, but a changed closure never loads a stale handle."""
@@ -1011,14 +1011,12 @@ def test_compile_opt_out_retraces_changed_closure(graph_cache_probe, standalone)
             assert warm["autograd_hits"] > 0
 
 
-@pytest.mark.skipif(not is_torch_equal_or_newer("2.10.0"), reason="requires torch 2.10")
 def test_compile_opt_out_preserves_native_aot_roundtrip(graph_cache_probe):
     """Native AOT survives an opt-out module compiled first under the same config."""
     graph_cache_probe(0, native="cold")
     graph_cache_probe(0, native="warm")
 
 
-@pytest.mark.skipif(not is_torch_equal_or_newer("2.10.0"), reason="requires torch 2.10")
 def test_compile_opt_out_respected_in_dynamo_trace_once(monkeypatch, fresh_vllm_cache):
     """Opt-out skips model AOT without disabling tracing or causing retracing."""
     monkeypatch.setenv("VLLM_USE_AOT_COMPILE", "1")

@@ -29,7 +29,9 @@ from vllm.logger import init_logger
 from vllm.model_executor.layers.attention import Attention
 from vllm.platforms import current_platform
 from vllm.utils.math_utils import cdiv
-from vllm.utils.torch_utils import (async_tensor_h2d, is_torch_equal_or_newer, is_quantized_kv_cache)
+from vllm.utils.torch_utils import (
+    async_tensor_h2d,
+)
 from vllm.v1.attention.backend import (
     AttentionBackend,
     AttentionCGSupport,
@@ -135,11 +137,11 @@ class FlexAttentionBackend(AttentionBackend):
         return True
 
     @staticmethod
-    def get_impl_cls() -> type["FlexAttentionImpl"]:
+    def get_impl_cls() -> type[FlexAttentionImpl]:
         return FlexAttentionImpl
 
     @staticmethod
-    def get_builder_cls() -> type["FlexAttentionMetadataBuilder"]:
+    def get_builder_cls() -> type[FlexAttentionMetadataBuilder]:
         return FlexAttentionMetadataBuilder
 
     @classmethod

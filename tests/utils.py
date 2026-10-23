@@ -22,6 +22,7 @@ from contextlib import ExitStack, contextmanager
 from multiprocessing import Process, get_context
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, ParamSpec, cast
+
 import anthropic
 import cloudpickle
 import httpx
@@ -30,6 +31,7 @@ import pytest
 import requests
 import torch
 import torch.nn.functional as F
+
 import vllm.envs as envs
 from vllm.distributed import (
     ensure_model_parallel_initialized,
@@ -1931,9 +1933,7 @@ def spawn_new_process_for_each_test[**P](f: Callable[P, None]) -> Callable[P, No
             # child can import compiled extensions. Keep the source root next
             # so it can resolve the tests package.
             build_package = next(
-                (VLLM_PATH / "build").glob(
-                    "lib.*/vllm/_C_stable_libtorch*.so"
-                ),
+                (VLLM_PATH / "build").glob("lib.*/vllm/_C_stable_libtorch*.so"),
                 None,
             )
             pythonpath = []

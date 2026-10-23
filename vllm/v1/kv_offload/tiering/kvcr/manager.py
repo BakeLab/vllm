@@ -144,7 +144,7 @@ def _kvcr_metric_definitions() -> dict[str, OffloadingMetricMetadata]:
 class _FrameworkPinAdapter:
     """Adapt KVCR framework pin callbacks to primary-tier store jobs."""
 
-    def __init__(self, tier: "KVCRSecondaryTierManager") -> None:
+    def __init__(self, tier: KVCRSecondaryTierManager) -> None:
         self._tier = tier
         self._next_request_id = 0
         self._next_pin_request_id = 0
@@ -288,7 +288,7 @@ class KVCRSecondaryTierManager(SecondaryTierManager):
 
     def __init__(
         self,
-        offloading_spec: "OffloadingSpec",
+        offloading_spec: OffloadingSpec,
         primary_kv_view: memoryview,
         tier_type: str,
         router_capabilities: Iterable[str] | None = None,
@@ -308,7 +308,7 @@ class KVCRSecondaryTierManager(SecondaryTierManager):
         g3: dict[str, Any] | None = None,
         local_dram_backend: str = "UCX",
         remote_fw_dram_backend: str = "UCX",
-        backpressure_detector: "BackpressureDetector | None" = None,
+        backpressure_detector: BackpressureDetector | None = None,
     ) -> None:
         super().__init__(
             offloading_spec, primary_kv_view, tier_type, backpressure_detector

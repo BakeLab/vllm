@@ -259,7 +259,7 @@ class AsyncLLM(EngineClient):
         client_addresses: dict[str, Any] | None = None,
         client_count: int = 1,
         client_index: int = 0,
-    ) -> "AsyncLLM":
+    ) -> AsyncLLM:
         # Create the LLMEngine.
         return cls(
             vllm_config=vllm_config,
@@ -282,7 +282,7 @@ class AsyncLLM(EngineClient):
         start_engine_loop: bool = True,
         usage_context: UsageContext = UsageContext.ENGINE_CONTEXT,
         stat_loggers: list[StatLoggerFactory] | None = None,
-    ) -> "AsyncLLM":
+    ) -> AsyncLLM:
         """Create an AsyncLLM from the EngineArgs."""
         # Create the engine configs.
         vllm_config = engine_args.create_engine_config(usage_context)
@@ -397,7 +397,7 @@ class AsyncLLM(EngineClient):
     async def add_request(
         self,
         request_id: str,
-        prompt: PromptType | EngineInput | AsyncGenerator[StreamingInput, None],
+        prompt: PromptType | EngineInput | AsyncGenerator[StreamingInput],
         params: SamplingParams | PoolingParams,
         arrival_time: float | None = None,
         lora_request: LoRARequest | None = None,
@@ -563,7 +563,7 @@ class AsyncLLM(EngineClient):
     async def _add_streaming_input_request(
         self,
         request_id: str,
-        input_stream: AsyncGenerator[StreamingInput, None],
+        input_stream: AsyncGenerator[StreamingInput],
         sampling_params: SamplingParams | PoolingParams,
         arrival_time: float | None = None,
         lora_request: LoRARequest | None = None,
@@ -699,7 +699,7 @@ class AsyncLLM(EngineClient):
     # re-multiplexed in the API server anyhow.
     async def generate(
         self,
-        prompt: PromptType | EngineInput | AsyncGenerator[StreamingInput, None],
+        prompt: PromptType | EngineInput | AsyncGenerator[StreamingInput],
         sampling_params: SamplingParams,
         request_id: str,
         *,
@@ -713,7 +713,7 @@ class AsyncLLM(EngineClient):
         kv_hints: KvHintsEnvelope | None = None,
         reasoning_ended: bool | None = None,
         reasoning_parser_kwargs: dict[str, Any] | None = None,
-    ) -> AsyncGenerator[RequestOutput, None]:
+    ) -> AsyncGenerator[RequestOutput]:
         """Main function called by the API server to kick off a request
             * 1) Making an AsyncStream corresponding to the Request.
             * 2) Processing the Input.
@@ -1012,7 +1012,7 @@ class AsyncLLM(EngineClient):
         priority: int = 0,
         tokenization_kwargs: dict[str, Any] | None = None,
         reasoning_ended: bool | None = None,
-    ) -> AsyncGenerator[PoolingRequestOutput, None]:
+    ) -> AsyncGenerator[PoolingRequestOutput]:
         """Main function called by the API server to kick off a request
             * 1) Making an AsyncStream corresponding to the Request.
             * 2) Processing the Input.

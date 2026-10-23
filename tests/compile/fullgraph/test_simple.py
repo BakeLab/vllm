@@ -184,7 +184,6 @@ def test_simple_piecewise_compile(backend, intermediate_unbacked, monkeypatch):
 
 @torch.inference_mode()
 def test_simple_inductor_graph_partition(monkeypatch):
-
     # disable compile cache so that we run separately for different splitting_ops
     # and get the expected number of cudagraphs captured.
     monkeypatch.setenv("VLLM_DISABLE_COMPILE_CACHE", "1")

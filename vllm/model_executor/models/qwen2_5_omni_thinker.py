@@ -196,7 +196,7 @@ def check_interleaved_audio_video(
 
 def merge_interleaved_embeddings(
     inputs_embeds: torch.Tensor,
-    multimodal_embeddings: "MultiModalEmbeddings",
+    multimodal_embeddings: MultiModalEmbeddings,
     is_video: torch.Tensor,
     is_audio: torch.Tensor,
     is_multimodal: torch.Tensor,

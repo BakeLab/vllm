@@ -121,7 +121,7 @@ class TestTensors:
     config: TestConfig
 
     @staticmethod
-    def make(config: TestConfig, rank) -> "TestTensors":
+    def make(config: TestConfig, rank) -> TestTensors:
         dtype = torch.bfloat16
         topk, m, k = (config.topk, config.m, config.k)
 

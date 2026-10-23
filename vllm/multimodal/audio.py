@@ -28,6 +28,7 @@ try:
 except ImportError:
     soxr = PlaceholderModule("soxr")  # type: ignore[assignment]
 
+
 # ============================================================
 # Aligned with `librosa.get_duration` function
 def get_audio_duration(*, y: npt.NDArray[np.floating], sr: float = 22050) -> float:
@@ -186,9 +187,12 @@ def _get_torch_resample_kernel(
     lowpass_filter_width = 6
     base_freq = min(orig, target) * 0.99
     width = math.ceil(lowpass_filter_width * orig / base_freq)
-    idx = torch.arange(
-        -width, width + orig, dtype=torch.float64, device=device
-    )[None, None, :] / orig
+    idx = (
+        torch.arange(-width, width + orig, dtype=torch.float64, device=device)[
+            None, None, :
+        ]
+        / orig
+    )
     t = (
         torch.arange(0, -target, -1, dtype=torch.float64, device=device)[:, None, None]
         / target

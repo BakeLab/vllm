@@ -5,6 +5,7 @@ import sys
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Generic, TypeAlias, TypeVar, override
+
 import torch
 
 from vllm.config import ModelConfig
@@ -63,7 +64,7 @@ class MultiModalProcessorCacheItem:
     def __init__(
         self,
         item: MultiModalKwargsItem,
-        prompt_updates: Sequence["ResolvedPromptUpdate"],
+        prompt_updates: Sequence[ResolvedPromptUpdate],
     ) -> None:
         super().__init__()
 
@@ -88,7 +89,7 @@ class MultiModalProcessorCacheItemMetadata:
     def __init__(
         self,
         item: MultiModalKwargsItem,
-        prompt_updates: Sequence["ResolvedPromptUpdate"],
+        prompt_updates: Sequence[ResolvedPromptUpdate],
     ) -> None:
         super().__init__()
 
@@ -448,8 +449,8 @@ class BaseMultiModalReceiverCache(
 
     def get_and_update_features(
         self,
-        mm_features: list["MultiModalFeatureSpec"],
-    ) -> list["MultiModalFeatureSpec"]:
+        mm_features: list[MultiModalFeatureSpec],
+    ) -> list[MultiModalFeatureSpec]:
         """Update multimodal features with cached encoder outputs.
         Touch all identifier at first before update to avoid
         item in updated list evict during update.

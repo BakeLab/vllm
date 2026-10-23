@@ -279,12 +279,12 @@ class TensorizerConfig(MutableMapping):
 
         return tc_dict
 
-    def _construct_tensorizer_args(self) -> "TensorizerArgs":
+    def _construct_tensorizer_args(self) -> TensorizerArgs:
         return TensorizerArgs(self)  # type: ignore
 
     def verify_with_parallel_config(
         self,
-        parallel_config: "ParallelConfig",
+        parallel_config: ParallelConfig,
     ) -> None:
         if parallel_config.tensor_parallel_size > 1 and not self._is_sharded:
             raise ValueError(
@@ -293,14 +293,14 @@ class TensorizerConfig(MutableMapping):
                 " with the rank of the shard"
             )
 
-    def verify_with_model_config(self, model_config: "ModelConfig") -> None:
+    def verify_with_model_config(self, model_config: ModelConfig) -> None:
         if model_config.quantization is not None and self.tensorizer_uri is not None:
             logger.warning(
                 "Loading a model using Tensorizer with quantization on vLLM"
                 " is unstable and may lead to errors."
             )
 
-    def open_stream(self, tensorizer_args: "TensorizerArgs | None" = None):
+    def open_stream(self, tensorizer_args: TensorizerArgs | None = None):
         if tensorizer_args is None:
             tensorizer_args = self._construct_tensorizer_args()
 
@@ -419,7 +419,7 @@ class TensorizerArgs:
         return parser
 
     @classmethod
-    def from_cli_args(cls, args: argparse.Namespace) -> "TensorizerArgs":
+    def from_cli_args(cls, args: argparse.Namespace) -> TensorizerArgs:
         attrs = [attr.name for attr in dataclasses.fields(cls)]
         tensorizer_args = cls(
             **{attr: getattr(args, attr) for attr in attrs if hasattr(args, attr)}
@@ -496,8 +496,8 @@ def deserialize_tensorizer_model(
 
 
 def tensorizer_weights_iterator(
-    tensorizer_args: "TensorizerArgs",
-) -> Generator[tuple[str, torch.Tensor], None, None]:
+    tensorizer_args: TensorizerArgs,
+) -> Generator[tuple[str, torch.Tensor]]:
     logger.warning(
         "Deserializing HuggingFace models is not optimized for "
         "loading on vLLM, as tensorizer is forced to load to CPU. "
@@ -515,7 +515,7 @@ def tensorizer_weights_iterator(
     del state
 
 
-def is_vllm_tensorized(tensorizer_config: "TensorizerConfig") -> bool:
+def is_vllm_tensorized(tensorizer_config: TensorizerConfig) -> bool:
     """Infer if the model is a vLLM model by checking the weights for
     a vLLM tensorized marker.
 
@@ -586,7 +586,7 @@ def serialize_extra_artifacts(
 def serialize_vllm_model(
     model: nn.Module,
     tensorizer_config: TensorizerConfig,
-    model_config: "ModelConfig",
+    model_config: ModelConfig,
 ) -> nn.Module:
     model.register_parameter(
         "vllm_tensorized_marker",
@@ -630,7 +630,7 @@ def serialize_vllm_model(
 
 
 def tensorize_vllm_model(
-    engine_args: "EngineArgs",
+    engine_args: EngineArgs,
     tensorizer_config: TensorizerConfig,
     generate_keyfile: bool = True,
 ):

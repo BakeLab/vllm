@@ -27,16 +27,16 @@ The number of data items allowed per modality is restricted by
 class MultiModalDataBuiltins(TypedDict, total=False):
     """Type annotations for modality types predefined by vLLM."""
 
-    image: ModalityData["ImageItem"]
+    image: ModalityData[ImageItem]
     """The input image(s)."""
 
-    video: ModalityData["VideoItem"]
+    video: ModalityData[VideoItem]
     """The input video(s)."""
 
-    audio: ModalityData["AudioItem"]
+    audio: ModalityData[AudioItem]
     """The input audio(s)."""
 
-    vision_chunk: ModalityData["VisionChunk"]
+    vision_chunk: ModalityData[VisionChunk]
     """The input visual atom(s) - unified modality for images and video chunks."""
 
 
@@ -128,7 +128,7 @@ class TokensPrompt(_PromptOptions):
 class EmbedsPrompt(_PromptOptions):
     """Schema for a prompt provided via token embeddings."""
 
-    prompt_embeds: "torch.Tensor"
+    prompt_embeds: torch.Tensor
     """The embeddings of the prompt."""
 
     prompt: NotRequired[str]
