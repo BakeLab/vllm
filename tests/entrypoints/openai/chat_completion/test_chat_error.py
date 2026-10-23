@@ -17,8 +17,6 @@ from vllm.entrypoints.openai.chat_completion.protocol import (
 from vllm.entrypoints.openai.chat_completion.serving import OpenAIServingChat
 from vllm.entrypoints.openai.models.protocol import BaseModelPath
 from vllm.entrypoints.openai.models.serving import OpenAIServingModels
-from vllm.entrypoints.scale_out.render.serving import ServingRender
-from vllm.entrypoints.serve.engine.protocol import ErrorResponse
 from vllm.exceptions import GenerationError, VLLMValidationError
 from vllm.outputs import CompletionOutput, RequestOutput
 from vllm.renderers.hf import HfRenderer
@@ -201,64 +199,6 @@ async def test_openai_chat_keeps_mm_cache_for_engine_execution(
     preprocess_chat = serving_chat.online_renderer.preprocess_chat
     assert isinstance(preprocess_chat, AsyncMock)
     assert preprocess_chat.call_args.kwargs["skip_mm_cache"] is False
-
-
-def _build_serving_render(
-    engine: AsyncLLM, monkeypatch: pytest.MonkeyPatch
-) -> ServingRender:
-    models = OpenAIServingModels(
-        engine_client=engine,
-        base_model_paths=BASE_MODEL_PATHS,
-    )
-    online_renderer = OnlineRenderer(
-        model_config=engine.model_config,
-        renderer=engine.renderer,
-        request_logger=None,
-        chat_template=None,
-        chat_template_content_format="auto",
-    )
-
-    serving_render = ServingRender(models, online_renderer)
-
-    async def _fake_preprocess_chat(*args, **kwargs):
-        # return conversation, engine_inputs
-        return (
-            [{"role": "user", "content": "Test"}],
-            [{"prompt_token_ids": [1, 2, 3]}],
-        )
-
-    monkeypatch.setattr(
-        serving_render.online_renderer,
-        "preprocess_chat",
-        AsyncMock(side_effect=_fake_preprocess_chat),
-    )
-    return serving_render
-
-
-@pytest.mark.asyncio
-async def test_renderer_only_chat_request_skips_mm_cache(
-    monkeypatch: pytest.MonkeyPatch,
-):
-    mock_engine = MagicMock(spec=AsyncLLM)
-    mock_engine.errored = False
-    mock_engine.model_config = MockModelConfig()
-    mock_engine.input_processor = MagicMock()
-    mock_engine.renderer = _build_renderer(mock_engine.model_config)
-
-    serving_render = _build_serving_render(mock_engine, monkeypatch)
-
-    request = ChatCompletionRequest(
-        model=MODEL_NAME,
-        messages=[{"role": "user", "content": "Test prompt"}],
-    )
-
-    result = await serving_render.render_chat_request(request)
-
-    assert not isinstance(result, ErrorResponse)
-    assert result.token_ids == [1, 2, 3]
-    preprocess_chat = serving_render.online_renderer.preprocess_chat
-    assert isinstance(preprocess_chat, AsyncMock)
-    assert preprocess_chat.call_args.kwargs["skip_mm_cache"] is True
 
 
 @pytest.mark.asyncio

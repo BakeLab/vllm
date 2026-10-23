@@ -1,5 +1,11 @@
 # Offline Inference
 
+In this fork, `vllm run-batch` initializes only its local chat completion,
+embedding, scoring/reranking, transcription, and translation handlers. Online
+HTTP and gRPC serving use the Rust frontend; Python ASGI endpoint plugins and
+the former Python HTTP-only serving implementations are not included.
+
+
 !!! note "BakeLab trim compatibility"
     This fork removes deprecated `--log-config-file`, `--mamba-cache-mode`,
     and `--disable-cascade-attn` options. Configure Python logging with
