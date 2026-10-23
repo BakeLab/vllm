@@ -7,12 +7,14 @@ import json
 import sys
 import textwrap
 from argparse import (
+    Action,
     ArgumentDefaultsHelpFormatter,
     ArgumentParser,
     ArgumentTypeError,
     BooleanOptionalAction,
     Namespace,
     RawDescriptionHelpFormatter,
+    _ArgumentGroup,
 )
 from collections import defaultdict
 from typing import Any, NoReturn
@@ -143,12 +145,9 @@ class EnableDisableAction(BooleanOptionalAction):
         setattr(namespace, self.dest, option_string not in self.negative_option_strings)
 
 
-def _register_action(action: Action, deprecated: bool, deprecated_actions: set):
-    # Hidden option strings stay registered with the parser but leave help.
+def _register_action(action: Action):
     if isinstance(action, EnableDisableAction):
         action.option_strings = action.visible_option_strings
-    if deprecated:
-        deprecated_actions.add(action)
 
 
 class FlexibleArgumentParser(ArgumentParser):
@@ -189,6 +188,22 @@ class FlexibleArgumentParser(ArgumentParser):
                 "--convert reward."
             )
         super().error(message)
+
+    def add_argument(self, *args, **kwargs):
+        action = super().add_argument(*args, **kwargs)
+        _register_action(action)
+        return action
+
+    class _FlexibleArgumentGroup(_ArgumentGroup):
+        def add_argument(self, *args, **kwargs):
+            action = super().add_argument(*args, **kwargs)
+            _register_action(action)
+            return action
+
+    def add_argument_group(self, *args, **kwargs):
+        group = self._FlexibleArgumentGroup(self, *args, **kwargs)
+        self._action_groups.append(group)
+        return group
 
     def format_help(self):
         # Only use custom help formatting for bottom level parsers

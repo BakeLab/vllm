@@ -34,6 +34,7 @@ from vllm.utils.system_utils import suppress_stdout
 
 logger = init_logger(__name__)
 
+
 # os.sched_yield results in tighter polling loops, measured to be around
 # 3e-7 seconds.
 def sched_yield():
@@ -526,7 +527,7 @@ class StatelessProcessGroup:
         data_expiration_seconds: int = 3600,
         store_timeout: int = 300,
         listen_socket: socket.socket | None = None,
-    ) -> "StatelessProcessGroup":
+    ) -> StatelessProcessGroup:
         """A replacement for `torch.distributed.init_process_group` that does not
         pollute the global state.
 

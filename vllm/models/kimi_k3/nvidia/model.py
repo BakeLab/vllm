@@ -1452,7 +1452,7 @@ class KimiLinearForCausalLM(
         # PIECEWISE steps).
         self.needs_norm_in_logits = False
 
-    def get_model_state_cls(self) -> "type[ModelState]":
+    def get_model_state_cls(self) -> type[ModelState]:
         from .model_state import KimiK3ModelState
 
         return KimiK3ModelState
@@ -1494,7 +1494,7 @@ class KimiLinearForCausalLM(
     @classmethod
     def get_mamba_state_dtype_from_config(
         cls,
-        vllm_config: "VllmConfig",
+        vllm_config: VllmConfig,
     ) -> tuple[torch.dtype, ...]:
         dtypes = MambaStateDtypeCalculator.kda_state_dtype(
             vllm_config.model_config.dtype,
@@ -1509,7 +1509,7 @@ class KimiLinearForCausalLM(
 
     @classmethod
     def get_mamba_state_shape_from_config(
-        cls, vllm_config: "VllmConfig"
+        cls, vllm_config: VllmConfig
     ) -> MambaStateShapes:
         parallel_config = vllm_config.parallel_config
         hf_config = vllm_config.model_config.hf_config
@@ -1973,7 +1973,7 @@ class KimiK3ForConditionalGeneration(
     def compute_logits(self, hidden_states: torch.Tensor, **kwargs) -> torch.Tensor:
         return self.language_model.compute_logits(hidden_states)
 
-    def get_model_state_cls(self) -> "type[ModelState]":
+    def get_model_state_cls(self) -> type[ModelState]:
         return self.language_model.get_model_state_cls()
 
     def copy_inputs_before_cuda_graphs(self, input_buffers, **kwargs):

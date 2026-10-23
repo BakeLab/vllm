@@ -449,7 +449,7 @@ class CacheConfig:
         return handler(value)
 
     @model_validator(mode="after")
-    def _apply_block_size_default(self) -> "CacheConfig":
+    def _apply_block_size_default(self) -> CacheConfig:
         # Pydantic re-runs validators when CacheConfig is nested inside
         # another pydantic model (e.g. VllmConfig). Guard against that.
         if self._block_size_resolved:

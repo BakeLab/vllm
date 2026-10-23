@@ -103,7 +103,7 @@ TokenizerRegistry = _TokenizerRegistry(
 def resolve_tokenizer_args(
     tokenizer_name: str | Path,
     *args,
-    runner_type: "RunnerType" = "generate",
+    runner_type: RunnerType = "generate",
     tokenizer_mode: str = "auto",
     **kwargs,
 ):
@@ -186,7 +186,7 @@ def resolve_tokenizer_args(
 cached_resolve_tokenizer_args = lru_cache(resolve_tokenizer_args)
 
 
-def tokenizer_args_from_config(config: "ModelConfig", **kwargs):
+def tokenizer_args_from_config(config: ModelConfig, **kwargs):
     if config.tokenizer == config.model:
         code_revision = getattr(config, "code_revision", None)
         if code_revision is not None:
@@ -294,7 +294,7 @@ def get_tokenizer(
 cached_get_tokenizer = lru_cache(get_tokenizer)
 
 
-def cached_tokenizer_from_config(model_config: "ModelConfig", **kwargs):
+def cached_tokenizer_from_config(model_config: ModelConfig, **kwargs):
     if model_config.skip_tokenizer_init:
         return None
 

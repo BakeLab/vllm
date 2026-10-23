@@ -30,7 +30,7 @@ P = ParamSpec("P")
 
 
 @contextmanager
-def _compilation_context() -> Generator[None, None, None]:
+def _compilation_context() -> Generator[None]:
     """Context manager for compilation settings.
 
     This manager sets higher dynamo cache limits for compilation.
@@ -273,7 +273,7 @@ class TorchCompileWithNoGuardsWrapper:
             handle.remove()
 
     @contextmanager
-    def _dispatch_to_compiled_code(self) -> Generator[None, None, None]:
+    def _dispatch_to_compiled_code(self) -> Generator[None]:
         # noqa: E501
         """Context manager to dispatch to internally compiled code captured by
         the bytecode hook.

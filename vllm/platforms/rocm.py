@@ -109,6 +109,7 @@ _sync_hip_cuda_env_vars()
 def _get_gcn_arch() -> str:
     return torch.cuda.get_device_properties(0).gcnArchName
 
+
 # Resolve once at module load. These are plain Python bools and therefore
 # torch.compile/Dynamo safe.
 _GCN_ARCH = _get_gcn_arch()
@@ -425,7 +426,7 @@ def _get_backend_priorities(
     return backends
 
 
-def _uses_turboquant(vllm_config: "VllmConfig | None") -> bool:
+def _uses_turboquant(vllm_config: VllmConfig | None) -> bool:
     """Whether the run's KV cache dtype is one of the turboquant_* presets."""
     cache_config = getattr(vllm_config, "cache_config", None)
     return cache_config is not None and str(cache_config.cache_dtype).startswith(
@@ -433,7 +434,7 @@ def _uses_turboquant(vllm_config: "VllmConfig | None") -> bool:
     )
 
 
-def _uses_ultraquant(vllm_config: "VllmConfig | None") -> bool:
+def _uses_ultraquant(vllm_config: VllmConfig | None) -> bool:
     """Whether the run's KV cache dtype is the UltraQuant 4-bit format."""
     cache_config = getattr(vllm_config, "cache_config", None)
     return (
@@ -441,7 +442,7 @@ def _uses_ultraquant(vllm_config: "VllmConfig | None") -> bool:
     )
 
 
-def _shares_layout_with_turboquant(backend_class: type["AttentionBackend"]) -> bool:
+def _shares_layout_with_turboquant(backend_class: type[AttentionBackend]) -> bool:
     """Whether this backend reads a KV cache layout TURBOQUANT reads too.
 
     A turboquant_* run keeps its boundary layers at the native dtype (see
@@ -459,7 +460,7 @@ def _shares_layout_with_turboquant(backend_class: type["AttentionBackend"]) -> b
     return not set(layouts).isdisjoint(turboquant_layouts)
 
 
-def _shares_layout_with_ultraquant(backend_class: type["AttentionBackend"]) -> bool:
+def _shares_layout_with_ultraquant(backend_class: type[AttentionBackend]) -> bool:
     """Whether this backend reads a KV cache layout ULTRAQUANT reads too.
 
     Same constraint as _shares_layout_with_turboquant: an ultraquant_4bit run
@@ -476,9 +477,9 @@ def _shares_layout_with_ultraquant(backend_class: type["AttentionBackend"]) -> b
 
 
 def _get_invalid_reasons(
-    backend_class: type["AttentionBackend"],
+    backend_class: type[AttentionBackend],
     device_capability: DeviceCapability,
-    attn_selector_config: "AttentionSelectorConfig",
+    attn_selector_config: AttentionSelectorConfig,
     *,
     is_turboquant_run: bool,
     is_ultraquant_run: bool = False,
@@ -614,8 +615,8 @@ class RocmPlatform(Platform):
     @classmethod
     def get_attn_backend_cls(
         cls,
-        selected_backend: "AttentionBackendEnum | None",
-        attn_selector_config: "AttentionSelectorConfig",
+        selected_backend: AttentionBackendEnum | None,
+        attn_selector_config: AttentionSelectorConfig,
         num_heads: int | None = None,
     ) -> str:
         device_capability = cls.get_device_capability()
@@ -809,8 +810,8 @@ class RocmPlatform(Platform):
     @classmethod
     def get_mla_prefill_backend_cls(
         cls,
-        mla_selector_config: "MLAPrefillSelectorConfig",
-    ) -> "type[MLAPrefillBackend]":
+        mla_selector_config: MLAPrefillSelectorConfig,
+    ) -> type[MLAPrefillBackend]:
         """On ROCm, prefer the AITER FlashAttention backend, falling back to
         FlashAttention.
 
@@ -883,9 +884,7 @@ class RocmPlatform(Platform):
 
     @classmethod
     def is_fully_connected(cls, physical_device_ids: list[int]) -> bool:
-        """
-        Query whether every GPU can directly access every peer GPU.
-        """
+        """Query whether every GPU can directly access every peer GPU."""
         visible_physical_ids = [
             cls.visible_device_id_to_physical_device_id(device_id)
             for device_id in range(cls.device_count())
@@ -921,7 +920,7 @@ class RocmPlatform(Platform):
 
     @classmethod
     def pre_register_and_update(
-        cls, parser: "FlexibleArgumentParser | None" = None
+        cls, parser: FlexibleArgumentParser | None = None
     ) -> None:
         # Keep mmap'd weight pages on the HIP staging path: above this
         # threshold the runtime registers the pageable source instead, and each

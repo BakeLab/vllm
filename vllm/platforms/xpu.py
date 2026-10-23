@@ -143,8 +143,8 @@ class XPUPlatform(Platform):
     @classmethod
     def get_attn_backend_cls(
         cls,
-        selected_backend: "AttentionBackendEnum",
-        attn_selector_config: "AttentionSelectorConfig",
+        selected_backend: AttentionBackendEnum,
+        attn_selector_config: AttentionSelectorConfig,
         num_heads: int | None = None,
     ) -> str:
         # TurboQuant KV cache: route directly to TQ backend
@@ -271,7 +271,7 @@ class XPUPlatform(Platform):
         return AttentionBackendEnum.FLASH_ATTN.get_path()
 
     @classmethod
-    def get_supported_vit_attn_backends(cls) -> list["AttentionBackendEnum"]:
+    def get_supported_vit_attn_backends(cls) -> list[AttentionBackendEnum]:
         return [
             AttentionBackendEnum.FLASH_ATTN,
             AttentionBackendEnum.TRITON_ATTN,
@@ -283,8 +283,8 @@ class XPUPlatform(Platform):
         cls,
         head_size: int,
         dtype: torch.dtype,
-        backend: "AttentionBackendEnum | None" = None,
-    ) -> "AttentionBackendEnum":
+        backend: AttentionBackendEnum | None = None,
+    ) -> AttentionBackendEnum:
         if dtype == torch.float32:
             logger.warning_once(
                 "Flash Attention on XPU does not support float32 dtype. "
@@ -470,7 +470,7 @@ class XPUPlatform(Platform):
             )
 
     @classmethod
-    def update_block_size_for_backend(cls, vllm_config: "VllmConfig") -> None:
+    def update_block_size_for_backend(cls, vllm_config: VllmConfig) -> None:
         super().update_block_size_for_backend(vllm_config)
         from vllm.config.vllm import get_layers_from_vllm_config
         from vllm.model_executor.layers.attention_layer_base import (
@@ -571,9 +571,7 @@ class XPUPlatform(Platform):
         return True
 
     @classmethod
-    def get_default_ir_op_priority(
-        cls, vllm_config: "VllmConfig"
-    ) -> "IrOpPriorityConfig":
+    def get_default_ir_op_priority(cls, vllm_config: VllmConfig) -> IrOpPriorityConfig:
         from vllm.config.compilation import CompilationMode
         from vllm.config.kernel import IrOpPriorityConfig
 

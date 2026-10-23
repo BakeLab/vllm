@@ -231,10 +231,7 @@ def _resolve_gdn_prefill_backend(
 
     if current_platform.is_device_capability(90):
         supports_flashinfer = True
-    elif (
-        current_platform.is_device_capability_family(100)
-        and head_k_dim == 128
-    ):
+    elif current_platform.is_device_capability_family(100) and head_k_dim == 128:
         supports_flashinfer = True
         supports_cutedsl = True
     elif (

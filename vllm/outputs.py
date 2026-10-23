@@ -207,7 +207,7 @@ class RequestOutput:
         self.kv_transfer_params = kv_transfer_params
         self.ec_transfer_params = ec_transfer_params
 
-    def add(self, next_output: "RequestOutput", aggregate: bool) -> None:
+    def add(self, next_output: RequestOutput, aggregate: bool) -> None:
         """Merge subsequent RequestOutput into this one"""
         self.finished |= next_output.finished
         self.kv_transfer_params = next_output.kv_transfer_params
@@ -356,7 +356,7 @@ class EmbeddingOutput:
     embedding: list[float]
 
     @staticmethod
-    def from_base(pooling_output: PoolingOutput) -> "EmbeddingOutput":
+    def from_base(pooling_output: PoolingOutput) -> EmbeddingOutput:
         pooled_data = pooling_output.data
         if pooled_data.ndim != 1:
             raise ValueError("pooled_data should be a 1-D embedding vector")
@@ -375,7 +375,7 @@ class EmbeddingRequestOutput(PoolingRequestOutput[EmbeddingOutput]):
     @staticmethod
     def from_base(
         request_output: PoolingRequestOutput,
-    ) -> "EmbeddingRequestOutput":
+    ) -> EmbeddingRequestOutput:
         outputs = (
             EmbeddingOutput([])
             if request_output.error is not None
@@ -404,7 +404,7 @@ class ClassificationOutput:
     probs: list[float]
 
     @staticmethod
-    def from_base(pooling_output: PoolingOutput) -> "ClassificationOutput":
+    def from_base(pooling_output: PoolingOutput) -> ClassificationOutput:
         # pooling_output shape: (num_classes)
         pooled_data = pooling_output.data
         if pooled_data.ndim != 1:
@@ -424,7 +424,7 @@ class ClassificationRequestOutput(PoolingRequestOutput[ClassificationOutput]):
     @staticmethod
     def from_base(
         request_output: PoolingRequestOutput,
-    ) -> "ClassificationRequestOutput":
+    ) -> ClassificationRequestOutput:
         outputs = (
             ClassificationOutput([])
             if request_output.error is not None
@@ -452,7 +452,7 @@ class ScoringOutput:
     score: float
 
     @staticmethod
-    def from_base(pooling_output: PoolingOutput) -> "ScoringOutput":
+    def from_base(pooling_output: PoolingOutput) -> ScoringOutput:
         # pooling_output shape:
         #   classify task: (num_classes) num_classes == 1
         #   embed task: a scalar value
@@ -470,7 +470,7 @@ class ScoringRequestOutput(PoolingRequestOutput[ScoringOutput]):
     @staticmethod
     def from_base(
         request_output: PoolingRequestOutput,
-    ) -> "ScoringRequestOutput":
+    ) -> ScoringRequestOutput:
         outputs = (
             ScoringOutput(0.0)
             if request_output.error is not None

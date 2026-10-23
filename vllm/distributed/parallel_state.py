@@ -157,10 +157,10 @@ def _get_unique_name(name: str) -> str:
     return newname
 
 
-_groups: dict[str, Callable[[], "GroupCoordinator | None"]] = {}
+_groups: dict[str, Callable[[], GroupCoordinator | None]] = {}
 
 
-def _register_group(group: "GroupCoordinator") -> None:
+def _register_group(group: GroupCoordinator) -> None:
     _groups[group.unique_name] = weakref.ref(group)
 
 
@@ -1065,7 +1065,7 @@ class GroupCoordinator:
         self,
         key: str,
         numel: int,
-        all_gather_group: "GroupCoordinator | None",
+        all_gather_group: GroupCoordinator | None,
         all_gather_tensors: dict[str, bool] | None,
     ) -> bool:
         if all_gather_group is None:
@@ -1079,7 +1079,7 @@ class GroupCoordinator:
         self,
         tensor_dict: dict[str, torch.Tensor | Any],
         dst: int | None = None,
-        all_gather_group: "GroupCoordinator | None" = None,
+        all_gather_group: GroupCoordinator | None = None,
         all_gather_tensors: dict[str, bool] | None = None,
     ) -> dict[str, torch.Tensor | Any] | None:
         """Send the input tensor dictionary.
@@ -1160,7 +1160,7 @@ class GroupCoordinator:
         self,
         tensor_dict: dict[str, torch.Tensor | Any],
         dst: int | None = None,
-        all_gather_group: "GroupCoordinator | None" = None,
+        all_gather_group: GroupCoordinator | None = None,
         all_gather_tensors: dict[str, bool] | None = None,
     ) -> list[Handle]:
         """Send the input tensor dictionary asynchronously.
@@ -1243,7 +1243,7 @@ class GroupCoordinator:
     def recv_tensor_dict(
         self,
         src: int | None = None,
-        all_gather_group: "GroupCoordinator | None" = None,
+        all_gather_group: GroupCoordinator | None = None,
         all_gather_tensors: dict[str, bool] | None = None,
     ) -> dict[str, torch.Tensor | Any] | None:
         """Recv the input tensor dictionary.
@@ -1281,7 +1281,7 @@ class GroupCoordinator:
     def irecv_tensor_dict(
         self,
         src: int | None = None,
-        all_gather_group: "GroupCoordinator | None" = None,
+        all_gather_group: GroupCoordinator | None = None,
         all_gather_tensors: dict[str, bool] | None = None,
     ) -> tuple[
         dict[str, torch.Tensor | Any] | None,
@@ -1540,7 +1540,7 @@ def _init_stateless_group(
     coord_store: Store,
     use_device_communicator: bool = True,
     use_all2all: bool = False,
-) -> "StatelessGroupCoordinator":
+) -> StatelessGroupCoordinator:
     """Create a StatelessGroupCoordinator with the given parameters."""
     from vllm.distributed.stateless_coordinator import StatelessGroupCoordinator
 

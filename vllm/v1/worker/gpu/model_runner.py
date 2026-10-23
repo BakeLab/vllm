@@ -1292,7 +1292,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
 
     def gather_batch_req_state(
         self, scheduler_output: SchedulerOutput, dummy_run: bool
-    ) -> tuple["BatchReqState | None", int | None]:
+    ) -> tuple[BatchReqState | None, int | None]:
         """Gather CPU request state for the scheduled batch, in batch order.
         Returns (batch_state, uniform_decode_token_count)
         """
@@ -1375,7 +1375,7 @@ class GPUModelRunner(LoRAModelRunnerMixin):
     def prepare_inputs(
         self,
         scheduler_output: SchedulerOutput,
-        batch_req_state: "BatchReqState",
+        batch_req_state: BatchReqState,
         batch_desc: BatchExecutionDescriptor,
         num_active_loras: int,
     ) -> InputBatch:

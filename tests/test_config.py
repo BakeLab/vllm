@@ -2766,6 +2766,7 @@ def test_get_and_verify_max_len_yarn_is_already_scaled(
 
     assert actual_max_len == expected_max_len
 
+
 @pytest.mark.parametrize(
     ("model_id", "expected_attn_type", "expected_result", "reason"),
     [

@@ -460,7 +460,7 @@ class ExecuteModelState(NamedTuple):
     """Ephemeral cached state transferred between execute_model() and
     sample_tokens(), after execute_model() returns None."""
 
-    scheduler_output: "SchedulerOutput"
+    scheduler_output: SchedulerOutput
     logits: torch.Tensor
     spec_decode_metadata: SpecDecodeMetadata | None
     spec_decode_common_attn_metadata: CommonAttentionMetadata | None
@@ -536,9 +536,6 @@ class GPUModelRunner(
         # Model-related.
         self.inputs_embeds_size = model_config.get_inputs_embeds_size()
         self.is_mm_prefix_lm = self.model_config.is_mm_prefix_lm
-        # Deprecated: cascade attention has been removed. Kept for
-        # out-of-tree model runners.
-        self.cascade_attn_enabled = False
 
         # Multi-modal data support
         self.mm_registry = MULTIMODAL_REGISTRY
@@ -1102,7 +1099,7 @@ class GPUModelRunner(
         )
         return model_kwargs
 
-    def _may_reorder_batch(self, scheduler_output: "SchedulerOutput") -> None:
+    def _may_reorder_batch(self, scheduler_output: SchedulerOutput) -> None:
         """Update the order of requests in the batch based on the attention
         backend's needs. For example, some attention backends (namely MLA) may
         want to separate requests based on if the attention computation will be
@@ -1167,13 +1164,13 @@ class GPUModelRunner(
 
     def _process_encoder_cache_scheduler_output(
         self,
-        scheduler_output: "SchedulerOutput",
+        scheduler_output: SchedulerOutput,
     ) -> None:
         """Apply scheduler-side encoder cache lifecycle updates."""
         for mm_hash in scheduler_output.free_encoder_mm_hashes:
             self.encoder_cache.pop(mm_hash, None)
 
-    def _update_states(self, scheduler_output: "SchedulerOutput") -> Callable | None:
+    def _update_states(self, scheduler_output: SchedulerOutput) -> Callable | None:
         """Update the cached states and the persistent batch with the scheduler
         output.
 
@@ -1546,7 +1543,7 @@ class GPUModelRunner(
             return None
 
     def _update_states_after_model_execute(
-        self, output_token_ids: torch.Tensor, scheduler_output: "SchedulerOutput"
+        self, output_token_ids: torch.Tensor, scheduler_output: SchedulerOutput
     ) -> None:
         """Update the cached states after model execution.
 
@@ -1661,7 +1658,7 @@ class GPUModelRunner(
 
     def _extract_mm_kwargs(
         self,
-        scheduler_output: "SchedulerOutput",
+        scheduler_output: SchedulerOutput,
     ) -> BatchedTensorInputs:
         if not scheduler_output or not self.is_multimodal_raw_input_only_model:
             return {}
@@ -1739,7 +1736,7 @@ class GPUModelRunner(
 
     def _prepare_input_ids(
         self,
-        scheduler_output: "SchedulerOutput",
+        scheduler_output: SchedulerOutput,
         num_reqs: int,
         total_num_scheduled_tokens: int,
         cu_num_tokens: np.ndarray,
@@ -1923,7 +1920,7 @@ class GPUModelRunner(
 
     def _prepare_inputs(
         self,
-        scheduler_output: "SchedulerOutput",
+        scheduler_output: SchedulerOutput,
         num_scheduled_tokens: np.ndarray,
     ) -> tuple[
         torch.Tensor,
@@ -2539,7 +2536,7 @@ class GPUModelRunner(
 
         return attn_metadata, spec_decode_common_attn_metadata
 
-    def _calc_mrope_positions(self, scheduler_output: "SchedulerOutput"):
+    def _calc_mrope_positions(self, scheduler_output: SchedulerOutput):
         mrope_pos_ptr = 0
         for index, req_id in enumerate(self.input_batch.req_ids):
             req = self.requests[req_id]
@@ -2689,7 +2686,7 @@ class GPUModelRunner(
 
     def _batch_mm_inputs_from_scheduler(
         self,
-        scheduler_output: "SchedulerOutput",
+        scheduler_output: SchedulerOutput,
     ) -> tuple[
         list[str],
         list[tuple[str, MultiModalKwargsItem]],
@@ -2742,7 +2739,7 @@ class GPUModelRunner(
         self,
         mm_hash: str,
         output: torch.Tensor,
-        ec_manager_metadata: "EncoderCacheManagerMetadata | None",
+        ec_manager_metadata: EncoderCacheManagerMetadata | None,
         free_encoder_mm_hashes: list[str],
     ) -> None:
         """Store an encoder output for later multimodal embedding gather."""
@@ -2751,7 +2748,7 @@ class GPUModelRunner(
         self.maybe_save_ec_to_connector(self.encoder_cache, mm_hash)
 
     def _execute_mm_encoder(
-        self, scheduler_output: "SchedulerOutput"
+        self, scheduler_output: SchedulerOutput
     ) -> list[torch.Tensor]:
         mm_hashes, mm_kwargs, mm_lora_refs = self._batch_mm_inputs_from_scheduler(
             scheduler_output
@@ -2966,7 +2963,7 @@ class GPUModelRunner(
 
     def _gather_mm_embeddings(
         self,
-        scheduler_output: "SchedulerOutput",
+        scheduler_output: SchedulerOutput,
         shift_computed_tokens: int = 0,
     ) -> tuple[list[torch.Tensor], torch.Tensor]:
         total_num_scheduled_tokens = scheduler_output.total_num_scheduled_tokens
@@ -3257,7 +3254,7 @@ class GPUModelRunner(
 
     def _preprocess(
         self,
-        scheduler_output: "SchedulerOutput",
+        scheduler_output: SchedulerOutput,
         num_input_tokens: int,  # Padded
         intermediate_tensors: IntermediateTensors | None = None,
     ) -> tuple[
@@ -3433,7 +3430,7 @@ class GPUModelRunner(
 
     def _bookkeeping_sync(
         self,
-        scheduler_output: "SchedulerOutput",
+        scheduler_output: SchedulerOutput,
         sampler_output: SamplerOutput,
         logits: torch.Tensor | None,
         hidden_states: torch.Tensor,
@@ -3687,8 +3684,6 @@ class GPUModelRunner(
         num_reqs: int,
         num_scheduled_tokens_np: np.ndarray,
         max_num_scheduled_tokens: int,
-        # Deprecated and ignored. Kept for out-of-tree model runners.
-        use_cascade_attn: bool = False,
         allow_microbatching: bool = True,
         force_eager: bool = False,
         # For cudagraph capture TODO(lucas): Refactor how we capture cudagraphs (will
@@ -3824,7 +3819,7 @@ class GPUModelRunner(
         num_tokens_padded: int,
         num_reqs_padded: int,
         num_tokens_unpadded: int,
-        ubatch_slices: "UBatchSlices | None" = None,
+        ubatch_slices: UBatchSlices | None = None,
     ) -> tuple[
         dict[int, torch.Tensor] | None,
         dict[str, torch.Tensor] | list[dict[str, torch.Tensor]] | None,
@@ -3905,7 +3900,7 @@ class GPUModelRunner(
     @torch.inference_mode()
     def execute_model(
         self,
-        scheduler_output: "SchedulerOutput",
+        scheduler_output: SchedulerOutput,
         intermediate_tensors: IntermediateTensors | None = None,
     ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors | None:
         if self.execute_model_state is not None:
@@ -3999,7 +3994,6 @@ class GPUModelRunner(
                 num_reqs=num_reqs,
                 num_scheduled_tokens_np=num_scheduled_tokens_np,
                 max_num_scheduled_tokens=max_num_scheduled_tokens,
-                use_cascade_attn=False,
                 num_encoder_reqs=len(scheduler_output.scheduled_encoder_inputs),
                 allow_microbatching=self._allow_microbatching(
                     num_reqs, num_scheduled_tokens_np
@@ -4268,7 +4262,7 @@ class GPUModelRunner(
 
     @torch.inference_mode
     def sample_tokens(
-        self, grammar_output: "GrammarOutput | None"
+        self, grammar_output: GrammarOutput | None
     ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
         if self.execute_model_state is None:
             kv_connector_output = self.kv_connector_output
@@ -4597,7 +4591,7 @@ class GPUModelRunner(
         return DraftTokenIds(req_ids, draft_token_ids)
 
     def _copy_draft_token_ids_to_cpu(
-        self, scheduler_output: "SchedulerOutput", zeros_only: bool = False
+        self, scheduler_output: SchedulerOutput, zeros_only: bool = False
     ) -> None:
         if torch.is_tensor(self._draft_token_ids):
             assert isinstance(self._draft_token_ids, torch.Tensor)
@@ -4713,7 +4707,7 @@ class GPUModelRunner(
 
     def propose_draft_token_ids(
         self,
-        scheduler_output: "SchedulerOutput",
+        scheduler_output: SchedulerOutput,
         sampled_token_ids: torch.Tensor | list[list[int]],
         sampling_metadata: SamplingMetadata,
         hidden_states: torch.Tensor,
@@ -5557,7 +5551,6 @@ class GPUModelRunner(
                 num_reqs=num_reqs,
                 num_scheduled_tokens_np=num_scheduled_tokens,
                 max_num_scheduled_tokens=max_query_len,
-                use_cascade_attn=False,
                 allow_microbatching=allow_microbatching,
                 force_eager=is_profile
                 or (cudagraph_runtime_mode == CUDAGraphMode.NONE),
@@ -6226,7 +6219,7 @@ class GPUModelRunner(
         logger.debug("Cleaned up profiling KV cache and CUDA graphs")
 
     @torch.inference_mode()
-    def _create_encoder_cudagraph_manager(self) -> "EncoderCudaGraphManager | None":
+    def _create_encoder_cudagraph_manager(self) -> EncoderCudaGraphManager | None:
         if not (
             self.compilation_config.cudagraph_mm_encoder and self.supports_mm_inputs
         ):

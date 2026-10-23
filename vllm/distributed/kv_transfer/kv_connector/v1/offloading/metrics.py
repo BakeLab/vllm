@@ -213,7 +213,7 @@ class OffloadingConnectorStats(KVConnectorStats):
         """
         return (self._types, self._values)
 
-    def aggregate(self, other: "KVConnectorStats") -> "KVConnectorStats":
+    def aggregate(self, other: KVConnectorStats) -> KVConnectorStats:
         if other.is_empty():
             return self
         assert isinstance(other, OffloadingConnectorStats)

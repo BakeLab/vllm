@@ -217,8 +217,7 @@ def is_compile_cache_enabled(
 
 
 class InductorStandaloneAdaptor(CompilerInterface):
-    """
-    The adaptor for the trim PyTorch Inductor compiler.
+    """The adaptor for the trim PyTorch Inductor compiler.
 
     Use VLLM_USE_STANDALONE_COMPILE to toggle this on or off.
     """
@@ -316,7 +315,7 @@ class InductorStandaloneAdaptor(CompilerInterface):
         else:
             fake_mode_ctx = contextlib.nullcontext()
 
-        with pregrad_ctx, fake_mode_ctx, set_functorch_config(self.use_aot_compile):
+        with fake_mode_ctx, set_functorch_config(self.use_aot_compile):
             compiled_graph = standalone_compile(graph, example_inputs, **compile_kwargs)
 
         if not self.use_aot_compile:
@@ -393,9 +392,7 @@ class InductorStandaloneAdaptor(CompilerInterface):
 
 
 class InductorAdaptor(CompilerInterface):
-    """
-    The adaptor for the Inductor compiler using the legacy compile_fx path.
-    """
+    """The adaptor for the Inductor compiler using the legacy compile_fx path."""
 
     name = "inductor"
 
@@ -513,7 +510,6 @@ class InductorAdaptor(CompilerInterface):
                     _get_shape_env,
                 )
             )
-
 
             stack.enter_context(
                 patch(
@@ -689,7 +685,7 @@ def set_inductor_config(config: dict[str, Any], compile_range: Range) -> None:
 
 
 @contextlib.contextmanager
-def set_functorch_config(use_aot_compile: bool) -> Generator[None, None, None]:
+def set_functorch_config(use_aot_compile: bool) -> Generator[None]:
     overrides = _get_vllm_functorch_config(use_aot_compile)
     if use_aot_compile:
         # Preserve the existing native configuration lifetime.

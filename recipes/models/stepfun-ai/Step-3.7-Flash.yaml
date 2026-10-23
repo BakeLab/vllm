@@ -29,7 +29,6 @@ model:
   base_args:
     - "--trust-remote-code"
     - "--enable-expert-parallel"
-    - "--disable-cascade-attn"
   base_env: {}
 
 features:
@@ -142,7 +141,6 @@ guide: |
       --served-model-name step3p7-flash \
       --tensor-parallel-size 8 \
       --enable-expert-parallel \
-      --disable-cascade-attn \
       --reasoning-parser step3p5 \
       --tool-call-parser step3p5 \
       --enable-auto-tool-choice \
@@ -157,7 +155,6 @@ guide: |
       --served-model-name step3p7-flash \
       --tensor-parallel-size 8 \
       --enable-expert-parallel \
-      --disable-cascade-attn \
       --reasoning-parser step3p5 \
       --tool-call-parser step3p5 \
       --enable-auto-tool-choice \
@@ -244,7 +241,6 @@ guide: |
 
   - **MoE kernel tuning:** See [tune-moe-kernel](https://github.com/vllm-project/recipes/blob/main/Qwen/Qwen3-Next.md#tune-moe-kernel) to tune Triton kernels for your hardware.
   - **NVFP4 + TP > 4:** The author recommends TP4+EP for NVFP4. Higher TP isn't validated.
-  - **Cascade attention:** Always pass `--disable-cascade-attn` — the hybrid SWA/GA schedule is not compatible with cascade attention in vLLM.
 
   ## References
 

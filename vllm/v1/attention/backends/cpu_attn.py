@@ -53,7 +53,7 @@ class CPUAttentionBackend(AttentionBackend):
         torch.bfloat16,
         torch.float32,
     ]
-    supported_kv_cache_dtypes: ClassVar[list["CacheDType"]] = [
+    supported_kv_cache_dtypes: ClassVar[list[CacheDType]] = [
         "auto",
         "fp8",
         "fp8_e4m3",
@@ -65,7 +65,7 @@ class CPUAttentionBackend(AttentionBackend):
         return [MultipleOf(32)]
 
     @classmethod
-    def supports_kv_cache_dtype(cls, kv_cache_dtype: "CacheDType | None") -> bool:
+    def supports_kv_cache_dtype(cls, kv_cache_dtype: CacheDType | None) -> bool:
         if kv_cache_dtype in (None, "auto", "bfloat16", "float16"):
             return True
         if kv_cache_dtype not in cls.supported_kv_cache_dtypes:
@@ -106,11 +106,11 @@ class CPUAttentionBackend(AttentionBackend):
         )
 
     @staticmethod
-    def get_impl_cls() -> type["CPUAttentionBackendImpl"]:
+    def get_impl_cls() -> type[CPUAttentionBackendImpl]:
         return CPUAttentionBackendImpl
 
     @staticmethod
-    def get_builder_cls() -> type["CPUAttentionMetadataBuilder"]:
+    def get_builder_cls() -> type[CPUAttentionMetadataBuilder]:
         return CPUAttentionMetadataBuilder
 
 

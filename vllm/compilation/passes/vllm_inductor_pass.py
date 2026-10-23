@@ -58,8 +58,8 @@ class VllmInductorPass(InductorPass):
 
     @staticmethod
     def time_and_log(
-        call_fn: Callable[["VllmInductorPass", torch.fx.Graph], None],
-    ) -> Callable[["VllmInductorPass", torch.fx.Graph], None]:
+        call_fn: Callable[[VllmInductorPass, torch.fx.Graph], None],
+    ) -> Callable[[VllmInductorPass, torch.fx.Graph], None]:
         @functools.wraps(call_fn)
         def wrapped(self: VllmInductorPass, graph: torch.fx.Graph) -> None:
             self.begin()

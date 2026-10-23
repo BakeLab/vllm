@@ -450,10 +450,6 @@ pub struct ServerUnsupportedArgs {
     #[arg(long)]
     pub tool_server: Option<Unsupported>,
 
-    /// Path to logging config JSON file for both vllm and uvicorn
-    #[arg(long, /* env = "VLLM_LOGGING_CONFIG_PATH" */)]
-    pub log_config_file: Option<Unsupported>,
-
     /// Max number of prompt characters or prompt ID numbers being printed in
     /// log. The default of None means unlimited.
     #[arg(long)]

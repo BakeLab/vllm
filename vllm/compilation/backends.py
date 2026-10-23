@@ -159,7 +159,7 @@ class CompilerManager:
         return self.compiler.compute_hash(vllm_config)
 
     @contextmanager
-    def compile_context(self, compile_range: Range) -> Generator[None, None, None]:
+    def compile_context(self, compile_range: Range) -> Generator[None]:
         """Provide compilation context for the duration of compilation to set
         any torch global properties we want to scope to a single Inductor
         compilation (e.g. partition rules, pass context)."""
@@ -734,7 +734,7 @@ class PiecewiseCompileInterpreter(torch.fx.Interpreter):  # type: ignore[misc]
         module: torch.fx.GraphModule,
         compile_submod_names: list[str],
         vllm_config: VllmConfig,
-        vllm_backend: "VllmBackend",
+        vllm_backend: VllmBackend,
     ) -> None:
         super().__init__(module)
         self.compile_submod_names = compile_submod_names
@@ -804,7 +804,7 @@ model_is_encoder: bool = False
 
 
 @contextmanager
-def set_model_tag(tag: str, is_encoder: bool = False) -> Generator[None, None, None]:
+def set_model_tag(tag: str, is_encoder: bool = False) -> Generator[None]:
     """Context manager to set the model tag."""
     global model_tag
     global model_is_encoder

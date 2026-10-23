@@ -102,7 +102,7 @@ class _SwappableExecutor(Executor):
 
 
 class BaseRenderer(ABC, Generic[_T]):
-    def __init__(self, config: "VllmConfig", tokenizer: _T | None) -> None:
+    def __init__(self, config: VllmConfig, tokenizer: _T | None) -> None:
         super().__init__()
 
         self.config = config
@@ -226,7 +226,7 @@ class BaseRenderer(ABC, Generic[_T]):
     def _decode(self, *args, **kwargs):
         return self.get_tokenizer().decode(*args, **kwargs)
 
-    def get_mm_processor(self) -> "BaseMultiModalProcessor":
+    def get_mm_processor(self) -> BaseMultiModalProcessor:
         if self.mm_processor is None:
             raise ValueError("Multi-modal processor not available for text-only models")
 
@@ -587,16 +587,16 @@ class BaseRenderer(ABC, Generic[_T]):
     @abstractmethod
     def render_messages(
         self,
-        messages: list["ChatCompletionMessageParam"],
+        messages: list[ChatCompletionMessageParam],
         params: ChatParams,
-    ) -> tuple[list["ConversationMessage"], DictPrompt]:
+    ) -> tuple[list[ConversationMessage], DictPrompt]:
         raise NotImplementedError
 
     async def render_messages_async(
         self,
-        messages: list["ChatCompletionMessageParam"],
+        messages: list[ChatCompletionMessageParam],
         params: ChatParams,
-    ) -> tuple[list["ConversationMessage"], DictPrompt]:
+    ) -> tuple[list[ConversationMessage], DictPrompt]:
         return self.render_messages(messages, params)
 
     # Step 2: Tokenize prompts if necessary
@@ -610,8 +610,8 @@ class BaseRenderer(ABC, Generic[_T]):
 
     def _wants_offsets(
         self,
-        prompt: "TextPrompt",
-        params: "TokenizeParams",
+        prompt: TextPrompt,
+        params: TokenizeParams,
     ) -> bool:
         return (
             params.return_token_offsets
@@ -623,10 +623,10 @@ class BaseRenderer(ABC, Generic[_T]):
     @staticmethod
     def _build_tokens_prompt(
         token_ids: Sequence[int],
-        prompt: "TextPrompt",
+        prompt: TextPrompt,
         *,
         offset_mapping: Sequence[tuple[int, int]] | None = None,
-    ) -> "TokensPrompt":
+    ) -> TokensPrompt:
         """Build a TokensPrompt from already-extracted token ids.
 
         ``offset_mapping`` is the per-token ``(start, end)`` sequence from
@@ -948,7 +948,7 @@ class BaseRenderer(ABC, Generic[_T]):
         media_io_kwargs: Mapping[str, Mapping[str, object]] | None = None,
         *,
         skip_mm_cache: bool = False,
-    ) -> "MultiModalInput":
+    ) -> MultiModalInput:
         self._drain_mm_cache_invalidations()
         mm_processor = self.get_mm_processor()
 
@@ -1339,7 +1339,7 @@ class BaseRenderer(ABC, Generic[_T]):
 
     def render_chat(
         self,
-        conversations: Sequence[list["ChatCompletionMessageParam"]],
+        conversations: Sequence[list[ChatCompletionMessageParam]],
         chat_params: ChatParams,
         tok_params: TokenizeParams | None = None,
         *,
@@ -1379,7 +1379,7 @@ class BaseRenderer(ABC, Generic[_T]):
 
     async def render_chat_async(
         self,
-        conversations: Sequence[list["ChatCompletionMessageParam"]],
+        conversations: Sequence[list[ChatCompletionMessageParam]],
         chat_params: ChatParams,
         tok_params: TokenizeParams | None = None,
         *,

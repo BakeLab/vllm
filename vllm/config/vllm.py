@@ -152,7 +152,7 @@ IS_QUANTIZED = False
 # See https://github.com/vllm-project/vllm/issues/25689.
 
 
-def enable_norm_fusion(cfg: "VllmConfig") -> bool:
+def enable_norm_fusion(cfg: VllmConfig) -> bool:
     """Enable if either RMS norm or quant FP8 custom op is active;
     otherwise Inductor handles fusion."""
     return (
@@ -162,7 +162,7 @@ def enable_norm_fusion(cfg: "VllmConfig") -> bool:
     )
 
 
-def enable_act_fusion(cfg: "VllmConfig") -> bool:
+def enable_act_fusion(cfg: VllmConfig) -> bool:
     """Enable if either SiLU+Mul or quant FP8 custom op is active;
     otherwise Inductor handles fusion.
     Also enable for FP4 models as FP4 quant is always custom so Inductor cannot fuse it.
@@ -174,7 +174,7 @@ def enable_act_fusion(cfg: "VllmConfig") -> bool:
     )
 
 
-def enable_allreduce_rms_fusion(cfg: "VllmConfig") -> bool:
+def enable_allreduce_rms_fusion(cfg: VllmConfig) -> bool:
     """Enable if TP > 1 and Hopper/Blackwell and flashinfer installed."""
     from vllm.platforms import current_platform
     from vllm.utils.flashinfer import has_flashinfer
@@ -201,7 +201,7 @@ def enable_allreduce_rms_fusion(cfg: "VllmConfig") -> bool:
     )
 
 
-def enable_rope_kvcache_fusion(cfg: "VllmConfig") -> bool:
+def enable_rope_kvcache_fusion(cfg: VllmConfig) -> bool:
     """Enable if rotary embedding custom op is active and
     use_inductor_graph_partition is enabled.
     """
@@ -217,7 +217,7 @@ def enable_rope_kvcache_fusion(cfg: "VllmConfig") -> bool:
     )
 
 
-def enable_rope_kvcache_mla_fusion(cfg: "VllmConfig") -> bool:
+def enable_rope_kvcache_mla_fusion(cfg: VllmConfig) -> bool:
     """Enable if use_inductor_graph_partition is enabled."""
     return (
         cfg.compilation_config.use_inductor_graph_partition
@@ -225,7 +225,7 @@ def enable_rope_kvcache_mla_fusion(cfg: "VllmConfig") -> bool:
     )
 
 
-def enable_norm_pad_fusion(cfg: "VllmConfig") -> bool:
+def enable_norm_pad_fusion(cfg: VllmConfig) -> bool:
     """Enable if using AITER RMSNorm and hidden size is 2880 i.e. gpt-oss."""
     return (
         cfg.kernel_config.ir_op_priority.fused_add_rms_norm[0] == "aiter"
@@ -234,14 +234,14 @@ def enable_norm_pad_fusion(cfg: "VllmConfig") -> bool:
     )
 
 
-def enable_mla_dual_rms_norm_fusion(cfg: "VllmConfig") -> bool:
+def enable_mla_dual_rms_norm_fusion(cfg: VllmConfig) -> bool:
     """Enable MLA dual RMS norm fusion on ROCm with AITER."""
     from vllm._aiter_ops import rocm_aiter_ops
 
     return rocm_aiter_ops.is_enabled()
 
 
-def enable_qk_norm_rope_kvcache(cfg: "VllmConfig") -> bool:
+def enable_qk_norm_rope_kvcache(cfg: VllmConfig) -> bool:
     """Enable fused QK-norm + RoPE/MRoPE + KV cache update with AITER."""
     from vllm._aiter_ops import rocm_aiter_ops
 
@@ -946,7 +946,7 @@ class VllmConfig:
         self,
         hf_config: PreTrainedConfig,
         architectures: list[str] | None = None,
-    ) -> "VllmConfig":
+    ) -> VllmConfig:
         if architectures is not None:
             hf_config = copy.deepcopy(hf_config)
             hf_config.architectures = architectures
@@ -1322,7 +1322,7 @@ class VllmConfig:
 
     def _check_supports_watermarking(
         self,
-        config: "SamplingParams | BeamSearchParams | None" = None,
+        config: SamplingParams | BeamSearchParams | None = None,
         *,
         custom_sampler: bool = False,
     ) -> bool:
@@ -3267,7 +3267,7 @@ class VllmConfig:
             )
 
     def adjust_dcp_kv_cache_interleave_size(
-        self, kv_cache_config: "KVCacheConfig"
+        self, kv_cache_config: KVCacheConfig
     ) -> None:
         """Normalize DCP interleave size against block_size for NIXL P/D.
 
@@ -3347,7 +3347,7 @@ class VllmConfig:
             )
 
     @model_validator(mode="after")
-    def validate_nvfp4_kv_cache_with_mla(self) -> "VllmConfig":
+    def validate_nvfp4_kv_cache_with_mla(self) -> VllmConfig:
         if self.model_config is None:
             return self
         # The ds_mla layouts are MLA-only by construction; the plain nvfp4
@@ -3366,7 +3366,7 @@ class VllmConfig:
         return self
 
     @model_validator(mode="after")
-    def validate_mamba_block_size(self) -> "VllmConfig":
+    def validate_mamba_block_size(self) -> VllmConfig:
         if self.model_config is None:
             return self
         mamba_block_size_is_set = (
@@ -3380,7 +3380,7 @@ class VllmConfig:
         return self
 
     @model_validator(mode="after")
-    def validate_mamba_cached_kernel(self) -> "VllmConfig":
+    def validate_mamba_cached_kernel(self) -> VllmConfig:
         if not self.cache_config.use_replayssm:
             self.cache_config.use_kda_recoverssm = False
             return self

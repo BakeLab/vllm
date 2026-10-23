@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING, Any, TypeVar
 import numpy as np
 import numpy.typing as npt
 import torch
+from torch._custom_class_base import CustomClassBase
+from torch._library.opaque_object import register_custom_class
 from torch.library import Library, infer_schema
 
 import vllm.envs as envs
@@ -934,8 +936,6 @@ def get_accelerator_view_from_cpu_tensor(cpu_tensor: torch.Tensor) -> torch.Tens
 
 
 # The trim PyTorch branch provides the opaque custom-class API unconditionally.
-from torch._custom_class_base import CustomClassBase
-from torch._library.opaque_object import register_custom_class
 
 _USE_LAYERNAME = envs.VLLM_USE_LAYERNAME
 

@@ -159,7 +159,7 @@ class LLMEngine:
         usage_context: UsageContext = UsageContext.ENGINE_CONTEXT,
         stat_loggers: list[StatLoggerFactory] | None = None,
         disable_log_stats: bool = False,
-    ) -> "LLMEngine":
+    ) -> LLMEngine:
         return cls(
             vllm_config=vllm_config,
             executor_class=Executor.get_class(vllm_config),
@@ -176,7 +176,7 @@ class LLMEngine:
         usage_context: UsageContext = UsageContext.ENGINE_CONTEXT,
         stat_loggers: list[StatLoggerFactory] | None = None,
         enable_multiprocessing: bool = False,
-    ) -> "LLMEngine":
+    ) -> LLMEngine:
         """Creates an LLM engine from the engine arguments."""
         # Create the engine configs.
         vllm_config = engine_args.create_engine_config(usage_context)
@@ -483,7 +483,7 @@ class LLMEngine:
         return getattr(model_runner, "model", None)
 
     @staticmethod
-    def _cleanup_instance_caches(model_ref: "weakref.ref[nn.Module]") -> None:
+    def _cleanup_instance_caches(model_ref: weakref.ref[nn.Module]) -> None:
         """Remove the bytecode hooks that pin the compiled model."""
         from vllm.compilation.wrapper import TorchCompileWithNoGuardsWrapper
 

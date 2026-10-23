@@ -182,7 +182,7 @@ def _load_custom_logitsprocs(
 
 
 def build_logitsprocs(
-    vllm_config: "VllmConfig",
+    vllm_config: VllmConfig,
     device: torch.device,
     is_pin_memory: bool,
     is_pooling_model: bool,
@@ -253,7 +253,7 @@ class AdapterLogitsProcessor(LogitsProcessor):
     """
 
     def __init__(
-        self, vllm_config: "VllmConfig", device: torch.device, is_pin_memory: bool
+        self, vllm_config: VllmConfig, device: torch.device, is_pin_memory: bool
     ):
         """Subclass must invoke
         `super().__init__(vllm_config, device, is_pin_memory)`.

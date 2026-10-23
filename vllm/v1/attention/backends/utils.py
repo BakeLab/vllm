@@ -400,7 +400,7 @@ class PerLayerParameters:
 
 
 def get_per_layer_parameters(
-    vllm_config: VllmConfig, layer_names: list[str], cls_: type["AttentionImpl"]
+    vllm_config: VllmConfig, layer_names: list[str], cls_: type[AttentionImpl]
 ) -> dict[str, PerLayerParameters]:
     """Scan layers in `layer_names` and determine some hyperparameters
     to use during `plan`.
@@ -936,8 +936,8 @@ def split_prefill_chunks(
 
 
 def reorder_batch_to_split_decodes_and_prefills(
-    input_batch: "InputBatch",
-    scheduler_output: "SchedulerOutput",
+    input_batch: InputBatch,
+    scheduler_output: SchedulerOutput,
     decode_threshold: int = 1,
 ) -> bool:
     """Reorders the batch to split into prefill and decode requests; places all

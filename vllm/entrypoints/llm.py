@@ -373,7 +373,7 @@ class LLM(
         self._cached_repr: str | None = None
 
     @classmethod
-    def from_engine_args(cls, engine_args: EngineArgs) -> "LLM":
+    def from_engine_args(cls, engine_args: EngineArgs) -> LLM:
         """Create an LLM instance from EngineArgs."""
         return cls(**vars(engine_args))
 
@@ -878,7 +878,7 @@ class LLM(
         """
         return self.llm_engine.wake_up(tags)
 
-    def get_metrics(self) -> list["Metric"]:
+    def get_metrics(self) -> list[Metric]:
         """Return a snapshot of aggregated metrics from Prometheus.
 
         Returns:

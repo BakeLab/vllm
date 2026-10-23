@@ -31,8 +31,8 @@ except ImportError:
 @dataclass
 class _ModuleTreeNode:
     event: _ProfilerEvent
-    parent: "_ModuleTreeNode | None" = None
-    children: list["_ModuleTreeNode"] = field(default_factory=list)
+    parent: _ModuleTreeNode | None = None
+    children: list[_ModuleTreeNode] = field(default_factory=list)
     trace: str = ""
 
     @property
@@ -75,8 +75,8 @@ StatsEntryT = TypeVar("StatsEntryT", bound=StatsEntry)
 @dataclass
 class _StatsTreeNode(Generic[StatsEntryT]):
     entry: StatsEntryT
-    children: list["_StatsTreeNode[StatsEntryT]"] = field(default_factory=list)
-    parent: "_StatsTreeNode[StatsEntryT] | None" = None
+    children: list[_StatsTreeNode[StatsEntryT]] = field(default_factory=list)
+    parent: _StatsTreeNode[StatsEntryT] | None = None
 
 
 @dataclass

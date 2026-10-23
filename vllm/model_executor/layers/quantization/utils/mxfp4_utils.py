@@ -9,6 +9,7 @@ from vllm.triton_utils import tl, triton
 from vllm.utils.import_utils import get_triton_kernels_version, has_triton_kernels
 from vllm.utils.torch_utils import direct_register_custom_op
 
+
 def should_use_gfx1250_mx_scale_swizzle() -> bool:
     if not current_platform.is_rocm():
         return False

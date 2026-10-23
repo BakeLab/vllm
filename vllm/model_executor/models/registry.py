@@ -865,7 +865,7 @@ class _ModelInfo:
     supports_mm_device_do_normalize: bool
 
     @staticmethod
-    def from_model_cls(model: type[nn.Module]) -> "_ModelInfo":
+    def from_model_cls(model: type[nn.Module]) -> _ModelInfo:
         return _ModelInfo(
             architecture=model.__name__,
             is_text_generation_model=is_text_generation_model(model),

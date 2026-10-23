@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import cached_property
 from typing import TYPE_CHECKING
 
@@ -47,7 +47,7 @@ class NewRequestData:
     block_ids: tuple[list[int], ...]
     num_computed_tokens: int
     lora_request: LoRARequest | None
-    prompt_embeds: "torch.Tensor | None" = None
+    prompt_embeds: torch.Tensor | None = None
     prompt_is_token_ids: list[bool] | None = None
 
     # Only used for v2 model runner.
@@ -62,7 +62,7 @@ class NewRequestData:
         block_ids: tuple[list[int], ...],
         prefill_token_ids: list[int] | None = None,
         uses_mrope: bool = False,
-    ) -> "NewRequestData":
+    ) -> NewRequestData:
         return cls(
             req_id=request.request_id,
             prompt_token_ids=request.prompt_token_ids,
@@ -191,7 +191,7 @@ class CachedRequestData:
         return num_output_tokens is not None and num_output_tokens == 0
 
     @classmethod
-    def make_empty(cls) -> "CachedRequestData":
+    def make_empty(cls) -> CachedRequestData:
         return cls(
             req_ids=[],
             resumed_req_ids=set(),
@@ -308,17 +308,13 @@ class SchedulerOutput:
     # Number of spec tokens to schedule for the next step.
     num_spec_tokens_to_schedule: int = 0
 
-    # Deprecated: cascade attention has been removed, so this is always empty.
-    # Kept for out-of-tree schedulers and workers.
-    num_common_prefix_blocks: list[int] = field(default_factory=list)
-
     # Whether no scheduled request can use the drafts proposed after this step
     # (non-final prefill chunks, or requests sure to reach max_tokens), so the
     # drafter can skip proposing them.
     skip_drafts: bool = False
 
     @classmethod
-    def make_empty(cls) -> "SchedulerOutput":
+    def make_empty(cls) -> SchedulerOutput:
         return cls(
             scheduled_new_reqs=[],
             scheduled_cached_reqs=CachedRequestData.make_empty(),
@@ -336,7 +332,7 @@ class GrammarOutput:
     # ids of structured output requests.
     structured_output_request_ids: list[str]
     # Bitmask ordered as structured_output_request_ids.
-    grammar_bitmask: "npt.NDArray[np.int32]"
+    grammar_bitmask: npt.NDArray[np.int32]
     # Per request, ordered as structured_output_request_ids: how many leading
     # drafts the bitmask constrained. `grammar_bitmask` fills every row after
     # the first -1 placeholder with the all-permissive `_full_mask`, so drafts

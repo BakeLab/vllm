@@ -51,14 +51,6 @@ def close_sockets(sockets: Sequence[zmq.Socket | zmq.asyncio.Socket]):
 
 def get_ip() -> str:
     host_ip = envs.VLLM_HOST_IP
-    if "HOST_IP" in os.environ and "VLLM_HOST_IP" not in os.environ:
-        logger.warning(
-            "The environment variable HOST_IP is deprecated and ignored, as"
-            " it is often used by Docker and other software to"
-            " interact with the container's network stack. Please "
-            "use VLLM_HOST_IP instead to set the IP address for vLLM processes"
-            " to communicate with each other."
-        )
     if host_ip:
         return host_ip
 
@@ -85,7 +77,7 @@ def get_ip() -> str:
     warnings.warn(
         "Failed to get the IP address, using 0.0.0.0 by default. "
         "The value can be set by the environment variable"
-        " VLLM_HOST_IP or HOST_IP.",
+        " VLLM_HOST_IP.",
         stacklevel=2,
     )
     return "0.0.0.0"

@@ -77,25 +77,45 @@ def test_config_arg_parsing(serve_parser, cli_config_file):
     assert args.port == 9000
 
 
-def test_logging_config_cli_args(serve_parser):
-    with pytest.warns(UserWarning, match="--log-config-file is deprecated"):
-        args = serve_parser.parse_args(
-            [
-                "--logging-config",
-                '{"log_level":"WARNING","pylogging_config_file":"/tmp/json.json"}',
-                "--logging-config.formatter",
-                "json",
-                "--log-level",
-                "DEBUG",
-                "--log-config-file",
-                "/tmp/flat.json",
-            ]
-        )
-
+@pytest.mark.parametrize(
+    "config_args",
+    [
+        [
+            "--logging-config",
+            '{"log_level":"WARNING","formatter":"json",'
+            '"pylogging_config_file":"/tmp/json.json"}',
+        ],
+        [
+            "--logging-config.log_level",
+            "WARNING",
+            "--logging-config.formatter",
+            "json",
+            "--logging-config.pylogging_config_file",
+            "/tmp/json.json",
+        ],
+    ],
+)
+def test_logging_config_cli_args(serve_parser, config_args):
+    args = serve_parser.parse_args([*config_args, "--log-level", "DEBUG"])
     config = AsyncEngineArgs.from_cli_args(args).create_logging_config()
     assert config.log_level == "DEBUG"
     assert config.formatter == "json"
-    assert config.pylogging_config_file == "/tmp/flat.json"
+    assert config.pylogging_config_file == "/tmp/json.json"
+
+
+@pytest.mark.parametrize(
+    "legacy_args",
+    [
+        ["--log-config-file", "/tmp/legacy.json"],
+        ["--mamba-cache-mode", "align"],
+        ["--disable-cascade-attn"],
+        ["--no-disable-cascade-attn"],
+    ],
+)
+def test_removed_legacy_options_are_rejected(serve_parser, legacy_args):
+    with pytest.raises(SystemExit) as exc:
+        serve_parser.parse_args(legacy_args)
+    assert exc.value.code == 2
 
 
 ### Tests for LoRA module parsing

@@ -138,8 +138,8 @@ class CpuPlatform(Platform):
     @classmethod
     def get_attn_backend_cls(
         cls,
-        selected_backend: "AttentionBackendEnum",
-        attn_selector_config: "AttentionSelectorConfig",
+        selected_backend: AttentionBackendEnum,
+        attn_selector_config: AttentionSelectorConfig,
         num_heads: int | None = None,
     ) -> str:
         if attn_selector_config.use_sparse:
@@ -190,8 +190,8 @@ class CpuPlatform(Platform):
     @classmethod
     def get_mla_prefill_backend_cls(
         cls,
-        mla_selector_config: "MLAPrefillSelectorConfig",
-    ) -> "type[MLAPrefillBackend]":
+        mla_selector_config: MLAPrefillSelectorConfig,
+    ) -> type[MLAPrefillBackend]:
         """Get the MLA prefill backend class of a device."""
         for backend_enum in (MLAPrefillBackendEnum.ZEN_CPU, MLAPrefillBackendEnum.CPU):
             try:
@@ -452,8 +452,7 @@ class CpuPlatform(Platform):
 
         if (
             platform.system() == "Linux"
-            and cpu_architecture
-            in (CpuArchEnum.ARM, CpuArchEnum.X86)
+            and cpu_architecture in (CpuArchEnum.ARM, CpuArchEnum.X86)
             and not (
                 "libomp" in ld_preload_str
                 or "libgomp" in ld_preload_str
@@ -491,8 +490,7 @@ class CpuPlatform(Platform):
         # memory allocation overhead
         if (
             platform.system() == "Linux"
-            and cpu_architecture
-            in (CpuArchEnum.ARM, CpuArchEnum.X86)
+            and cpu_architecture in (CpuArchEnum.ARM, CpuArchEnum.X86)
             and "libtcmalloc" not in ld_preload_str
         ):
             vllm_pkg = os.path.dirname(os.path.dirname(__file__))
@@ -533,7 +531,7 @@ class CpuPlatform(Platform):
             )
 
     @classmethod
-    def update_block_size_for_backend(cls, vllm_config: "VllmConfig") -> None:
+    def update_block_size_for_backend(cls, vllm_config: VllmConfig) -> None:
         model_config = vllm_config.model_config
         if model_config is None:
             return

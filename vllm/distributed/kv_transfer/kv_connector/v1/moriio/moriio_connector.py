@@ -271,7 +271,7 @@ class MoRIIOConnector(KVConnectorBase_V1, SupportsHMA):
         self,
         vllm_config: VllmConfig,
         role: KVConnectorRole,
-        kv_cache_config: "KVCacheConfig",
+        kv_cache_config: KVCacheConfig,
     ):
         super().__init__(vllm_config, role, kv_cache_config)
         assert vllm_config.kv_transfer_config is not None, (
@@ -325,7 +325,7 @@ class MoRIIOConnector(KVConnectorBase_V1, SupportsHMA):
             extra_config["notify_port"] = MoRIIOConstants.DEFAULT_NOTIFY_PORT
 
     def get_num_new_matched_tokens(
-        self, request: "Request", num_computed_tokens: int
+        self, request: Request, num_computed_tokens: int
     ) -> tuple[int, bool]:
         assert self.connector_scheduler is not None
         return self.connector_scheduler.get_num_new_matched_tokens(
@@ -333,14 +333,14 @@ class MoRIIOConnector(KVConnectorBase_V1, SupportsHMA):
         )
 
     def update_state_after_alloc(
-        self, request: "Request", blocks: "KVCacheBlocks", num_external_tokens: int
+        self, request: Request, blocks: KVCacheBlocks, num_external_tokens: int
     ):
         assert self.connector_scheduler is not None
         return self.connector_scheduler.update_state_after_alloc(
             request, blocks, num_external_tokens, self.connector_worker
         )
 
-    def on_new_request(self, request: "Request") -> None:
+    def on_new_request(self, request: Request) -> None:
         """Fired when the scheduler admits a request, before any allocation."""
         assert self.connector_scheduler is not None
         self.connector_scheduler.on_new_request(request)
@@ -354,7 +354,7 @@ class MoRIIOConnector(KVConnectorBase_V1, SupportsHMA):
 
     def request_finished(
         self,
-        request: "Request",
+        request: Request,
         block_ids: list[int],
     ) -> tuple[bool, dict[str, Any] | None]:
         assert self.connector_scheduler is not None
@@ -362,7 +362,7 @@ class MoRIIOConnector(KVConnectorBase_V1, SupportsHMA):
 
     def request_finished_all_groups(
         self,
-        request: "Request",
+        request: Request,
         block_ids: BlockIds,
     ) -> tuple[bool, dict[str, Any] | None]:
         assert self.connector_scheduler is not None
@@ -407,7 +407,7 @@ class MoRIIOConnector(KVConnectorBase_V1, SupportsHMA):
             return set()
         return self.connector_worker.get_block_ids_with_load_errors()
 
-    def start_load_kv(self, forward_context: "ForwardContext", **kwargs) -> None:
+    def start_load_kv(self, forward_context: ForwardContext, **kwargs) -> None:
         assert self.connector_worker is not None
         if self.mode == MoRIIOMode.WRITE and get_role() == ROLE.CONSUMER:
             self.connector_worker.moriio_wrapper.async_wait_reqid()
@@ -423,7 +423,7 @@ class MoRIIOConnector(KVConnectorBase_V1, SupportsHMA):
         self,
         layer_name: str,
         kv_layer: torch.Tensor,
-        attn_metadata: "AttentionMetadata",
+        attn_metadata: AttentionMetadata,
         **kwargs,
     ) -> None:
         # Only producer/prefill saves KV Cache
@@ -458,7 +458,7 @@ class MoRIIOConnector(KVConnectorBase_V1, SupportsHMA):
             and bool(self.connector_scheduler._deferred_send_deadlines)
         )
 
-    def get_loaded_kv_cache_group_ids(self, request: "Request") -> tuple[int, ...]:
+    def get_loaded_kv_cache_group_ids(self, request: Request) -> tuple[int, ...]:
         return self._kv_cache_config.transfer_group_ids
 
     def shutdown(self):
@@ -481,7 +481,7 @@ class MoRIIOConnector(KVConnectorBase_V1, SupportsHMA):
 
 
 def _split_kv_cache_group_kinds(
-    kv_cache_config: "KVCacheConfig",
+    kv_cache_config: KVCacheConfig,
 ) -> tuple[list[int], list[int]]:
     """Classify kv_cache_groups into (attention_group_indices,
     mamba_group_indices) by whether each group's spec is a MambaSpec.
@@ -540,7 +540,7 @@ class MoRIIOConnectorScheduler:
         self,
         vllm_config: VllmConfig,
         engine_id: str,
-        kv_cache_config: "KVCacheConfig",
+        kv_cache_config: KVCacheConfig,
     ):
         self.vllm_config = vllm_config
         self.kv_cache_config = kv_cache_config
@@ -794,7 +794,7 @@ class MoRIIOConnectorScheduler:
 
     def get_num_new_matched_tokens(
         self,
-        request: "Request",
+        request: Request,
         num_computed_tokens: int,
     ) -> tuple[int, bool]:
         """For remote prefill, pull all prompt blocks from remote
@@ -837,7 +837,7 @@ class MoRIIOConnectorScheduler:
         # forward, until the KV is really there.
         return max(num_external_tokens - 1, 0), False
 
-    def on_new_request(self, request: "Request") -> None:
+    def on_new_request(self, request: Request) -> None:
         """Scheduler hook fired when a request is admitted.
 
         The hybrid P-side truncation must land here rather than in
@@ -853,7 +853,7 @@ class MoRIIOConnectorScheduler:
         if params is not None and params.get("do_remote_decode"):
             self._truncate_mamba_request_for_prefill(request)
 
-    def _truncate_mamba_request_for_prefill(self, request: "Request") -> None:
+    def _truncate_mamba_request_for_prefill(self, request: Request) -> None:
         """P-side only: drop the last prompt token so the prefiller computes
         h(N-1) instead of h(N).
 
@@ -969,10 +969,10 @@ class MoRIIOConnectorScheduler:
 
     def update_state_after_alloc(
         self,
-        request: "Request",
-        blocks: "KVCacheBlocks",
+        request: Request,
+        blocks: KVCacheBlocks,
         num_external_tokens: int,
-        connector_worker: "MoRIIOConnectorWorker | None" = None,
+        connector_worker: MoRIIOConnectorWorker | None = None,
     ):
         """Scheduler-side post-allocation hook (decode leg in WRITE mode).
 
@@ -1266,7 +1266,7 @@ class MoRIIOConnectorScheduler:
 
             params["do_remote_prefill"] = False
 
-    def _clamp_to_prompt_blocks(self, req: "Request", block_ids: BlockIds) -> BlockIds:
+    def _clamp_to_prompt_blocks(self, req: Request, block_ids: BlockIds) -> BlockIds:
         """Drop trailing speculative-lookahead blocks the consumer never
         allocated, keeping each full-attention group's prompt blocks.
 
@@ -1314,7 +1314,7 @@ class MoRIIOConnectorScheduler:
         return clamped if changed else block_ids
 
     def _is_final_prefill_chunk(
-        self, req: "Request", scheduler_output: SchedulerOutput
+        self, req: Request, scheduler_output: SchedulerOutput
     ) -> bool:
         """Whether this step completes the prompt.
 
@@ -1326,7 +1326,7 @@ class MoRIIOConnectorScheduler:
         return req.num_computed_tokens + num_scheduled >= req.num_prompt_tokens
 
     def _get_write_blocks(
-        self, req: "Request", block_ids: BlockIds, scheduler_output: SchedulerOutput
+        self, req: Request, block_ids: BlockIds, scheduler_output: SchedulerOutput
     ) -> BlockIds:
         if self._has_mamba:
             # Align-mode state slots can move without appending a new block.
@@ -1506,7 +1506,7 @@ class MoRIIOConnectorScheduler:
 
     def request_finished(
         self,
-        request: "Request",
+        request: Request,
         block_ids: BlockIds | list[int],
         mamba_block_groups: list[list[int]] | None = None,
     ) -> tuple[bool, dict[str, Any] | None]:
@@ -1720,7 +1720,7 @@ class MoRIIOConnectorWorker:
         self,
         vllm_config: VllmConfig,
         engine_id: str,
-        kv_cache_config: "KVCacheConfig",
+        kv_cache_config: KVCacheConfig,
     ):
         if not is_moriio_available():
             raise RuntimeError(
@@ -3041,7 +3041,7 @@ class MoRIIOConnectorWorker:
         metadata: MoRIIOConnectorMetadata,
         layer_name: str,
         kv_layer: torch.Tensor,
-        attn_metadata: "AttentionMetadata | None",
+        attn_metadata: AttentionMetadata | None,
         **kwargs,
     ):
         if not self.is_producer:

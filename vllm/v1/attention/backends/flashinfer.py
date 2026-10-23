@@ -530,7 +530,7 @@ class BatchDCPPrefillWrapper:
 
 class FlashInferBackend(AttentionBackend):
     @classmethod
-    def customize_spec(cls, spec: "AttentionSpec") -> "AttentionSpec":
+    def customize_spec(cls, spec: AttentionSpec) -> AttentionSpec:
         """NVFP4 stores K and V as separate per-head slots of packed fp4 data
         plus fp8 block scales."""
         if spec.state_content_bytes is not None or not spec.kv_quant_mode.is_nvfp4:
@@ -607,11 +607,11 @@ class FlashInferBackend(AttentionBackend):
         return True
 
     @staticmethod
-    def get_impl_cls() -> type["FlashInferImpl"]:
+    def get_impl_cls() -> type[FlashInferImpl]:
         return FlashInferImpl
 
     @staticmethod
-    def get_builder_cls() -> type["FlashInferMetadataBuilder"]:
+    def get_builder_cls() -> type[FlashInferMetadataBuilder]:
         return FlashInferMetadataBuilder
 
     @staticmethod
@@ -1149,7 +1149,7 @@ class FlashInferMetadataBuilder(AttentionMetadataBuilder[FlashInferMetadata]):
     @override  # type: ignore[misc]
     @classmethod
     def get_cudagraph_support(
-        cls: type["FlashInferMetadataBuilder"],
+        cls: type[FlashInferMetadataBuilder],
         vllm_config: VllmConfig,
         kv_cache_spec: KVCacheSpec,
     ) -> AttentionCGSupport:
@@ -1203,7 +1203,7 @@ class FlashInferMetadataBuilder(AttentionMetadataBuilder[FlashInferMetadata]):
     @override  # type: ignore[misc]
     @classmethod
     def get_varlen_cudagraph_max_query_len(
-        cls: type["FlashInferMetadataBuilder"],
+        cls: type[FlashInferMetadataBuilder],
         vllm_config: VllmConfig,
         kv_cache_spec: KVCacheSpec,
     ) -> int | None:

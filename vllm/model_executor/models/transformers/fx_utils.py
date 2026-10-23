@@ -83,7 +83,7 @@ class _MetaProxy(fx.Proxy):
             return len(self.meta)
         return super().__len__()  # type: ignore[misc]
 
-    def __getattr__(self, k: str) -> "_MetaAttribute":
+    def __getattr__(self, k: str) -> _MetaAttribute:
         return _MetaAttribute(self, k)
 
     def __setitem__(self, key: object, value: object) -> None:

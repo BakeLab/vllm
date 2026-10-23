@@ -53,7 +53,7 @@ class KVCacheBlocks:
       (a precomputed KVCacheBlocks is in KVCacheManager to avoid GC overhead)
     """
 
-    def __add__(self, other: "KVCacheBlocks") -> "KVCacheBlocks":
+    def __add__(self, other: KVCacheBlocks) -> KVCacheBlocks:
         """Adds two KVCacheBlocks instances."""
         return KVCacheBlocks(
             tuple(
@@ -123,7 +123,7 @@ class KVCacheBlocks:
             for group in self.blocks
         ]
 
-    def new_empty(self) -> "KVCacheBlocks":
+    def new_empty(self) -> KVCacheBlocks:
         """Creates a new KVCacheBlocks instance with no blocks."""
         return KVCacheBlocks(tuple(() for _ in range(len(self.blocks))))
 
@@ -687,11 +687,6 @@ class KVCacheManager:
             assert self.prefix_cache_stats is not None
             self.prefix_cache_stats.reset = True
         return True
-
-    def get_num_common_prefix_blocks(self, running_request_id: str) -> list[int]:
-        """Deprecated: cascade attention has been removed. Always returns 0
-        for each KV cache group. Kept for out-of-tree schedulers."""
-        return [0] * self.num_kv_cache_groups
 
     def take_events(self) -> list[KVCacheEvent]:
         """Take the KV cache events from the block pool.

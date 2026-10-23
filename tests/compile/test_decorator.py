@@ -72,7 +72,6 @@ def test_ignore_torch_compile_decorator(use_inductor_graph_partition, monkeypatc
     # appropriately
     monkeypatch.setenv("VLLM_DISABLE_COMPILE_CACHE", "1")
 
-
     # piecewise
     vllm_config = VllmConfig(
         compilation_config=CompilationConfig(
@@ -201,7 +200,6 @@ def test_conditional_compile_enable_if(use_inductor_graph_partition, monkeypatch
     # disable compile cache so that we can count the number of compilations
     # appropriately
     monkeypatch.setenv("VLLM_DISABLE_COMPILE_CACHE", "1")
-
 
     vllm_config = VllmConfig(
         cache_config=CacheConfig(

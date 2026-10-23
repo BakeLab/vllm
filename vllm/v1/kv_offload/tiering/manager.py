@@ -178,7 +178,7 @@ class _SecondaryTierFacingParent(ParentManager):
 
     def __init__(
         self,
-        manager: "TieringOffloadingManager",
+        manager: TieringOffloadingManager,
         tier_idx: int,
     ):
         self._m = manager

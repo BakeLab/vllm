@@ -7,14 +7,13 @@ import json
 import os
 import shutil
 import stat
-import sys
 import tempfile
 from argparse import Namespace
 from collections.abc import AsyncIterator, Awaitable, Callable
 from http import HTTPStatus
 from io import BytesIO, StringIO
 from pathlib import Path
-from typing import IO, Any, NoReturn, TypeAlias, TypedDict
+from typing import IO, Any, NoReturn, TypedDict
 from urllib.parse import urlparse
 
 import aiohttp

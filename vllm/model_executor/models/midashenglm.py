@@ -322,22 +322,24 @@ class DashengFrontend(nn.Module):
         self.melscale_fbanks: torch.Tensor
 
     def forward(self, waveform: torch.Tensor) -> torch.Tensor:
-        spectrogram = torch.stft(
-            waveform.to(torch.float32),
-            n_fft=self.config.n_fft,
-            hop_length=self.config.hop_length,
-            win_length=self.config.win_length,
-            window=self.spectrogram_window.to(device=waveform.device),
-            center=self.config.center,
-            return_complex=True,
-        ).abs().square()
+        spectrogram = (
+            torch.stft(
+                waveform.to(torch.float32),
+                n_fft=self.config.n_fft,
+                hop_length=self.config.hop_length,
+                win_length=self.config.win_length,
+                window=self.spectrogram_window.to(device=waveform.device),
+                center=self.config.center,
+                return_complex=True,
+            )
+            .abs()
+            .square()
+        )
         mel_spectrogram = (spectrogram.mT @ self.melscale_fbanks.to(torch.float32)).mT
         # x has shape [batch, freq, time].
         log_mel_spectrogram = 10 * torch.log10(mel_spectrogram.clamp_min(1e-10))
         max_per_sample = log_mel_spectrogram.amax(dim=(-2, -1), keepdim=True)
-        log_mel_spectrogram = torch.maximum(
-            log_mel_spectrogram, max_per_sample - 120
-        )
+        log_mel_spectrogram = torch.maximum(log_mel_spectrogram, max_per_sample - 120)
         return log_mel_spectrogram.to(waveform.dtype)
 
 

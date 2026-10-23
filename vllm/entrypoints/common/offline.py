@@ -51,7 +51,7 @@ class OfflineInferenceMixin:
 
     request_counter: Counter
     renderer: BaseRenderer
-    llm_engine: "LLMEngine"
+    llm_engine: LLMEngine
     model_config: ModelConfig
     chat_template: str | None
 

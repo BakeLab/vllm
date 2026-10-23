@@ -260,9 +260,7 @@ def _model_hash_key(fn: Callable[..., Any]) -> str:
     return sha256_hash.hexdigest()
 
 
-def _verify_source_unchanged(
-    source_info: "SourceInfo", vllm_config: VllmConfig
-) -> None:
+def _verify_source_unchanged(source_info: SourceInfo, vllm_config: VllmConfig) -> None:
     from .caching import _compute_code_hash, _compute_code_hash_with_content
 
     file_contents = {}
@@ -731,7 +729,7 @@ def _support_torch_compile(
 @contextlib.contextmanager
 def maybe_use_cudagraph_partition_wrapper(
     vllm_config: VllmConfig,
-) -> Generator[None, None, None]:
+) -> Generator[None]:
     """Context manager to set/unset customized cudagraph partition wrappers.
 
     If we're using Inductor-based graph partitioning, we currently have the

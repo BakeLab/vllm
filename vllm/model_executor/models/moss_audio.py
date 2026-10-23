@@ -244,7 +244,7 @@ class MossAudioEncoderConfig:
     )
 
     @classmethod
-    def from_config(cls, config: object) -> "MossAudioEncoderConfig":
+    def from_config(cls, config: object) -> MossAudioEncoderConfig:
         if isinstance(config, cls):
             return config
         if isinstance(config, Mapping):

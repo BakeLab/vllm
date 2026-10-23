@@ -1414,7 +1414,7 @@ def instanttensor_weights_iterator(
     local_expert_ids: set[int] | None = None,
     *,
     load_engram_on_cpu: bool = False,
-) -> Generator[tuple[str, torch.Tensor], None, None]:
+) -> Generator[tuple[str, torch.Tensor]]:
     """Load with InstantTensor, optionally mapping Engram tables on CPU."""
     try:
         import instanttensor

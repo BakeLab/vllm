@@ -194,7 +194,6 @@ class Platform:
     def is_cpu(self) -> bool:
         return self._enum == PlatformEnum.CPU
 
-
     def is_zen_cpu(self) -> bool:
         return False
 
@@ -371,15 +370,15 @@ class Platform:
     @classmethod
     def get_attn_backend_cls(
         cls,
-        selected_backend: "AttentionBackendEnum",
-        attn_selector_config: "AttentionSelectorConfig",
+        selected_backend: AttentionBackendEnum,
+        attn_selector_config: AttentionSelectorConfig,
         num_heads: int | None = None,
     ) -> str:
         """Get the attention backend class of a device."""
         return ""
 
     @classmethod
-    def get_supported_vit_attn_backends(cls) -> list["AttentionBackendEnum"]:
+    def get_supported_vit_attn_backends(cls) -> list[AttentionBackendEnum]:
         return [
             AttentionBackendEnum.TORCH_SDPA,
         ]
@@ -389,8 +388,8 @@ class Platform:
         cls,
         head_size: int,
         dtype: torch.dtype,
-        backend: "AttentionBackendEnum | None" = None,
-    ) -> "AttentionBackendEnum":
+        backend: AttentionBackendEnum | None = None,
+    ) -> AttentionBackendEnum:
         """Get the vision attention backend class of a device.
 
         NOTE: ViT Attention should be checked and override in the platform-specific
@@ -417,8 +416,8 @@ class Platform:
     @classmethod
     def get_mla_prefill_backend_cls(
         cls,
-        mla_selector_config: "MLAPrefillSelectorConfig",
-    ) -> "type[MLAPrefillBackend]":
+        mla_selector_config: MLAPrefillSelectorConfig,
+    ) -> type[MLAPrefillBackend]:
         """Get the MLA prefill backend class of a device.
 
         Platforms that have a single, fixed MLA prefill backend can override
@@ -634,7 +633,7 @@ class Platform:
         pass
 
     @classmethod
-    def apply_config_platform_defaults(cls, vllm_config: "VllmConfig") -> None:
+    def apply_config_platform_defaults(cls, vllm_config: VllmConfig) -> None:
         """Apply the platform-specific default values to the config.
 
         This function is called during the initialization of global VllmConfig, after
@@ -647,7 +646,7 @@ class Platform:
         pass
 
     @classmethod
-    def check_and_update_config(cls, vllm_config: "VllmConfig") -> None:
+    def check_and_update_config(cls, vllm_config: VllmConfig) -> None:
         """Check and update the configuration for the current platform.
 
         It can raise an exception if the configuration is not compatible with
@@ -660,8 +659,8 @@ class Platform:
 
     @classmethod
     def _find_non_ssm_backends(
-        cls, vllm_config: "VllmConfig"
-    ) -> "list[type[AttentionBackend]]":
+        cls, vllm_config: VllmConfig
+    ) -> list[type[AttentionBackend]]:
         """Distinct non-SSM attention backends, in layer order."""
         from vllm.config.vllm import get_layers_from_vllm_config
         from vllm.model_executor.layers.attention_layer_base import (
@@ -682,9 +681,9 @@ class Platform:
     @classmethod
     def _preferred_block_size_for_backends(
         cls,
-        backend_classes: "list[type[AttentionBackend]]",
+        backend_classes: list[type[AttentionBackend]],
         default_block_size: int,
-        vllm_config: "VllmConfig",
+        vllm_config: VllmConfig,
     ) -> int:
         """Smallest block size every backend accepts.
 
@@ -730,7 +729,7 @@ class Platform:
             )
 
     @classmethod
-    def update_block_size_for_backend(cls, vllm_config: "VllmConfig") -> None:
+    def update_block_size_for_backend(cls, vllm_config: VllmConfig) -> None:
         """Ensure block_size is compatible with the attention backend.
         For hybrid models, also aligns block_size with mamba page sizes.
         """
@@ -779,8 +778,8 @@ class Platform:
     @classmethod
     def _check_aligned_block_size(
         cls,
-        vllm_config: "VllmConfig",
-        backend_classes: "list[type[AttentionBackend]]",
+        vllm_config: VllmConfig,
+        backend_classes: list[type[AttentionBackend]],
         pre_block_size: int,
     ) -> None:
         """Fail now, not at worker setup, if alignment left a rejected size.
@@ -808,8 +807,8 @@ class Platform:
     @classmethod
     def _align_heterogeneous_kv_block_size(
         cls,
-        vllm_config: "VllmConfig",
-        backend_cls: "type[AttentionBackend]",
+        vllm_config: VllmConfig,
+        backend_cls: type[AttentionBackend],
     ) -> None:
         """Align block size when several KV dtypes share one block pool.
 
@@ -842,7 +841,7 @@ class Platform:
         if not model_config:
             return
 
-        def per_token_page_bytes(dtype: "torch.dtype", cache_dtype: str) -> int:
+        def per_token_page_bytes(dtype: torch.dtype, cache_dtype: str) -> int:
             """Bytes one token occupies in one layer, for the given dtype."""
             spec = FullAttentionSpec(
                 block_size=1,
@@ -921,8 +920,8 @@ class Platform:
     @classmethod
     def _align_hybrid_block_size(
         cls,
-        vllm_config: "VllmConfig",
-        backend_cls: "type[AttentionBackend]",
+        vllm_config: VllmConfig,
+        backend_cls: type[AttentionBackend],
     ) -> None:
         """For hybrid attention/mamba models, ensure that the attention page
         size is >= the mamba page size, and pad the mamba page size to match.
@@ -1117,7 +1116,7 @@ class Platform:
             )
 
     @classmethod
-    def register_custom_kv_cache_specs(cls, vllm_config: "VllmConfig") -> None:
+    def register_custom_kv_cache_specs(cls, vllm_config: VllmConfig) -> None:
         """Register custom KVCacheSpec class on current platform."""
         pass
 
@@ -1258,8 +1257,8 @@ class Platform:
     @classmethod
     def validate_request(
         cls,
-        processed_inputs: "EngineInput",
-        params: "SamplingParams | PoolingParams",
+        processed_inputs: EngineInput,
+        params: SamplingParams | PoolingParams,
     ) -> None:
         """Raises if this request is unsupported on this platform."""
 
@@ -1300,11 +1299,11 @@ class Platform:
     def stateless_init_device_torch_dist_pg(
         cls,
         backend: str,
-        prefix_store: "PrefixStore",
+        prefix_store: PrefixStore,
         group_rank: int,
         group_size: int,
         timeout: timedelta,
-    ) -> "ProcessGroup":
+    ) -> ProcessGroup:
         """Init platform-specific torch distributed process group."""
         raise NotImplementedError
 
@@ -1403,9 +1402,7 @@ class Platform:
         )
 
     @classmethod
-    def get_default_ir_op_priority(
-        cls, vllm_config: "VllmConfig"
-    ) -> "IrOpPriorityConfig":
+    def get_default_ir_op_priority(cls, vllm_config: VllmConfig) -> IrOpPriorityConfig:
         """Get the default IR op priority for the current platform."""
         from vllm.config.kernel import IrOpPriorityConfig
 
@@ -1434,7 +1431,7 @@ class Platform:
                     )
 
     @classmethod
-    def get_kv_cache_config_builder_cls(cls, vllm_config: "VllmConfig") -> str:
+    def get_kv_cache_config_builder_cls(cls, vllm_config: VllmConfig) -> str:
         """Resolve the fully-qualified class path of the platform's KV cache
         config builder.
 

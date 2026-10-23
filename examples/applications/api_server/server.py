@@ -66,7 +66,7 @@ async def _generate(request_dict: dict, raw_request: Request) -> Response:
     results_generator = engine.generate(prompt, sampling_params, request_id)
 
     # Streaming case
-    async def stream_results() -> AsyncGenerator[bytes, None]:
+    async def stream_results() -> AsyncGenerator[bytes]:
         async for request_output in results_generator:
             prompt = request_output.prompt
             assert prompt is not None
