@@ -53,9 +53,6 @@ def _compilation_context() -> Generator[None]:
 def compile_model_with_stock_torch(
     model: torch.nn.Module, vllm_config: VllmConfig
 ) -> None:
-    from vllm.env_override import _apply_constrain_to_fx_strides_patch
-
-    _apply_constrain_to_fx_strides_patch()
     backend = vllm_config.compilation_config.init_backend(vllm_config)
     compilation_counter.stock_torch_compile_count += 1
     model.compile(fullgraph=True, backend=backend)
@@ -316,7 +313,6 @@ def reset_compile_wrapper(model: torch.nn.Module) -> None:
     compilation_counter.num_gpu_runner_capture_triggers = 0
     compilation_counter.num_cudagraph_captured = 0
     compilation_counter.num_inductor_compiles = 0
-    compilation_counter.num_eager_compiles = 0
     compilation_counter.num_cache_entries_updated = 0
     compilation_counter.num_compiled_artifacts_saved = 0
     compilation_counter.stock_torch_compile_count = 0

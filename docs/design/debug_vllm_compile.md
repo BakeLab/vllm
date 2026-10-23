@@ -5,14 +5,17 @@ TL;DR:
 - use tlparse to acquire torch.compile logs. Include these logs in bug reports and/or support asks.
 - The vLLM-torch.compile integration is multiple pieces. vLLM exposes flags to turn off each piece:
 
-| Online Flag                    | Offline Flag                                                                   | Result                                               |
-|--------------------------------|--------------------------------------------------------------------------------|------------------------------------------------------|
-| -cc.mode=none -cc.cudagraph_mode=none                | compilation_config={"mode": "none", "cudagraph_mode": "none"}                                                             | Turn off torch.compile and CUDAGraphs                |
-| -cc.mode=0                     | compilation_config=CompilationConfig(mode=CompilationMode.NONE)                | Turn off torch.compile only                          |
-| -cc.mode=1                     | compilation_config=CompilationConfig(mode=CompilationMode.STOCK_TORCH_COMPILE) | Turn off vLLM-compile modifications to torch.compile |
-| -cc.cudagraph_mode=NONE        | compilation_config=CompilationConfig(cudagraph_mode=CUDAGraphMode.NONE)        | Turn off CUDAGraphs only                             |
-| -cc.backend=eager              | compilation_config=CompilationConfig(backend='eager')                          | Turn off TorchInductor                               |
-| -cc.ir_enable_torch_wrap=False | compilation_config=CompilationConfig(ir_enable_torch_wrap=False)               | Turn off vLLM IR wrapping                            |
+- Turn off torch.compile and CUDAGraphs: `-cc.mode=none
+  -cc.cudagraph_mode=none` online, or
+  `compilation_config={"mode": "none", "cudagraph_mode": "none"}` offline.
+- Turn off torch.compile only: `-cc.mode=0` online, or
+  `CompilationConfig(mode=CompilationMode.NONE)` offline.
+- Turn off vLLM's modifications to torch.compile: `-cc.mode=1` online, or
+  `CompilationConfig(mode=CompilationMode.STOCK_TORCH_COMPILE)` offline.
+- Turn off CUDAGraphs only: `-cc.cudagraph_mode=NONE` online, or
+  `CompilationConfig(cudagraph_mode=CUDAGraphMode.NONE)` offline.
+- Turn off vLLM IR wrapping: `-cc.ir_enable_torch_wrap=False` online, or
+  `CompilationConfig(ir_enable_torch_wrap=False)` offline.
 
 ## vLLM-torch.compile overview
 
@@ -283,17 +286,20 @@ vllm serve <model> -cc.inductor_compile_config='{"size_asserts": true, "alignmen
 On torch >= 2.12, PyTorch uses an efficient assert-once strategy and these
 flags are no longer suppressed by vLLM.
 
-To debug if TorchInductor is at fault, you can disable it by passing `backend='eager'`
-to the compilation config:
+To debug if TorchInductor is at fault, disable compilation while keeping the
+same model and workload:
 
 ```sh
 # online
-vllm serve -cc.backend=eager
+vllm serve -cc.mode=none -cc.cudagraph_mode=none
 ```
 
 ```py
 # offline
-LLM(compilation_config=CompilationConfig(backend='eager'))
+from vllm.config import CompilationConfig, CompilationMode, CUDAGraphMode
+
+LLM(compilation_config=CompilationConfig(mode=CompilationMode.NONE,
+                                         cudagraph_mode=CUDAGraphMode.NONE))
 ```
 
 If Inductor is at fault, [file a bug to PyTorch](https://github.com/pytorch/pytorch).

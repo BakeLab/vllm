@@ -472,13 +472,14 @@ def test_compilation_config():
     args = parser.parse_args(
         [
             "-cc",
-            '{"mode": 3, "cudagraph_capture_sizes": [1, 2, 4, 8], "backend": "eager"}',
+            '{"mode": 3, "cudagraph_capture_sizes": [1, 2, 4, 8], '
+            '"backend": "inductor"}',
         ]
     )
     assert (
         args.compilation_config.mode == 3
         and args.compilation_config.cudagraph_capture_sizes == [1, 2, 4, 8]
-        and args.compilation_config.backend == "eager"
+        and args.compilation_config.backend == "inductor"
     )
 
     # set to string form of a dict

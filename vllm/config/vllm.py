@@ -1751,11 +1751,8 @@ class VllmConfig:
         breakable_cudagraph_enabled = self._maybe_enable_breakable_cudagraph()
 
         if not breakable_cudagraph_enabled and (
-            self.compilation_config.backend == "eager"
-            or (
-                self.compilation_config.mode is not None
-                and self.compilation_config.mode != CompilationMode.VLLM_COMPILE
-            )
+            self.compilation_config.mode is not None
+            and self.compilation_config.mode != CompilationMode.VLLM_COMPILE
         ):
             logger.warning_once(
                 "Inductor compilation was disabled by user settings, "
@@ -3541,7 +3538,7 @@ def get_current_vllm_config_or_none() -> VllmConfig | None:
 T = TypeVar("T")
 
 
-def get_layers_from_vllm_config(
+def get_layers_from_vllm_config(  # noqa: UP047
     vllm_config: VllmConfig,
     layer_type: type[T],
     layer_names: Iterable[str] | None = None,
