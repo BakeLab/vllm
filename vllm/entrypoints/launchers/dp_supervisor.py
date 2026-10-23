@@ -12,6 +12,7 @@ import multiprocessing
 import os
 import signal
 import time
+from collections.abc import Generator
 from functools import partial
 from http import HTTPStatus
 from multiprocessing.process import BaseProcess
@@ -30,12 +31,19 @@ from vllm.utils.system_utils import (
 )
 from vllm.v1.engine.utils import get_engine_process_shutdown_timeout
 
-from .launcher import NoSignalServer
 from .utils.server_utils import get_uvicorn_log_config
 
 logger = init_logger(__name__)
 
 CHILD_EXIT_GRACE_S = 5.0
+
+
+class NoSignalServer(uvicorn.Server):
+    """Leave SIGINT/SIGTERM handling to the data-parallel supervisor."""
+
+    @contextlib.contextmanager
+    def capture_signals(self) -> Generator[None]:
+        yield
 
 
 def infer_multi_port_external_lb_start_rank(args: argparse.Namespace) -> int:

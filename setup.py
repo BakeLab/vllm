@@ -1632,6 +1632,11 @@ setup(
     rust_extensions=rust_extensions,
     install_requires=get_requirements(),
     extras_require={
+        "http": [
+            "fastapi>=0.133.0",
+            "uvicorn>=0.30.0",
+            "starlette>=1.0.1",
+        ],
         # AMD Zen CPU optimizations via zentorch
         "zen": ["zentorch==2.14.0.1"],
         # Optional computer vision model dependencies.
