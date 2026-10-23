@@ -11,6 +11,7 @@ prefill longer than top-k regions. Under DP every rank stalls on that rank.
 from typing import TYPE_CHECKING, cast
 
 from vllm.logger import init_logger
+from vllm.platforms import current_platform
 from vllm.v1.worker.gpu.warmup import run_mixed_prefill_decode_warmup
 
 if TYPE_CHECKING:
@@ -21,6 +22,9 @@ logger = init_logger(__name__)
 
 
 def _step5_dsa_impl(worker: "Worker"):
+    # The implementation is NVIDIA-only; importing it needs tl.extra.cuda.
+    if not current_platform.is_cuda():
+        return None
     from vllm.models.step5.nvidia.sparse_attention import Step5DSAAttentionImpl
 
     context = worker.vllm_config.compilation_config.static_forward_context

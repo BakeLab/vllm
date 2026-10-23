@@ -6,11 +6,10 @@ import math
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from functools import partial
-from typing import Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import pybase64
 import torch
-from fastapi.responses import StreamingResponse
 
 from vllm.config import ModelConfig
 from vllm.entrypoints.serve.engine.protocol import UsageInfo
@@ -25,6 +24,10 @@ from vllm.utils.serial_utils import (
     binary2tensor,
     tensor2binary,
 )
+
+if TYPE_CHECKING:
+    from fastapi.responses import StreamingResponse
+
 
 logger = init_logger(__name__)
 
@@ -175,7 +178,9 @@ def build_pooling_bytes_streaming_response(
     encoding_format: BytesEncodingFormat,
     embed_dtype: EmbedDType,
     endianness: Endianness,
-) -> StreamingResponse:
+) -> "StreamingResponse":
+    from fastapi.responses import StreamingResponse
+
     content, items = encode_pooling_bytes(
         pooling_outputs=pooling_outputs,
         embed_dtype=embed_dtype,
