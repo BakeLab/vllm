@@ -34,7 +34,7 @@ def test_lora_functions_sync():
         max_lora_rank=LORA_RANK,
         max_model_len=128,
         gpu_memory_utilization=0.8,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
     )
 
     llm = LLMEngine.from_engine_args(engine_args)
@@ -80,7 +80,7 @@ async def test_lora_functions_async():
         max_lora_rank=LORA_RANK,
         max_model_len=128,
         gpu_memory_utilization=0.8,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
     )
 
     async with build_async_engine_client_from_engine_args(engine_args) as llm:

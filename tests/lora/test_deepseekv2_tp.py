@@ -48,7 +48,7 @@ def test_deepseekv2_lora(deepseekv2_lora_files):
         max_model_len=1024,
         enable_lora=True,
         max_loras=4,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         enable_chunked_prefill=True,
     )
@@ -63,7 +63,7 @@ def test_deepseekv2(deepseekv2_lora_files):
         max_model_len=1024,
         enable_lora=True,
         max_loras=4,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
     )
     generate_and_test(llm, deepseekv2_lora_files, 1)
@@ -78,7 +78,7 @@ def test_deepseekv2_tp2(deepseekv2_lora_files):
         max_model_len=1024,
         enable_lora=True,
         max_loras=4,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         tensor_parallel_size=2,
     )
@@ -94,7 +94,7 @@ def test_deepseekv2_tp4(deepseekv2_lora_files):
         max_model_len=1024,
         enable_lora=True,
         max_loras=4,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         tensor_parallel_size=4,
     )

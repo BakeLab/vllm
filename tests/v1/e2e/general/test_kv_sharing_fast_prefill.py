@@ -6,7 +6,7 @@ import random
 import pytest
 
 from vllm import LLM, SamplingParams
-from vllm.config import CompilationConfig, CompilationMode
+from vllm.config import CompilationConfig, CompilationMode, CUDAGraphMode
 from vllm.platforms import current_platform
 
 from ....utils import check_answers, fork_new_process_for_each_test, prep_prompts
@@ -89,6 +89,7 @@ def test_kv_sharing_fast_prefill(
         mode=CompilationMode.VLLM_COMPILE
         if not enforce_eager
         else CompilationMode.NONE,
+        cudagraph_mode=CUDAGraphMode.NONE if enforce_eager else None,
     )
     batch_size = 10
 
@@ -105,7 +106,6 @@ def test_kv_sharing_fast_prefill(
 
         llm = LLM(
             model="google/gemma-3n-E2B-it",
-            enforce_eager=enforce_eager,
             compilation_config=compilation_config,
             seed=SEED,
             kv_sharing_fast_prefill=kv_sharing_fast_prefill,

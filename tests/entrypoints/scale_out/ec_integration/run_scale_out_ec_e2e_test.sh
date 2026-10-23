@@ -132,7 +132,7 @@ run_baseline() {
     env CUDA_VISIBLE_DEVICES="$GPU_SINGLE" vllm serve "$MODEL" \
         --port "$BASELINE_PORT" \
         --max-model-len "$MAX_MODEL_LEN" \
-        --enforce-eager \
+        --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
         --gpu-memory-utilization 0.9 \
         --max-num-seqs "$MAX_NUM_SEQS" \
         > "$BASELINE_LOG" 2>&1 &
@@ -186,7 +186,7 @@ run_scale_out_ec() {
         --enable-scale-out \
         --port "$ENCODE_PORT" \
         --max-model-len "$MAX_MODEL_LEN" \
-        --enforce-eager \
+        --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
         --gpu-memory-utilization 0.01 \
         --no-enable-prefix-caching \
         --max-num-batched-tokens 114688 \
@@ -210,7 +210,7 @@ run_scale_out_ec() {
         --enable-scale-out \
         --port "$PREFILL_PORT" \
         --max-model-len "$MAX_MODEL_LEN" \
-        --enforce-eager \
+        --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
         --enable-mm-embeds \
         --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
         --max-num-seqs "$MAX_NUM_SEQS" \

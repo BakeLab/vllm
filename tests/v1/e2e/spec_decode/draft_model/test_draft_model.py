@@ -385,7 +385,6 @@ def assert_draft_model_correctness(args: ArgsTest, vllm_runner):
             "method": args.method,
             "num_speculative_tokens": args.num_speculative_tokens,
             "max_model_len": args.max_model_len,
-            "enforce_eager": args.enforce_eager,
             "draft_tensor_parallel_size": args.draft_tensor_parallel_size,
             "parallel_drafting": args.parallel_drafting,
         },

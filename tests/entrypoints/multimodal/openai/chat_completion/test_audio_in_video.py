@@ -23,7 +23,8 @@ def server():
     args = [
         "--max-model-len",
         "16384",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--limit-mm-per-prompt",
         json.dumps({"audio": 3, "video": 3}),
         "--trust-request-mm-kwargs",

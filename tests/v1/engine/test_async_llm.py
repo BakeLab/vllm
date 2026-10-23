@@ -46,11 +46,12 @@ if not current_platform.is_cuda():
 
 TEXT_ENGINE_ARGS = AsyncEngineArgs(
     model="meta-llama/Llama-3.2-1B-Instruct",
-    enforce_eager=True,
+    compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
 )
 
 VISION_ENGINE_ARGS = AsyncEngineArgs(
-    model="Qwen/Qwen2-VL-2B-Instruct", enforce_eager=True
+    model="Qwen/Qwen2-VL-2B-Instruct",
+    compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
 )
 
 TEXT_PROMPT = "Hello my name is Robert and"

@@ -164,7 +164,7 @@ def launch_llm(scheduling_strategy: PlacementGroupSchedulingStrategy):
         scheduling_strategy=scheduling_strategy,
     )(MyLLM).remote(
         model=MODEL_NAME,
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
         tensor_parallel_size=INFERENCE_TP_SIZE,
         enable_expert_parallel=True,
         expert_placement_strategy="linear",

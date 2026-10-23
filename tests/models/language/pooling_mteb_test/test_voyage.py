@@ -41,7 +41,10 @@ def test_embed_models_mteb(hf_runner, vllm_runner, model_info: EmbedModelInfo) -
     # Encoder-only attention models need enforce_eager=True to avoid
     # CUDA graph capture issues with piecewise compilation
     mteb_test_embed_models(
-        hf_runner, vllm_runner, model_info, vllm_extra_kwargs={"enforce_eager": True}
+        hf_runner,
+        vllm_runner,
+        model_info,
+        vllm_extra_kwargs={"compilation_config": {"mode": 0, "cudagraph_mode": "NONE"}},
     )
 
 
@@ -54,5 +57,5 @@ def test_embed_models_correctness(
         vllm_runner,
         model_info,
         example_prompts,
-        vllm_extra_kwargs={"enforce_eager": True},
+        vllm_extra_kwargs={"compilation_config": {"mode": 0, "cudagraph_mode": "NONE"}},
     )

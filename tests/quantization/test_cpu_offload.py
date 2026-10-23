@@ -19,8 +19,13 @@ def test_cpu_offload_fp8():
     # Test loading a quantized checkpoint
     compare_two_settings(
         "neuralmagic/Qwen2-1.5B-Instruct-FP8",
-        ["--enforce_eager"],
-        ["--enforce_eager", "--cpu-offload-gb", "1"],
+        ["--compilation-config.mode=0", "--compilation-config.cudagraph_mode=NONE"],
+        [
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
+            "--cpu-offload-gb",
+            "1",
+        ],
         max_wait_seconds=480,
     )
 
@@ -35,8 +40,13 @@ def test_cpu_offload_gptq(monkeypatch):
     # Test GPTQ Marlin
     compare_two_settings(
         "Qwen/Qwen2-1.5B-Instruct-GPTQ-Int4",
-        ["--enforce_eager"],
-        ["--enforce_eager", "--cpu-offload-gb", "1"],
+        ["--compilation-config.mode=0", "--compilation-config.cudagraph_mode=NONE"],
+        [
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
+            "--cpu-offload-gb",
+            "1",
+        ],
         max_wait_seconds=480,
     )
 
@@ -51,8 +61,13 @@ def test_cpu_offload_awq(monkeypatch):
     # Test AWQ Marlin
     compare_two_settings(
         "Qwen/Qwen2-1.5B-Instruct-AWQ",
-        ["--enforce_eager"],
-        ["--enforce_eager", "--cpu-offload-gb", "1"],
+        ["--compilation-config.mode=0", "--compilation-config.cudagraph_mode=NONE"],
+        [
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
+            "--cpu-offload-gb",
+            "1",
+        ],
         max_wait_seconds=480,
     )
 
@@ -67,8 +82,13 @@ def test_cpu_offload_compressed_tensors(monkeypatch):
     # Test wNa16
     compare_two_settings(
         "nm-testing/Qwen1.5-MoE-A2.7B-Chat-quantized.w4a16",
-        ["--enforce_eager"],
-        ["--enforce_eager", "--cpu-offload-gb", "1"],
+        ["--compilation-config.mode=0", "--compilation-config.cudagraph_mode=NONE"],
+        [
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
+            "--cpu-offload-gb",
+            "1",
+        ],
         max_wait_seconds=480,
         include_seeded_sampling=False,
     )

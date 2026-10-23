@@ -52,7 +52,8 @@ CONFIGS: dict[str, ServerConfig] = {
     "llama": {
         "model": "meta-llama/Llama-3.2-1B-Instruct",
         "arguments": [
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--enable-auto-tool-choice",
             "--tool-call-parser",
             "hermes",
@@ -68,7 +69,8 @@ CONFIGS: dict[str, ServerConfig] = {
     "granite4": {
         "model": "ibm-granite/granite-4.0-h-tiny",
         "arguments": [
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--enable-auto-tool-choice",
             "--tool-call-parser",
             "granite4",

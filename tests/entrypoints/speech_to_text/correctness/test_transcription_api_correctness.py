@@ -330,7 +330,8 @@ def test_wer_correctness(
     model_name, expected_wer = model_config
     model_info = HF_EXAMPLE_MODELS.find_hf_info(model_name)
     server_args = [
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         f"--tokenizer_mode={model_info.tokenizer_mode}",
         f"--max_num_seqs={MAX_SEQS_FOR_TRANSCRIPTION_TEST}",
         f"--gpu_memory_utilization={GPU_UTIL_FOR_TRANSCRIPTION_TEST}",

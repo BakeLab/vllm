@@ -29,7 +29,7 @@ def main():
     llm = LLM(
         model="Qwen/Qwen3-0.6B",
         load_format="dummy",
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
         tensor_parallel_size=4,
     )
     outputs = llm.generate(prompts, sampling_params)

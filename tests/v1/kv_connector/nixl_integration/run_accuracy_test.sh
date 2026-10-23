@@ -196,7 +196,7 @@ run_tests_for_model() {
     --pipeline-parallel-size $PREFILLER_PP_SIZE \
     --kv-transfer-config '$KV_CONFIG_P'"
     if [[ "$ENFORCE_EAGER" == "1" ]]; then
-      BASE_CMD="${BASE_CMD} --enforce-eager"
+      BASE_CMD="${BASE_CMD} --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE"
     fi
     if [[ -n "$VLLM_SERVE_EXTRA_ARGS" ]]; then
       IFS=',' read -r -a extra_args <<< "$VLLM_SERVE_EXTRA_ARGS"
@@ -268,7 +268,7 @@ run_tests_for_model() {
     --gpu-memory-utilization $GPU_MEMORY_UTILIZATION \
     --kv-transfer-config '$KV_CONFIG_D'"
     if [[ "$ENFORCE_EAGER" == "1" ]]; then
-      BASE_CMD="${BASE_CMD} --enforce-eager"
+      BASE_CMD="${BASE_CMD} --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE"
     fi
     if [[ -n "$VLLM_SERVE_EXTRA_ARGS" ]]; then
       IFS=',' read -r -a extra_args <<< "$VLLM_SERVE_EXTRA_ARGS"

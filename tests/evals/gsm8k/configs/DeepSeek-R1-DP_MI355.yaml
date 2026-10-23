@@ -8,7 +8,7 @@ env:
   VLLM_ROCM_USE_AITER_MLA: "1"
   VLLM_ROCM_USE_AITER_MOE: "1"
 server_args: >-
-  --enforce-eager
+  --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE
   --max-model-len 4096
   --data-parallel-size 4
   --enable-expert-parallel

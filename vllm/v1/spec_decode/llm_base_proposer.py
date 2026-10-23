@@ -423,11 +423,7 @@ class SpecDecodeBaseProposer:
         Only supports PIECEWISE cudagraphs (via mixed_mode).
         This should be called after adjust_cudagraph_sizes_for_spec_decode.
         """
-        if (
-            not self.speculative_config.enforce_eager
-            and cudagraph_mode.mixed_mode()
-            in [CUDAGraphMode.PIECEWISE, CUDAGraphMode.FULL]
-        ):
+        if cudagraph_mode.mixed_mode() in [CUDAGraphMode.PIECEWISE, CUDAGraphMode.FULL]:
             eagle_cudagraph_mode = CUDAGraphMode.PIECEWISE
         else:
             eagle_cudagraph_mode = CUDAGraphMode.NONE

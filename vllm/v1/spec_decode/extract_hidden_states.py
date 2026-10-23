@@ -247,11 +247,7 @@ class ExtractHiddenStatesProposer:
         Should be called after adjust_cudagraph_sizes_for_spec_decode.
         """
         assert self.vllm_config.speculative_config is not None
-        if (
-            not self.vllm_config.speculative_config.enforce_eager
-            and cudagraph_mode.mixed_mode()
-            in [CUDAGraphMode.PIECEWISE, CUDAGraphMode.FULL]
-        ):
+        if cudagraph_mode.mixed_mode() in [CUDAGraphMode.PIECEWISE, CUDAGraphMode.FULL]:
             proposer_cudagraph_mode = CUDAGraphMode.PIECEWISE
         else:
             proposer_cudagraph_mode = CUDAGraphMode.NONE

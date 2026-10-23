@@ -45,7 +45,8 @@ def server(model_name, plugin):
     args = [
         "--runner",
         "pooling",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--skip-tokenizer-init",
         # Limit the maximum number of parallel requests
         # to avoid the model going OOM in CI.

@@ -71,7 +71,7 @@ def test_dbo_dp_ep_gsm8k(all2all_backend: str, num_gpus_available):
         "--max-num-seqs",
         str(MAX_NUM_SEQS),  # Use larger batch to trigger decode DBO
         "--trust-remote-code",
-        # Note: Not using --enforce-eager to test DBO's alternate CUDA graph dispatching
+        # Keep graph capture enabled to exercise DBO's alternate graph dispatch.
         "--data-parallel-size",
         str(DP_SIZE),
         "--enable-expert-parallel",

@@ -39,7 +39,7 @@ def _make_llm(max_num_seqs: int, backend: str) -> LLM:
         dtype="auto",
         tensor_parallel_size=int(os.getenv("VLLM_NVFP4_TEST_TP_SIZE", "1")),
         enable_prefix_caching=False,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         attention_config={"backend": backend},
     )
 

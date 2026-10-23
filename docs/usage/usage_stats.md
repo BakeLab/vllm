@@ -38,7 +38,6 @@ Here is an example as of v0.4.0:
       "kv_cache_dtype": "auto",
       "enable_lora": false,
       "enable_prefix_caching": false,
-      "enforce_eager": false,
       "disable_custom_all_reduce": true
     }
     ```

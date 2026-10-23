@@ -20,7 +20,8 @@ def server():
         "--enable-auto-tool-choice",
         "--tool-call-parser",
         "hermes",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
     ]
     with RemoteOpenAIServer(MODEL_NAME, args) as remote_server:
         yield remote_server

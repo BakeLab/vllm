@@ -24,7 +24,8 @@ def default_server_args(qwen3_lora_files):
         "8192",
         "--max-num-seqs",
         "128",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         # lora config
         "--enable-lora",
         "--lora-modules",

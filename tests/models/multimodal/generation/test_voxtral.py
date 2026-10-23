@@ -117,7 +117,8 @@ def test_online_serving(vllm_runner, audio_assets: AudioTestAssets):
     ]
 
     server_args = [
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--limit-mm-per-prompt",
         json.dumps({"audio": len(audio_assets)}),
         *MISTRAL_FORMAT_ARGS,

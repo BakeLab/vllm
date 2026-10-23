@@ -42,7 +42,8 @@ def server(zephyr_lora_files):
         "bfloat16",
         "--max-model-len",
         "8192",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         # lora config below
         "--enable-lora",
         "--lora-modules",

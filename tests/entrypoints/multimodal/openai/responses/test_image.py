@@ -19,7 +19,8 @@ MAXIMUM_IMAGES = 2
 @pytest.fixture(scope="module")
 def default_image_server_args():
     return [
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--max-model-len",
         "6000",
         "--max-num-seqs",

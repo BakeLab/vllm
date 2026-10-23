@@ -37,7 +37,7 @@ trap cleanup EXIT
 
 VLLM_DEEP_GEMM_WARMUP=skip \
 vllm serve "$MODEL" \
---enforce-eager \
+-cc.mode=none -cc.cudagraph_mode=none \
 --data-parallel-size 4 \
 --enable-expert-parallel \
 --enable-eplb \

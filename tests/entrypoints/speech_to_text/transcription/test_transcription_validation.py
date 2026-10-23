@@ -66,7 +66,11 @@ async def transcribe_and_check(
     "model_name", ["mistralai/Voxtral-Mini-3B-2507", "Qwen/Qwen3-ASR-0.6B"]
 )
 async def test_basic_audio(mary_had_lamb, model_name):
-    server_args = ["--enforce-eager", *ROCM_EXTRA_ARGS]
+    server_args = [
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
+        *ROCM_EXTRA_ARGS,
+    ]
 
     if model_name.startswith("mistralai"):
         server_args += MISTRAL_FORMAT_ARGS
@@ -95,7 +99,8 @@ async def test_basic_audio_with_lora(mary_had_lamb):
     model_name = "ibm-granite/granite-speech-3.3-2b"
     lora_model_name = "speech"
     server_args = [
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--enable-lora",
         "--max-lora-rank",
         "64",
@@ -127,7 +132,11 @@ async def test_basic_audio_with_lora(mary_had_lamb):
 async def test_basic_audio_foscolo(foscolo, model_name):
     # Gemma accuracy on some of the audio samples we use is particularly bad,
     # hence we use a different one here. WER is evaluated separately.
-    server_args = ["--enforce-eager", *ROCM_EXTRA_ARGS]
+    server_args = [
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
+        *ROCM_EXTRA_ARGS,
+    ]
 
     with RemoteOpenAIServer(
         model_name,

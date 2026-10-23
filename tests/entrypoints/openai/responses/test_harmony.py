@@ -99,7 +99,8 @@ def server():
         "Harmony tests require gpt_oss package to be installed"
     )
     args = [
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--tool-server",
         "demo",
         "--max_model_len",

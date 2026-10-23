@@ -608,7 +608,6 @@ class EngineArgs:
     :class:`QuantizationConfigArgs`. Auto-populated from the matching online
     shorthand when `quantization` is one of the values in
     `ONLINE_QUANT_SHORTHAND_NAMES`."""
-    enforce_eager: bool = ModelConfig.enforce_eager
     disable_custom_all_reduce: bool = ParallelConfig.disable_custom_all_reduce
     enable_shm_tensor_arena: bool = ParallelConfig.enable_shm_tensor_arena
     language_model_only: bool = MultiModalConfig.language_model_only
@@ -944,7 +943,6 @@ class EngineArgs:
         model_group.add_argument(
             "--quantization-config", **model_kwargs["quantization_config"]
         )
-        model_group.add_argument("--enforce-eager", **model_kwargs["enforce_eager"])
         model_group.add_argument(
             "--enable-return-routed-experts",
             **aux_output_kwargs["enable_return_routed_experts"],
@@ -1929,7 +1927,6 @@ class EngineArgs:
             max_model_len=self.max_model_len,
             quantization=self.quantization,
             quantization_config=self.quantization_config,
-            enforce_eager=self.enforce_eager,
             return_sampling_mask=self.return_sampling_mask,
             max_logprobs=self.max_logprobs,
             logprobs_mode=self.logprobs_mode,

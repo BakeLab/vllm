@@ -35,7 +35,8 @@ def test_weight_sync_metrics_aggregate_across_api_servers(tmp_path):
     args = [
         "--load-format",
         "dummy",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--max-model-len",
         "512",
         "--gpu-memory-utilization",

@@ -8,7 +8,7 @@ server_args: >-
   --revision efe1ced428db63e7ccbcf367334596f77e9af140
   --code-revision e434a23f91ba5b4923cf6c9d9a238eb4a08e3a11
   --dtype bfloat16
-  --enforce-eager
+  --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE
   --max-model-len 4096
   --max-num-seqs 8
   --max-num-batched-tokens 4096

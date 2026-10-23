@@ -2044,7 +2044,7 @@ def test_online_quantization_loads_real_weights(
         runner_kwargs = {
             "quantization": "fp8_per_tensor",
             "dtype": "bfloat16",
-            "enforce_eager": True,
+            "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
             "hf_overrides": {"num_hidden_layers": 3},
             "max_model_len": 16,
             "max_num_seqs": 1,
@@ -2054,7 +2054,7 @@ def test_online_quantization_loads_real_weights(
             "quantization_config": {
                 "targets": {"model.layers.1.self_attn.o_proj": "mxfp8"}
             },
-            "enforce_eager": True,
+            "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
         }
 
     with vllm_runner(model_name, **runner_kwargs) as llm:

@@ -36,7 +36,7 @@ VLLM_RUNNER_BASE_KWARGS = {
     "max_model_len": 4096,
     "gpu_memory_utilization": 0.8,
     "limit_mm_per_prompt": {"audio": 1},
-    "enforce_eager": True,
+    "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
 }
 
 

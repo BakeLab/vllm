@@ -109,7 +109,6 @@ def can_run_without_jit(spec: JitModel):
         load_format="dummy",
         hf_overrides=dummy_hf_overrides,
         # cuda graphs cover captured decode shapes, run eager.
-        enforce_eager=False,
         jit_monitor_mode="error",
         speculative_config={
             "model": spec.draft,

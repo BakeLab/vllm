@@ -48,7 +48,7 @@ def test_converted_model_with_modules_to_save(
         dtype="float16",
         enable_lora=True,
         max_lora_rank=16,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         max_model_len=512,
         gpu_memory_utilization=0.5,
     )
@@ -79,7 +79,7 @@ def test_native_classification_model_with_modules_to_save(
         dtype="float16",
         enable_lora=True,
         max_lora_rank=8,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         max_model_len=512,
         gpu_memory_utilization=0.5,
     )
@@ -127,7 +127,7 @@ def _test_batched_loras(
         max_cpu_loras=2,
         max_lora_rank=16,
         max_lora_cls_labels=2,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         max_model_len=512,
         gpu_memory_utilization=0.5,
         tensor_parallel_size=tp_size,

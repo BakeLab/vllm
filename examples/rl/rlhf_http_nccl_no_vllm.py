@@ -16,7 +16,7 @@ from store key "0", which is a torch implementation detail.
 Start a server on GPUs 0-1 (the weights it starts with are discarded):
 
     VLLM_SERVER_DEV_MODE=1 CUDA_VISIBLE_DEVICES=0,1 vllm serve Qwen/Qwen3-0.6B \
-        --tensor-parallel-size 2 --load-format dummy --enforce-eager \
+        --tensor-parallel-size 2 --load-format dummy -cc.mode=none -cc.cudagraph_mode=none \
         --weight-transfer-config '{"backend": "nccl"}'
 
 Then run the trainer on GPU 2 (`--packed` for packed broadcasting):

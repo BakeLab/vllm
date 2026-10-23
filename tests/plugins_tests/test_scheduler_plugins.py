@@ -23,7 +23,10 @@ def test_scheduler_plugins_v1(monkeypatch: pytest.MonkeyPatch):
         with pytest.raises(Exception) as exception_info:
             engine_args = EngineArgs(
                 model="facebook/opt-125m",
-                enforce_eager=True,  # reduce test time
+                compilation_config={
+                    "mode": 0,
+                    "cudagraph_mode": "NONE",
+                },  # reduce test time
                 scheduler_cls=DummyV1Scheduler,
             )
 

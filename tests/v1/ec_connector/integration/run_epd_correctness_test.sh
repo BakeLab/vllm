@@ -107,7 +107,7 @@ run_baseline() {
     env "$DEVICE_AFFINITY_ENV=$GPU_SINGLE" vllm serve "$MODEL" \
         --port "$PORT" \
         --max-model-len "$MAX_MODEL_LEN" \
-        --enforce-eager \
+        --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
         --gpu-memory-utilization 0.9 \
         --max-num-seqs "$MAX_NUM_SEQS" \
         --allowed-local-media-path "${GIT_ROOT}"/tests/v1/ec_connector/integration \
@@ -160,7 +160,7 @@ run_epd_1e_1pd() {
     env "$DEVICE_AFFINITY_ENV=$GPU_E" vllm serve "$MODEL" \
         --port "$ENCODE_PORT" \
         --max-model-len "$MAX_MODEL_LEN" \
-        --enforce-eager \
+        --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
         --gpu-memory-utilization 0.01 \
         --enable-request-id-headers \
         --no-enable-prefix-caching \
@@ -182,7 +182,7 @@ run_epd_1e_1pd() {
     env "$DEVICE_AFFINITY_ENV=$GPU_PD" vllm serve "$MODEL" \
         --port "$PREFILL_DECODE_PORT" \
         --max-model-len "$MAX_MODEL_LEN" \
-        --enforce-eager \
+        --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
         --enable-mm-embeds \
         --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
         --enable-request-id-headers \
@@ -268,7 +268,7 @@ run_baseline_1p_1d() {
     vllm serve "$MODEL" \
         --port "$PREFILL_PORT" \
         --max-model-len "$MAX_MODEL_LEN" \
-        --enforce-eager \
+        --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
         --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
         --enable-request-id-headers \
         --max-num-seqs "$MAX_NUM_SEQS" \
@@ -287,7 +287,7 @@ run_baseline_1p_1d() {
     vllm serve "$MODEL" \
         --port "$DECODE_PORT" \
         --max-model-len "$MAX_MODEL_LEN" \
-        --enforce-eager \
+        --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
         --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
         --enable-request-id-headers \
         --max-num-seqs "$MAX_NUM_SEQS" \
@@ -365,7 +365,7 @@ run_epd_1e_1p_1d() {
     env "$DEVICE_AFFINITY_ENV=$GPU_E" vllm serve "$MODEL" \
         --port "$ENCODE_PORT" \
         --max-model-len "$MAX_MODEL_LEN" \
-        --enforce-eager \
+        --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
         --gpu-memory-utilization 0.01 \
         --enable-request-id-headers \
         --no-enable-prefix-caching \
@@ -389,7 +389,7 @@ run_epd_1e_1p_1d() {
     vllm serve "$MODEL" \
         --port "$PREFILL_PORT" \
         --max-model-len "$MAX_MODEL_LEN" \
-        --enforce-eager \
+        --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
         --enable-mm-embeds \
         --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
         --enable-request-id-headers \
@@ -416,7 +416,7 @@ run_epd_1e_1p_1d() {
     vllm serve "$MODEL" \
         --port "$DECODE_PORT" \
         --max-model-len "$MAX_MODEL_LEN" \
-        --enforce-eager \
+        --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
         --enable-mm-embeds \
         --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
         --enable-request-id-headers \

@@ -14,7 +14,8 @@ MODEL = "ibm-granite/granite-4.0-h-tiny"
 def server():
     model = MODEL
     args_for_model = [
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--enable-auto-tool-choice",
         "--tool-call-parser",
         "granite4",

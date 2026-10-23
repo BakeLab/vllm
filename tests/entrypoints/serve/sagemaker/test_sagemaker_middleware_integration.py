@@ -117,7 +117,8 @@ async def customer_output_formatter(response):
                 "bfloat16",
                 "--max-model-len",
                 "2048",
-                "--enforce-eager",
+                "--compilation-config.mode=0",
+                "--compilation-config.cudagraph_mode=NONE",
                 "--max-num-seqs",
                 "32",
             ]
@@ -226,7 +227,8 @@ async def ping_tracking_middleware(request, call_next):
                 "bfloat16",
                 "--max-model-len",
                 "2048",
-                "--enforce-eager",
+                "--compilation-config.mode=0",
+                "--compilation-config.cudagraph_mode=NONE",
                 "--max-num-seqs",
                 "32",
             ]
@@ -312,7 +314,8 @@ async def env_post_process(response):
                 "bfloat16",
                 "--max-model-len",
                 "2048",
-                "--enforce-eager",
+                "--compilation-config.mode=0",
+                "--compilation-config.cudagraph_mode=NONE",
                 "--max-num-seqs",
                 "32",
             ]

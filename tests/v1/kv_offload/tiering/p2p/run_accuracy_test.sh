@@ -217,7 +217,7 @@ run_tests_for_model() {
     PYTHONHASHSEED=42 \
     ${VLLM_BIN} serve ${model_name} \
     --port ${http_port} \
-    --enforce-eager \
+    --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
     --block-size ${PREFILL_BLOCK_SIZE} \
     --gpu-memory-utilization ${GPU_MEMORY_UTILIZATION} \
     --max-model-len ${MAX_MODEL_LEN} \
@@ -257,7 +257,7 @@ run_tests_for_model() {
     PYTHONHASHSEED=42 \
     ${VLLM_BIN} serve ${model_name} \
     --port ${http_port} \
-    --enforce-eager \
+    --compilation-config.mode=0 --compilation-config.cudagraph_mode=NONE \
     --block-size ${DECODE_BLOCK_SIZE} \
     --gpu-memory-utilization ${GPU_MEMORY_UTILIZATION} \
     --max-model-len ${MAX_MODEL_LEN} \

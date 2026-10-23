@@ -54,7 +54,8 @@ class WeightCacheDaemon:
             str(tp_size),
             "--weight-cache-socket-dir",
             self.socket_dir,
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--weight-cache-health-host",
             "127.0.0.1",
             "--weight-cache-health-port",
@@ -178,7 +179,7 @@ QWEN_CASE = ModelCase(
     ],
     llm_kwargs=dict(
         gpu_memory_utilization=0.3,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         enable_chunked_prefill=True,
     ),
 )
@@ -195,7 +196,7 @@ K3_CASE = ModelCase(
     images=[None, None, ImageAsset("stop_sign").pil_image],
     llm_kwargs=dict(
         gpu_memory_utilization=0.3,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         enable_chunked_prefill=True,
         # The image placeholder expands to >1k tokens for the stop_sign asset.
@@ -218,7 +219,7 @@ QWEN_MTP_CASE = ModelCase(
     ],
     llm_kwargs=dict(
         gpu_memory_utilization=0.3,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         enable_chunked_prefill=True,
         speculative_config={"method": "mtp", "num_speculative_tokens": 1},
     ),
@@ -237,7 +238,7 @@ DSV2_EP_CASE = ModelCase(
         enable_expert_parallel=True,
         dtype="bfloat16",
         gpu_memory_utilization=0.85,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         max_model_len=1024,
     ),
     daemon_args=["--enable-expert-parallel", "--dtype", "bfloat16"],

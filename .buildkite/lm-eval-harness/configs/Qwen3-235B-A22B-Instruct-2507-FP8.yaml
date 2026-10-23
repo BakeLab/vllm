@@ -9,7 +9,6 @@ tasks:
         value: 0.82
 limit: 250 # will run on 250 * 14 subjects = 3500 samples
 num_fewshot: 5
-enforce_eager: false # we use false to speed up the eval process
 kv_cache_dtype: fp8 # we use fp8 to speed up the eval process
 max_model_len: 40960
 apply_chat_template: true

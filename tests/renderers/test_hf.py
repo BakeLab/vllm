@@ -137,7 +137,6 @@ def test_resolve_chat_template(sample_json_schema, model, use_tools):
         skip_tokenizer_init=model_info.require_embed_inputs,
         enable_prompt_embeds=model_info.require_embed_inputs,
         enable_mm_embeds=model_info.require_embed_inputs,
-        enforce_eager=model_info.enforce_eager,
         dtype=model_info.dtype,
     )
 
@@ -239,7 +238,6 @@ def test_resolve_chat_template_kwargs(sample_json_schema, model, expected_kwargs
         skip_tokenizer_init=model_info.require_embed_inputs,
         enable_prompt_embeds=model_info.require_embed_inputs,
         enable_mm_embeds=model_info.require_embed_inputs,
-        enforce_eager=model_info.enforce_eager,
         dtype=model_info.dtype,
     )
 
@@ -471,7 +469,6 @@ def test_resolve_content_format_hf_defined(model, expected_format):
         skip_tokenizer_init=model_info.require_embed_inputs,
         enable_prompt_embeds=model_info.require_embed_inputs,
         enable_mm_embeds=model_info.require_embed_inputs,
-        enforce_eager=model_info.enforce_eager,
         dtype=model_info.dtype,
     )
 
@@ -527,7 +524,6 @@ def test_resolve_content_format_fallbacks(model, expected_format):
         skip_tokenizer_init=model_info.require_embed_inputs,
         enable_prompt_embeds=model_info.require_embed_inputs,
         enable_mm_embeds=model_info.require_embed_inputs,
-        enforce_eager=model_info.enforce_eager,
         dtype=model_info.dtype,
     )
 
@@ -639,7 +635,6 @@ def test_get_gen_prompt(
         skip_tokenizer_init=model_info.require_embed_inputs,
         enable_prompt_embeds=model_info.require_embed_inputs,
         enable_mm_embeds=model_info.require_embed_inputs,
-        enforce_eager=model_info.enforce_eager,
         dtype=model_info.dtype,
     )
 

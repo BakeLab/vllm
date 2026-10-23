@@ -43,7 +43,7 @@ def create_vllm_config(
         max_model_len=max_model_len,
         gpu_memory_utilization=gpu_memory_utilization,
         distributed_executor_backend="ray",
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
     )
     vllm_config = engine_args.create_engine_config()
 
@@ -303,7 +303,7 @@ def test_ray_v2_single_node_generation(tp_size, pp_size):
         tensor_parallel_size=tp_size,
         pipeline_parallel_size=pp_size,
         distributed_executor_backend="ray",
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         max_model_len=256,
         gpu_memory_utilization=0.3,
     )
@@ -386,7 +386,7 @@ def test_ray_v2_single_node_generation_with_pg(tp_size, pp_size):
                 tensor_parallel_size=tp_size,
                 pipeline_parallel_size=pp_size,
                 distributed_executor_backend="ray",
-                enforce_eager=True,
+                compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
                 max_model_len=256,
                 gpu_memory_utilization=0.3,
             )

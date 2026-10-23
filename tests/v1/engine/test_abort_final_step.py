@@ -221,7 +221,7 @@ async def test_abort_during_final_step(async_scheduling: bool):
             )
             engine_args = AsyncEngineArgs(
                 model="meta-llama/Llama-3.2-1B-Instruct",
-                enforce_eager=True,
+                compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
                 async_scheduling=async_scheduling,
                 kv_transfer_config=kv_transfer_config,
             )

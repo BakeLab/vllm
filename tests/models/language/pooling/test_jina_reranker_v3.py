@@ -59,7 +59,13 @@ def test_offline(vllm_runner, monkeypatch):
 
 def test_online():
     with RemoteOpenAIServer(
-        model_name, ["--runner", "pooling", "--enforce-eager"]
+        model_name,
+        [
+            "--runner",
+            "pooling",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
+        ],
     ) as server:
         _test_online_1_v_1(server)
         _test_online_1_v_n(server)

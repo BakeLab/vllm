@@ -9,7 +9,7 @@ This example shows how to use MCP tools with different allowed_tools configurati
 
 Set up this example by starting a vLLM OpenAI-compatible server with MCP tools enabled.
 For example:
-vllm serve openai/gpt-oss-20b --enforce-eager --tool-server demo
+vllm serve openai/gpt-oss-20b -cc.mode=none -cc.cudagraph_mode=none --tool-server demo
 
 Environment variables:
 - VLLM_ENABLE_RESPONSES_API_STORE=1

@@ -8,6 +8,7 @@ import pytest
 
 import vllm.entrypoints.common.cli_args as cli_args_module
 from tests.utils import VLLM_PATH
+from vllm.config import CompilationMode, CUDAGraphMode
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.entrypoints.common.cli_args import (
     make_arg_parser,
@@ -42,6 +43,15 @@ def vllm_parser():
 @pytest.fixture
 def serve_parser():
     return _build_vllm_parsers()["vllm serve"]
+
+
+def test_explicit_no_compile_graph_policy_is_parsed(serve_parser):
+    args = serve_parser.parse_args(
+        ["--compilation-config.mode=0", "--compilation-config.cudagraph_mode=NONE"]
+    )
+    engine_args = AsyncEngineArgs.from_cli_args(args)
+    assert engine_args.compilation_config.mode == CompilationMode.NONE
+    assert engine_args.compilation_config.cudagraph_mode == CUDAGraphMode.NONE
 
 
 def test_cors_origins_require_explicit_opt_in(serve_parser):

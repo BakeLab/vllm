@@ -286,7 +286,7 @@ def test_static_model_tensors_survive_level2_restore(
         "model": model,
         "load_format": "dummy",
         "enable_sleep_mode": True,
-        "enforce_eager": True,
+        "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
         "attention_backend": "TRITON_ATTN",
         "max_model_len": 128,
         "max_num_seqs": 1,

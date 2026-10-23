@@ -41,7 +41,10 @@ def create_whisper_llm(
         max_lora_rank=64,
         max_model_len=448,
         dtype="half",
-        enforce_eager=True,  # For stability in tests
+        compilation_config={
+            "mode": 0,
+            "cudagraph_mode": "NONE",
+        },  # For stability in tests
         attention_config={"backend": attn_backend},
     )
 

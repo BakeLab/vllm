@@ -235,7 +235,7 @@ def test_fp32_head_e2e_no_nan():
         model="facebook/opt-125m",
         hf_overrides={"head_dtype": "float32"},
         logprobs_mode="processed_logprobs",
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         gpu_memory_utilization=0.5,
         max_model_len=256,
     )

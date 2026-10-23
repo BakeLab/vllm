@@ -20,7 +20,13 @@ MAIN_SCORE = 0.7422994752439667
 
 @pytest.fixture(scope="module")
 def server():
-    args = ["--runner", "pooling", "--enforce-eager", "--disable-uvicorn-access-log"]
+    args = [
+        "--runner",
+        "pooling",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
+        "--disable-uvicorn-access-log",
+    ]
 
     with RemoteOpenAIServer(MODEL_NAME, args) as remote_server:
         yield remote_server

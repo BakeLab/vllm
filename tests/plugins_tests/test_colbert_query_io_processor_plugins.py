@@ -56,7 +56,8 @@ def server():
     args = [
         "--runner",
         "pooling",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--max-num-seqs",
         "32",
         "--trust-remote-code",

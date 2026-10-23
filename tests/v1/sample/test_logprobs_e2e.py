@@ -15,7 +15,8 @@ EXPECTED_VALUE = 0.62
 MODEL = "meta-llama/Llama-3.2-1B-Instruct"
 MODEL_ARGS = f"pretrained={MODEL},enforce_eager=True,enable_prefix_caching=False,gpu_memory_utilization=0.8"  # noqa: E501
 SERVER_ARGS = [
-    "--enforce_eager",
+    "--compilation-config.mode=0",
+    "--compilation-config.cudagraph_mode=NONE",
     "--no_enable_prefix_caching",
     "--gpu-memory-utilization=0.8",
 ]

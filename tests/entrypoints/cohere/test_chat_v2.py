@@ -48,7 +48,8 @@ def server():
         "4",
         "--dtype",
         "bfloat16",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         # Advertise a Cohere model name so Cohere SDK ``model=`` calls
         # round-trip without the ``model not found`` check.
         "--served-model-name",

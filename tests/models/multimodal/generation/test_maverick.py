@@ -44,7 +44,7 @@ def run_maverick_serving(model: str):
         llm = LLM(
             model=model,
             max_model_len=2048,
-            enforce_eager=True,
+            compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
             tensor_parallel_size=8,
             enable_expert_parallel=True,
             trust_remote_code=True,
@@ -626,7 +626,9 @@ def test_dummy_maverick(
         trust_remote_code=True,
         max_model_len=512,  # Small context for testing
         gpu_memory_utilization=0.3,  # Conservative memory usage
-        enforce_eager=enforce_eager,
+        compilation_config=(
+            {"mode": 0, "cudagraph_mode": "NONE"} if (enforce_eager) else {}
+        ),
         tensor_parallel_size=tp,
         enable_expert_parallel=ep,
     )

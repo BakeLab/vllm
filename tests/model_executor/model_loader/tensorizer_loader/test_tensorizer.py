@@ -258,7 +258,7 @@ def test_deserialized_encrypted_vllm_model_with_tp_has_same_outputs(
             model=model_ref,
             tensor_parallel_size=2,
             disable_custom_all_reduce=True,
-            enforce_eager=True,
+            compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         ),
         tensorizer_config=tensorizer_config,
     )

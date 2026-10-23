@@ -17,7 +17,8 @@ def server():
     args = [
         "--max-model-len",
         "2048",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--enable-prompt-tokens-details",
         "--enable-auto-tool-choice",
         "--tool-call-parser",

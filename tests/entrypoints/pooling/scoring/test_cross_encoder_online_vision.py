@@ -92,7 +92,8 @@ def server(request):
     backend = request.param
     print(f"\n=== Starting server with attention backend: {backend} ===")
     args = [
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--max-model-len",
         "8192",
         "--chat-template",

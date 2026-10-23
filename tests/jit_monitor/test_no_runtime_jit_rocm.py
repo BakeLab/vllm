@@ -33,7 +33,6 @@ def _run_rocm_shape_battery() -> None:
         kv_cache_memory_bytes=256 * 1024 * 1024,
         load_format="dummy",
         hf_overrides=dummy_hf_overrides,
-        enforce_eager=False,
         jit_monitor_mode="error",
     )
     try:

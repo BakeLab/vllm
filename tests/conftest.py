@@ -52,6 +52,7 @@ from vllm.assets.audio import AudioAsset
 from vllm.assets.image import ImageAsset
 from vllm.assets.video import VideoAsset
 from vllm.config.model import ConvertOption, RunnerOption, _get_and_verify_dtype
+from vllm.config.compilation import CompilationConfig, CompilationMode, CUDAGraphMode
 from vllm.connections import global_http_connection
 from vllm.distributed import (
     cleanup_dist_env_and_memory,
@@ -960,7 +961,8 @@ class VllmRunner:
         devices, otherwise default to `16`.
     - `enable_chunked_prefill`: Set to `False` instead of `None` for
       test reproducibility.
-    - `enforce_eager`: Set to `False` to test CUDA graph.
+    - `enforce_eager`: Test-only reference control selecting no compilation or
+      CUDA graphs. `False` preserves the requested compilation configuration.
     - `kernel_config.enable_jit_warmup`: Set to `False` to reduce test startup
       time.
     """
@@ -1008,6 +1010,20 @@ class VllmRunner:
                     num_speculative_tokens + 1
                 )
 
+        if enforce_eager:
+            compilation_config = deepcopy(kwargs["compilation_config"])
+            if isinstance(compilation_config, CompilationConfig):
+                compilation_config.mode = CompilationMode.NONE
+                compilation_config.cudagraph_mode = CUDAGraphMode.NONE
+                compilation_config.cudagraph_mm_encoder = False
+            else:
+                if isinstance(compilation_config, int):
+                    compilation_config = {}
+                compilation_config.update(
+                    mode=0, cudagraph_mode="NONE", cudagraph_mm_encoder=False
+                )
+            kwargs["compilation_config"] = compilation_config
+
         from vllm.platforms import current_platform
 
         if current_platform.is_rocm():
@@ -1047,7 +1063,6 @@ class VllmRunner:
                 trust_remote_code=trust_remote_code,
                 dtype=dtype,
                 seed=seed,
-                enforce_eager=enforce_eager,
                 disable_log_stats=disable_log_stats,
                 tensor_parallel_size=tensor_parallel_size,
                 max_model_len=max_model_len,

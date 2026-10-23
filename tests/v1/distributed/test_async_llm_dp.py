@@ -123,7 +123,7 @@ async def test_load(
 
         engine_args = AsyncEngineArgs(
             model=model,
-            enforce_eager=True,
+            compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
             tensor_parallel_size=int(os.getenv("TP_SIZE", 1)),
             data_parallel_size=DP_SIZE,
             data_parallel_backend=data_parallel_backend,
@@ -225,7 +225,7 @@ async def test_dp_prefill_schedule_interval(prefill_schedule_interval: int):
 
         engine_args = AsyncEngineArgs(
             model="ibm-research/PowerMoE-3b",
-            enforce_eager=True,
+            compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
             tensor_parallel_size=int(os.getenv("TP_SIZE", 1)),
             data_parallel_size=DP_SIZE,
             data_parallel_backend="mp",
@@ -287,7 +287,7 @@ def _get_dp_pause_engine_args(expert_parallel: bool) -> AsyncEngineArgs:
     model = DP_PAUSE_MODEL_MOE if expert_parallel else DP_PAUSE_MODEL
     return AsyncEngineArgs(
         model=model,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         tensor_parallel_size=int(os.getenv("TP_SIZE", 1)),
         data_parallel_size=DP_SIZE,
         data_parallel_backend="mp",

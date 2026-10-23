@@ -72,7 +72,14 @@ class RemoteOpenAIServerSSL(RemoteOpenAIServer):
 
 @pytest.fixture(scope="function")
 def server():
-    args = ["--max-model-len", "1024", "--enforce-eager", "--load-format", "dummy"]
+    args = [
+        "--max-model-len",
+        "1024",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
+        "--load-format",
+        "dummy",
+    ]
 
     with RemoteOpenAIServer(MODEL_NAME, args) as remote_server:
         yield remote_server
@@ -86,7 +93,8 @@ def ssl_server():
         args = [
             "--max-model-len",
             "1024",
-            "--enforce-eager",
+            "--compilation-config.mode=0",
+            "--compilation-config.cudagraph_mode=NONE",
             "--load-format",
             "dummy",
             "--ssl-certfile",

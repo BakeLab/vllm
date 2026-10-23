@@ -66,7 +66,12 @@ def mary_had_lamb_audio_chunks() -> list[str]:
 @pytest.mark.parametrize("model_name", [MODEL_NAME])
 async def test_multi_chunk_streaming(model_name, mary_had_lamb_audio_chunks):
     """Test streaming multiple audio chunks before committing."""
-    server_args = ["--enforce-eager", "--max-model-len", "2048"]
+    server_args = [
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
+        "--max-model-len",
+        "2048",
+    ]
 
     if model_name.startswith("mistralai"):
         server_args += MISTRAL_FORMAT_ARGS
@@ -170,7 +175,12 @@ async def test_empty_commit_does_not_crash_engine(
     at every step`` which killed the entire engine process, disconnecting
     every connected client.
     """
-    server_args = ["--enforce-eager", "--max-model-len", "2048"]
+    server_args = [
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
+        "--max-model-len",
+        "2048",
+    ]
 
     if model_name.startswith("mistralai"):
         server_args += MISTRAL_FORMAT_ARGS
@@ -257,7 +267,12 @@ async def test_empty_commit_does_not_crash_engine(
 @pytest.mark.parametrize("model_name", [MODEL_NAME])
 async def test_session_update_invalid_model_returns_error(model_name):
     """Test that session.update with an invalid model returns an error."""
-    server_args = ["--enforce-eager", "--max-model-len", "2048"]
+    server_args = [
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
+        "--max-model-len",
+        "2048",
+    ]
 
     if model_name.startswith("mistralai"):
         server_args += MISTRAL_FORMAT_ARGS
@@ -284,7 +299,12 @@ async def test_session_update_invalid_model_returns_error(model_name):
 async def test_commit_without_session_update_returns_error(model_name):
     """Test that committing before validating the model returns an error
     and does not fall through to processing."""
-    server_args = ["--enforce-eager", "--max-model-len", "2048"]
+    server_args = [
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
+        "--max-model-len",
+        "2048",
+    ]
 
     if model_name.startswith("mistralai"):
         server_args += MISTRAL_FORMAT_ARGS

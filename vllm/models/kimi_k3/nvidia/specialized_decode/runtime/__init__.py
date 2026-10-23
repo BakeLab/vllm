@@ -100,7 +100,7 @@ def unsupported(vllm_config) -> str | None:
         # The loop runs only in FULL decode graphs; eager and PIECEWISE steps run stock.
         (
             graphs is None or graphs.decode_mode() != CUDAGraphMode.FULL,
-            "deployments without FULL decode CUDA graphs (e.g. enforce-eager)",
+            "deployments without FULL decode CUDA graphs",
         ),
         (
             spec is not None and spec.method != "dspark",

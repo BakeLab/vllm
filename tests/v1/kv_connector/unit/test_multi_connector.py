@@ -319,7 +319,7 @@ def test_multi_example_connector_consistency():
     expected_num_matched_tokens = (expected_num_blocks - 1) * block_size
     llm = LLM(
         model=MODEL_NAME,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         block_size=block_size,
         gpu_memory_utilization=0.5,
         kv_transfer_config=kv_transfer_config,
@@ -1273,7 +1273,7 @@ def test_multi_connector_mixed_hma_disables_hybrid_kv_cache(monkeypatch):
     ):
         llm = LLM(
             model="Qwen/Qwen3-0.6B",
-            enforce_eager=True,
+            compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
             gpu_memory_utilization=0.3,
             max_model_len=128,
             max_num_seqs=1,

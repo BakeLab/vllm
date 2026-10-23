@@ -1332,7 +1332,7 @@ def test_sleep_wake_preserves_mm_cache_consistency():
     llm = LLM(
         model="Qwen/Qwen2-VL-2B-Instruct",
         enable_sleep_mode=True,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         gpu_memory_utilization=0.5,
         max_model_len=2048,
     )

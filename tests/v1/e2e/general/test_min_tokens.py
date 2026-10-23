@@ -165,7 +165,10 @@ def llm_v1():
         model=TEST_MODEL,
         tensor_parallel_size=1,
         max_model_len=1024,  # Small context for fast testing
-        enforce_eager=True,  # Avoid graph compilation overhead
+        compilation_config={
+            "mode": 0,
+            "cudagraph_mode": "NONE",
+        },  # Avoid graph compilation overhead
     )
     return llm
 

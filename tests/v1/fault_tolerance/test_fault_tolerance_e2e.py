@@ -104,7 +104,8 @@ def _install_fault_injection(monkeypatch, tmp_path, rank: int, step: int) -> Non
 
 def _ft_server_args() -> list[str]:
     return [
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--dtype",
         "bfloat16",
         "--max-model-len",

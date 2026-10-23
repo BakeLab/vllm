@@ -111,7 +111,7 @@ def _stop_token_id(llm):
 
 @pytest.mark.skip_global_cleanup
 def test_stop_strings():
-    llm = LLM(MODEL, enforce_eager=True)
+    llm = LLM(MODEL, compilation_config={"mode": 0, "cudagraph_mode": "NONE"})
 
     _stop_basic(llm)
     _stop_multi_tokens(llm)

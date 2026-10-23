@@ -48,7 +48,7 @@ def run_audioflamingo3(question: str, audio_count: int) -> ModelRequestData:
         max_model_len=4096,
         max_num_seqs=2,
         limit_mm_per_prompt={"audio": audio_count},
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
     )
 
     # AudioFlamingo3 uses <sound> token for audio
@@ -99,7 +99,7 @@ def run_gemma3n(question: str, audio_count: int) -> ModelRequestData:
         max_num_batched_tokens=2048,
         max_num_seqs=2,
         limit_mm_per_prompt={"audio": audio_count},
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
     )
     prompt = f"<start_of_turn>user\n<audio_soft_token>{question}"
     "<end_of_turn>\n<start_of_turn>model\n"
@@ -148,7 +148,7 @@ def run_funaudiochat(question: str, audio_count: int) -> ModelRequestData:
         max_model_len=4096,
         max_num_seqs=2,
         limit_mm_per_prompt={"audio": audio_count},
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
     )
 
     audio_in_prompt = "".join(
@@ -445,7 +445,7 @@ def run_voxtral(question: str, audio_count: int) -> ModelRequestData:
         config_format="mistral",
         load_format="mistral",
         tokenizer_mode="mistral",
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
         enable_chunked_prefill=False,
     )
 

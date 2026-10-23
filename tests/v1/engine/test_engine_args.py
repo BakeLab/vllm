@@ -85,7 +85,7 @@ def test_mm_prefix_lm_raises_batched_tokens_floor():
     engine_args = EngineArgs(
         model="facebook/opt-125m",
         max_model_len=2048,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
     )
 
     with (

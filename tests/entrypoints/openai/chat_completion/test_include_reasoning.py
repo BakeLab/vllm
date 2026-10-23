@@ -25,7 +25,8 @@ def server():
         "qwen3",
         "--max-model-len",
         "2048",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--gpu-memory-utilization",
         "0.4",
     ]

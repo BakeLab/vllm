@@ -593,7 +593,6 @@ def report_usage_stats(
             # Feature flags
             "enable_lora": bool(vllm_config.lora_config),
             "enable_prefix_caching": vllm_config.cache_config.enable_prefix_caching,
-            "enforce_eager": model_config.enforce_eager,
             "disable_custom_all_reduce": parallel_config.disable_custom_all_reduce,
             # Distributed parallelism settings
             "tensor_parallel_size": parallel_config.tensor_parallel_size,

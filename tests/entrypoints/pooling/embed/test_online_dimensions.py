@@ -46,7 +46,8 @@ def server(model_info, dtype: str):
         # use half precision for speed and memory savings in CI environment
         "--dtype",
         dtype,
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--max-model-len",
         "512",
     ] + ROCM_EXTRA_ARGS

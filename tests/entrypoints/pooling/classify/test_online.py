@@ -19,7 +19,8 @@ input_tokens = [1986, 1985, 572, 9073, 323, 33808, 847, 16665]
 @pytest.fixture(scope="module")
 def server():
     args = [
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--max-model-len",
         "512",
         "--dtype",

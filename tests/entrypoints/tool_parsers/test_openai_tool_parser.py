@@ -19,7 +19,8 @@ def server():
     args = [
         "--max-model-len",
         "8192",
-        "--enforce-eager",
+        "--compilation-config.mode=0",
+        "--compilation-config.cudagraph_mode=NONE",
         "--enable-auto-tool-choice",
         "--tool-call-parser",
         "openai",

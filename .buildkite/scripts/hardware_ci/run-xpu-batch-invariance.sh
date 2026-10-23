@@ -200,7 +200,7 @@ run_e2e() {
         --max-num-batched-tokens 512 \
         --enable-chunked-prefill \
         --no-enable-prefix-caching \
-        --enforce-eager \
+        -cc.mode=none -cc.cudagraph_mode=none \
         --seed 0 \
         --max-logprobs 64 \
         --logprobs-mode raw_logits \

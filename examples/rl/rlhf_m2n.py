@@ -149,7 +149,7 @@ def main():
 
     llm = ray.remote(num_cpus=0, num_gpus=0)(MyLLM).remote(
         model=local_model_path,
-        enforce_eager=True,
+        compilation_config={"mode": "none", "cudagraph_mode": "none"},
         tensor_parallel_size=INFERENCE_TP_SIZE,
         distributed_executor_backend="ray",
         weight_transfer_config=WeightTransferConfig(backend="nccl_m2n"),

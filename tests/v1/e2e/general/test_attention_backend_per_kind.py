@@ -49,7 +49,7 @@ def test_backend_per_kind_splits_groups(backend_per_kind, monkeypatch):
     llm = LLM(
         model=MODEL,
         attention_config=AttentionConfig(backend_per_kind=backend_per_kind),
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         max_model_len=2048,
         gpu_memory_utilization=0.4,
     )
@@ -81,7 +81,7 @@ def test_backend_per_kind_overrides_global_backend(monkeypatch):
             backend="FLASH_ATTN",
             backend_per_kind={"sliding_window": AttentionBackendEnum.TRITON_ATTN},
         ),
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         max_model_len=2048,
         gpu_memory_utilization=0.4,
     )

@@ -101,7 +101,7 @@ POOLER_CONFIG="{\"pooling_type\": \"$POOLING_TYPE\", \"use_activation\": true, \
 # Start vLLM server with enhanced chunked processing
 vllm serve "$MODEL_NAME" \
   --tensor-parallel-size "$GPU_COUNT" \
-  --enforce-eager \
+  -cc.mode=none -cc.cudagraph_mode=none \
   --pooler-config "$POOLER_CONFIG" \
   --served-model-name "${MODEL_CODE}" \
   --api-key "$API_KEY" \

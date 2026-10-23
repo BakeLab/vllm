@@ -5800,15 +5800,12 @@ class GPUModelRunner(
                 # Therefore only use cudagraphs if the main model uses PIECEWISE
                 # NOTE(lucas): this is a hack, need to clean up.
                 use_cudagraphs = (
-                    (
-                        is_graph_capturing
-                        and cudagraph_runtime_mode == CUDAGraphMode.PIECEWISE
-                    )
-                    or (
-                        not is_graph_capturing
-                        and cudagraph_runtime_mode != CUDAGraphMode.NONE
-                    )
-                ) and not self.speculative_config.enforce_eager
+                    is_graph_capturing
+                    and cudagraph_runtime_mode == CUDAGraphMode.PIECEWISE
+                ) or (
+                    not is_graph_capturing
+                    and cudagraph_runtime_mode != CUDAGraphMode.NONE
+                )
 
                 # Note(gnovack) - We need to disable cudagraphs for one of the two
                 # lora cases when cudagraph_specialize_lora is enabled. This is a

@@ -56,7 +56,6 @@ def _engine_args(async_scheduling: bool) -> AsyncEngineArgs:
         max_num_seqs=256,
         async_scheduling=async_scheduling,
         enable_prefix_caching=False,
-        enforce_eager=False,
         enable_expert_parallel=False,
     )
 

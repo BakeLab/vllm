@@ -126,7 +126,7 @@ def test_deep_sleep_lora(gpu_memory_cleared):
         enable_sleep_mode=True,
         enable_lora=True,
         max_lora_rank=8,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
     )
     prompt = "How are you?"
     sampling_params = SamplingParams(temperature=0, max_tokens=10)
@@ -189,7 +189,7 @@ def test_deep_sleep_lora_tp2(monkeypatch):
         enable_lora=True,
         max_lora_rank=8,
         tensor_parallel_size=2,
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
     )
 
     # Guard against this test silently not exercising the TP>1 reindex
@@ -395,7 +395,7 @@ def test_deep_sleep_compressed_tensors_kv_scales(
         "nm-testing/TinyLlama-1.1B-Chat-v1.0-kvcache-fp8-tensor",
         enable_sleep_mode=True,
         kv_cache_dtype="fp8",
-        enforce_eager=True,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
         gpu_memory_utilization=0.6,
     )
     sampling_params = SamplingParams(temperature=0, max_tokens=10, logprobs=0)

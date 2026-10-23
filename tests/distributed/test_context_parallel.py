@@ -214,7 +214,9 @@ def _test_cp_gsm8k(
     if chunked_prefill:
         server_args.append("--enable-chunked-prefill")
     if eager_mode:
-        server_args.append("--enforce-eager")
+        server_args.extend(
+            ["--compilation-config.mode=0", "--compilation-config.cudagraph_mode=NONE"]
+        )
     if runner != "auto":
         server_args.extend(["--runner", runner])
     if trust_remote_code:

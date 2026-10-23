@@ -68,7 +68,9 @@ async def test_async_llm_model_error(
     monkeypatch.setattr(LlamaForCausalLM, "forward", evil_forward)
 
     engine_args = AsyncEngineArgs(
-        model=model, enforce_eager=True, tensor_parallel_size=tensor_parallel_size
+        model=model,
+        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        tensor_parallel_size=tensor_parallel_size,
     )
     async_llm = AsyncLLM.from_engine_args(engine_args)
 
@@ -138,7 +140,9 @@ def test_llm_model_error(
         m.setattr(LlamaForCausalLM, "forward", evil_forward)
 
         llm = LLM(
-            model=model, enforce_eager=True, tensor_parallel_size=tensor_parallel_size
+            model=model,
+            compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+            tensor_parallel_size=tensor_parallel_size,
         )
 
         with pytest.raises(EngineDeadError if enable_multiprocessing else Exception):
