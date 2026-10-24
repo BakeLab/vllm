@@ -6,6 +6,8 @@ import weakref
 import pytest
 
 from vllm import LLM, SamplingParams
+from vllm.config import CompilationConfig, CUDAGraphMode
+from vllm.config.compilation import CompilationMode
 from vllm.exceptions import VLLMValidationError
 
 MODEL_NAME = "distilbert/distilgpt2"
@@ -32,7 +34,9 @@ def llm(vllm_runner):
         max_num_batched_tokens=4096,
         tensor_parallel_size=1,
         gpu_memory_utilization=0.10,
-        enforce_eager=True,
+        compilation_config=CompilationConfig(
+            mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+        ),
     ) as runner:
         # pytest caches yielded fixtures until after teardown, so use a proxy to
         # avoid retaining the LLM while VllmRunner.__exit__ releases ROCm memory.
@@ -106,7 +110,9 @@ def test_max_model_len(vllm_runner):
         MODEL_NAME,
         max_model_len=max_model_len,
         gpu_memory_utilization=0.10,
-        enforce_eager=True,  # reduce test time
+        compilation_config=CompilationConfig(
+            mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+        ),  # reduce test time
     ) as runner:
         sampling_params = SamplingParams(max_tokens=max_model_len + 10)
         outputs = runner.llm.generate(PROMPTS, sampling_params)
@@ -125,7 +131,9 @@ def test_log_stats(vllm_runner):
         MODEL_NAME,
         disable_log_stats=False,
         gpu_memory_utilization=0.10,
-        enforce_eager=True,  # reduce test time
+        compilation_config=CompilationConfig(
+            mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+        ),  # reduce test time
     ) as runner:
         outputs = runner.llm.generate(PROMPTS, sampling_params=None)
 
