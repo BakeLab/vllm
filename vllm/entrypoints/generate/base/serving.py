@@ -1,120 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-import time
-from dataclasses import dataclass, field
-from typing import Generic, TypeVar
 
-from fastapi import Request
-from pydantic import ConfigDict
-
-from vllm import RequestOutput
-from vllm.entrypoints.generate.base.protocol import (
-    PerRequestMetrics,
-    SpeculativeDecodingMetrics,
-)
-from vllm.entrypoints.serve.engine.typing import AnyRequest
-from vllm.inputs import EngineInput
 from vllm.logger import init_logger
-from vllm.logprobs import PromptLogprobs
-from vllm.lora.request import LoRARequest
 from vllm.tokenizers import TokenizerLike
 from vllm.tokenizers.detokenizer_utils import convert_ids_list_to_tokens
-from vllm.v1.metrics.stats import RequestStateStats
 
 logger = init_logger(__name__)
-
-RequestT = TypeVar("RequestT", bound=AnyRequest)
-_T = TypeVar("_T")
-SESSION_ID_HEADER = "X-Session-ID"
-PRIORITY_HEADER = "X-Vllm-Priority"
-
-
-def build_per_request_timing_metrics(
-    metrics: RequestStateStats | None,
-    num_generation_tokens: int,
-) -> PerRequestMetrics:
-    """Build per-request timing metrics from ``RequestStateStats``.
-
-    ``generation_time_ms`` is the decode interval only (first output token to
-    last output token); it excludes both queue wait and prefill/TTFT.
-    ``tokens_per_second`` is overall output throughput: all generated tokens
-    over the inference interval (scheduling to last output token), so it counts
-    the prefill/TTFT phase and is not simply the reciprocal of ``mean_itl_ms``.
-    Each field is left ``None`` when the timestamps it depends on are
-    unavailable.
-    """
-    if metrics is None:
-        return PerRequestMetrics()
-
-    queued_ts = metrics.queued_ts
-    scheduled_ts = metrics.scheduled_ts
-    first_token_ts = metrics.first_token_ts
-    last_token_ts = metrics.last_token_ts
-
-    time_to_first_token_ms: float | None = None
-    generation_time_ms: float | None = None
-    queue_time_ms: float | None = None
-    mean_itl_ms: float | None = None
-    tokens_per_second: float | None = None
-
-    if scheduled_ts > 0 and first_token_ts > 0:
-        time_to_first_token_ms = (first_token_ts - scheduled_ts) * 1000
-
-    if first_token_ts > 0 and last_token_ts > 0:
-        generation_time_ms = (last_token_ts - first_token_ts) * 1000
-
-    if queued_ts > 0 and scheduled_ts > 0:
-        queue_time_ms = (scheduled_ts - queued_ts) * 1000
-
-    if first_token_ts > 0 and last_token_ts > 0 and num_generation_tokens > 1:
-        decode_time = last_token_ts - first_token_ts
-        mean_itl_ms = decode_time / (num_generation_tokens - 1) * 1000
-
-    if scheduled_ts > 0 and last_token_ts > 0:
-        inference_time_ms = (last_token_ts - scheduled_ts) * 1000
-        if inference_time_ms > 0:
-            tokens_per_second = num_generation_tokens / inference_time_ms * 1000
-
-    return PerRequestMetrics(
-        time_to_first_token_ms=time_to_first_token_ms,
-        generation_time_ms=generation_time_ms,
-        queue_time_ms=queue_time_ms,
-        mean_itl_ms=mean_itl_ms,
-        tokens_per_second=tokens_per_second,
-    )
-
-
-def build_spec_decoding_metrics(
-    final_res: RequestOutput | None,
-) -> SpeculativeDecodingMetrics | None:
-    """Build per-request spec-decode acceptance metrics from the single output
-    sequence, or ``None`` when unavailable (metrics disabled, or no sequence
-    yet).
-
-    Only meaningful for single-sequence requests; callers suppress it for n>1.
-    """
-    if final_res is None or not final_res.outputs:
-        return None
-    metrics = final_res.outputs[0].spec_decode_metrics
-    if metrics is None:
-        return None
-    return SpeculativeDecodingMetrics(**metrics.to_dict())
-
-
-@dataclass(kw_only=True)
-class ServeContext(Generic[RequestT]):
-    request: RequestT
-    raw_request: Request | None = None
-    model_name: str
-    request_id: str
-    created_time: int = field(default_factory=lambda: int(time.time()))
-    lora_request: LoRARequest | None = None
-    engine_inputs: list[EngineInput] | None = None
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-
-def format_token_id_placeholder(token_id: int) -> str:
-    return f"token_id:{token_id}"
 
 
 def decode_token_ids(
@@ -170,18 +61,3 @@ def completion_top_logprobs_limit(
     if return_all or logprobs is None or logprobs == -1:
         return None
     return max(logprobs + 1, 0)
-
-
-def clamp_prompt_logprobs(
-    prompt_logprobs: PromptLogprobs | None,
-) -> PromptLogprobs | None:
-    if prompt_logprobs is None:
-        return prompt_logprobs
-
-    for logprob_dict in prompt_logprobs:
-        if logprob_dict is None:
-            continue
-        for logprob_values in logprob_dict.values():
-            if logprob_values.logprob == float("-inf"):
-                logprob_values.logprob = -9999.0
-    return prompt_logprobs

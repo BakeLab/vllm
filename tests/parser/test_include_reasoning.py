@@ -3,7 +3,7 @@
 """Tests for include_reasoning suppression in the unified Parser interface.
 
 Covers non-streaming (parser.parse() + build_response_output_items),
-streaming (parse_delta), and ParsableContext.append_output() paths.
+and streaming (parse_delta) paths.
 """
 
 import json
@@ -76,7 +76,7 @@ def make_parser(tokenizer, reasoning=False, tool=False):
 
 def parse_and_build(parser, request, model_output, enable_auto_tools=False):
     """Mirrors the non-streaming path in _make_response_output_items /
-    ParsableContext.append_output(): parse → suppress reasoning → build items.
+    Response rendering: parse → suppress reasoning → build items.
     """
     from vllm.entrypoints.openai.responses.utils import (
         build_response_output_items,
@@ -348,93 +348,3 @@ class TestParseDeltaIncludeReasoning:
         for r in results:
             if r is not None:
                 assert r.reasoning is None
-
-
-# ── ParsableContext.append_output() ───────────────────────────────────
-
-
-class TestParsableContextIncludeReasoning:
-    def _make_context(self, tokenizer, request):
-        from vllm.entrypoints.openai.responses.context import ParsableContext
-
-        class TestParser(DelegatingParser):
-            reasoning_parser_cls = ThinkReasoningParser
-            tool_parser_cls = None
-
-        return ParsableContext(
-            tokenizer=tokenizer,
-            parser_cls=TestParser,
-            response_messages=[],
-            request=request,
-            available_tools=None,
-            chat_template=None,
-            chat_template_content_format="auto",
-        )
-
-    def test_process_include_false_suppresses_reasoning(self, tokenizer):
-        """ParsableContext.process() suppresses reasoning items."""
-        from vllm.outputs import CompletionOutput, RequestOutput
-
-        request = make_responses_request(include_reasoning=False)
-        ctx = self._make_context(tokenizer, request)
-
-        output = RequestOutput(
-            request_id="test",
-            prompt=None,
-            prompt_token_ids=[],
-            prompt_logprobs=None,
-            outputs=[
-                CompletionOutput(
-                    index=0,
-                    text=MODEL_OUTPUT_REASONING_AND_CONTENT,
-                    token_ids=tokenizer.encode(
-                        MODEL_OUTPUT_REASONING_AND_CONTENT,
-                        add_special_tokens=False,
-                    ),
-                    cumulative_logprob=None,
-                    logprobs=None,
-                    finish_reason="stop",
-                )
-            ],
-            finished=True,
-        )
-
-        ctx.append_output(output)
-
-        types = [getattr(m, "type", None) for m in ctx.response_messages]
-        assert "reasoning" not in types
-        assert "message" in types
-
-    def test_process_include_true_has_reasoning(self, tokenizer):
-        """ParsableContext.process() includes reasoning by default."""
-        from vllm.outputs import CompletionOutput, RequestOutput
-
-        request = make_responses_request(include_reasoning=True)
-        ctx = self._make_context(tokenizer, request)
-
-        output = RequestOutput(
-            request_id="test",
-            prompt=None,
-            prompt_token_ids=[],
-            prompt_logprobs=None,
-            outputs=[
-                CompletionOutput(
-                    index=0,
-                    text=MODEL_OUTPUT_REASONING_AND_CONTENT,
-                    token_ids=tokenizer.encode(
-                        MODEL_OUTPUT_REASONING_AND_CONTENT,
-                        add_special_tokens=False,
-                    ),
-                    cumulative_logprob=None,
-                    logprobs=None,
-                    finish_reason="stop",
-                )
-            ],
-            finished=True,
-        )
-
-        ctx.append_output(output)
-
-        types = [getattr(m, "type", None) for m in ctx.response_messages]
-        assert "reasoning" in types
-        assert "message" in types

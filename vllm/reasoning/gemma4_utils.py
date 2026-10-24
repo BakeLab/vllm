@@ -13,14 +13,11 @@ For the OpenAI-compatible API reasoning parser (streaming +
 non-streaming), see ``vllm.reasoning.gemma4_reasoning_parser``.
 For tool call parsing, see ``vllm.tool_parsers.gemma4_utils``.
 
-Usage with vLLM offline inference::
+Usage with decoded model output::
 
-    from vllm import LLM, SamplingParams
     from vllm.reasoning.gemma4_utils import parse_thinking_output
 
-    llm = LLM(model="google/gemma-4-it")
-    outputs = llm.generate(prompt, SamplingParams(...))
-    text = tokenizer.decode(outputs[0].outputs[0].token_ids, skip_special_tokens=False)
+    text = "<|channel>Let me think.<channel|>The answer is 42.<turn|>"
 
     # Extract thinking / answer (works with or without enable_thinking)
     result = parse_thinking_output(text)

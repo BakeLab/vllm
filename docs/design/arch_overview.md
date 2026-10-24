@@ -163,8 +163,9 @@ It uses `asyncio` to create a background loop that continuously processes
 incoming requests. The `AsyncLLMEngine` is designed for online serving, where it
 can handle multiple concurrent requests and stream outputs to clients.
 
-The OpenAI-compatible API server uses the `AsyncLLMEngine`. There is also a demo
-API server that serves as a simpler example in [examples/applications/api_server/server.py](../../examples/applications/api_server/server.py).
+The Rust OpenAI-compatible frontend connects directly to the engine cores through
+the engine-client protocol. See the [Rust architecture](../../rust/README.md) for
+the serving and direct-inference entrypoints.
 
 The code for `AsyncLLM` can be found in [vllm/v1/engine/async_llm.py](../../vllm/v1/engine/async_llm.py).
 

@@ -18,7 +18,7 @@ or re-quantized.
 ## Enabling
 
 ```bash
-VLLM_USE_V2_MODEL_RUNNER=1 vllm serve <Kimi-K3> -tp 8 \
+vllm serve <Kimi-K3> -tp 8 \
   --speculative-config '{"method": "dspark", "num_speculative_tokens": 7, ...}' \
   --additional-config '{"decode_backend": "latency_specialized"}'
 ```
@@ -38,7 +38,7 @@ If you request the specialized decode for anything else, startup fails with one
   context parallelism, EPLB, DBO, LoRA, KV connectors, routed-expert capture,
   sleep mode, CPU weight offload, weight updates, no speculative decoding,
   adaptive verification, dynamic speculative decoding, ReplaySSM / RecoverSSM,
-  the V1 model runner, `STOCK_TORCH_COMPILE`, another model's shapes, another GPU.
+  `STOCK_TORCH_COMPILE`, another model's shapes, another GPU.
 - **Loaded weights, when the model state builds the executor:** each kernel
   layer's weight shapes and dtypes, and the MoE backend (`AITER_MXFP4_BF16`, K3
   SiTU).

@@ -4,12 +4,10 @@ import time
 from collections.abc import Sequence
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Any, TypeAlias, cast
+from typing import Any, TypeAlias, cast
 
 from openai.types.responses import ResponseFunctionToolCall, ResponseOutputItem
-from openai.types.responses.tool import Mcp, Tool
 from openai_harmony import Message as OpenAIMessage
-from openai_harmony import ToolNamespaceConfig
 
 from vllm.config import ModelConfig
 from vllm.entrypoints.generate.base.protocol import validate_request_mm_kwargs
@@ -21,7 +19,6 @@ from vllm.entrypoints.openai.completion.protocol import (
     CompletionRequest,
 )
 from vllm.entrypoints.openai.parser.harmony_utils import (
-    BUILTIN_TOOL_TO_MCP_SERVER_LABEL,
     build_harmony_preamble,
     extract_instructions_from_messages,
     get_user_message,
@@ -69,9 +66,6 @@ from vllm.utils.mistral import mt as _mt
 
 logger = init_logger(__name__)
 
-if TYPE_CHECKING:
-    from vllm.entrypoints.mcp.tool_server import ToolServer
-
 
 ResponsesPreviousMessages: TypeAlias = (
     list[ChatCompletionMessageParam] | list[OpenAIMessage]
@@ -82,25 +76,6 @@ ResponsesPreviousMessages: TypeAlias = (
 class ResponsesRenderResult:
     messages: ResponsesPreviousMessages
     engine_input: EngineInput
-
-
-def _extract_allowed_tools_from_mcp_requests(
-    tools: list[Tool],
-) -> dict[str, list[str] | None]:
-    allowed_tools_map: dict[str, list[str] | None] = {}
-    for tool in tools:
-        if not isinstance(tool, Mcp):
-            continue
-
-        allowed_tools = None
-        if isinstance(tool.allowed_tools, list):
-            allowed_tools = tool.allowed_tools
-        elif tool.allowed_tools is not None:
-            allowed_tools = tool.allowed_tools.tool_names
-        if allowed_tools is not None and "*" in allowed_tools:
-            allowed_tools = None
-        allowed_tools_map[tool.server_label] = allowed_tools
-    return allowed_tools_map
 
 
 def _reused_prompt_token_ids(
@@ -323,7 +298,6 @@ class OnlineRenderer:
         *,
         previous_messages: ResponsesPreviousMessages | None = None,
         previous_response_outputs: list[ResponseOutputItem] | None = None,
-        tool_server: "ToolServer | None" = None,
         skip_mm_cache: bool = False,
     ) -> ResponsesRenderResult | ErrorResponse:
         """Render a Responses request using only explicitly supplied history."""
@@ -340,7 +314,6 @@ class OnlineRenderer:
                 request,
                 previous_messages=previous_messages,
                 previous_response_outputs=previous_response_outputs,
-                tool_server=tool_server,
             )
 
         if previous_messages is not None and any(
@@ -388,7 +361,6 @@ class OnlineRenderer:
         *,
         previous_messages: ResponsesPreviousMessages | None,
         previous_response_outputs: list[ResponseOutputItem] | None,
-        tool_server: "ToolServer | None",
     ) -> ResponsesRenderResult | ErrorResponse:
         self.adjust_harmony_request(request)
 
@@ -411,11 +383,6 @@ class OnlineRenderer:
                 instructions, request_input = extract_instructions_from_messages(
                     request_input
                 )
-            descriptions = self._get_harmony_builtin_tool_descriptions(
-                request.tools,
-                tool_types,
-                tool_server,
-            )
             messages.extend(
                 build_harmony_preamble(
                     instructions=instructions,
@@ -424,7 +391,6 @@ class OnlineRenderer:
                         request.reasoning.effort if request.reasoning else None
                     ),
                     with_custom_tools=with_custom_tools,
-                    **descriptions,
                 )
             )
             messages.extend(construct_harmony_previous_input_messages(request))
@@ -461,28 +427,6 @@ class OnlineRenderer:
                 tok_params=request.build_tok_params(self.model_config),
             ),
         )
-
-    def _get_harmony_builtin_tool_descriptions(
-        self,
-        tools: list[Tool],
-        tool_types: set[str],
-        tool_server: "ToolServer | None",
-    ) -> dict[str, ToolNamespaceConfig | None]:
-        allowed_tools = _extract_allowed_tools_from_mcp_requests(tools)
-        descriptions: dict[str, ToolNamespaceConfig | None] = {}
-        for server_name, request_name in BUILTIN_TOOL_TO_MCP_SERVER_LABEL.items():
-            description = (
-                tool_server.get_tool_description(
-                    server_name,
-                    allowed_tools.get(request_name),
-                )
-                if request_name in tool_types
-                and tool_server is not None
-                and tool_server.has_tool(server_name)
-                else None
-            )
-            descriptions[f"{server_name}_description"] = description
-        return descriptions
 
     def render_responses_harmony_messages(
         self,
