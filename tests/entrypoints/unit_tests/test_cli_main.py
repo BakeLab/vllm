@@ -21,8 +21,6 @@ import pytest
         (["unknown"], None, "invalid choice", 2),
         (["serve", "--help"], "serve", "Frontend", 0),
         (["serve", "--help=ModelConfig"], "serve", "ModelConfig", 0),
-        (["serve", "--enforce-eager"], "serve", "unrecognized arguments", 2),
-        (["serve", "--enforce_eager"], "serve", "unrecognized arguments", 2),
         (["chat", "--help=all"], "openai", "--quick", 0),
         (["complete", "--help=all"], "openai", "--max-tokens", 0),
         (["bench", "--help"], "benchmark.main", "throughput", 0),

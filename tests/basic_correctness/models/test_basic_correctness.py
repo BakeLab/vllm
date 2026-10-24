@@ -14,6 +14,8 @@ import torch
 
 import vllm.envs as envs
 from vllm import LLM
+from vllm.config import CompilationConfig, CUDAGraphMode
+from vllm.config.compilation import CompilationMode
 from vllm.platforms import current_platform
 from vllm.v1.engine.llm_engine import LLMEngine
 
@@ -118,7 +120,6 @@ def _fix_prompt_embed_outputs(
 @pytest.mark.parametrize("model", MODELS)
 @pytest.mark.parametrize("backend", ATTN_BACKEND)
 @pytest.mark.parametrize("max_tokens", [5])
-@pytest.mark.parametrize("enforce_eager", [False])
 @pytest.mark.parametrize("async_scheduling", [True, False])
 @pytest.mark.parametrize("model_executor", ["uni", "mp"])
 @pytest.mark.parametrize("enable_prompt_embeds", [True, False])
@@ -127,7 +128,6 @@ def test_models(
     model: str,
     backend: str,
     max_tokens: int,
-    enforce_eager: bool,
     async_scheduling: bool,
     model_executor: str,
     enable_prompt_embeds: bool,
@@ -151,7 +151,6 @@ def test_models(
     with VllmRunner(
         model,
         max_model_len=8192,
-        enforce_eager=enforce_eager,
         enable_prompt_embeds=enable_prompt_embeds,
         gpu_memory_utilization=0.7,
         async_scheduling=async_scheduling,
@@ -263,7 +262,12 @@ def test_failed_model_execution(vllm_runner, monkeypatch) -> None:
     # Needed to mock an error in the same process
     monkeypatch.setenv("VLLM_ENABLE_V1_MULTIPROCESSING", "0")
 
-    with vllm_runner("facebook/opt-125m", enforce_eager=True) as vllm_model:
+    with vllm_runner(
+        "facebook/opt-125m",
+        compilation_config=CompilationConfig(
+            mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+        ),
+    ) as vllm_model:
         if isinstance(vllm_model.llm.llm_engine, LLMEngine):
             v1_test_failed_model_execution(vllm_model)
 
@@ -278,7 +282,12 @@ def test_raise_on_logit_nans(
     envs.disable_envs_cache()
 
     try:
-        with vllm_runner("facebook/opt-125m", enforce_eager=True) as vllm_model:
+        with vllm_runner(
+            "facebook/opt-125m",
+            compilation_config=CompilationConfig(
+                mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+            ),
+        ) as vllm_model:
             engine_core = vllm_model.llm.llm_engine.engine_core.engine_core
             model_runner = engine_core.model_executor.driver_worker.worker.model_runner
             assert model_runner.vllm_config.use_v2_model_runner is use_v2_model_runner

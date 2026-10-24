@@ -11,7 +11,12 @@ import torch
 from tests.models.utils import check_logprobs_close
 from vllm import SamplingParams
 from vllm.compilation.decorators import support_torch_compile
-from vllm.config import CompilationConfig, VllmConfig, set_current_vllm_config
+from vllm.config import (
+    CompilationConfig,
+    CUDAGraphMode,
+    VllmConfig,
+    set_current_vllm_config,
+)
 from vllm.config.compilation import (
     CompilationMode,
     DynamicShapesConfig,
@@ -89,14 +94,16 @@ def generate_outputs(vllm_model):
 
 
 @pytest.fixture(scope="module")
-def get_eager_outputs(vllm_runner):
+def get_reference_outputs(vllm_runner):
     cache = {}
 
     def get(model_name):
         if model_name not in cache:
             with vllm_runner(
                 model_name,
-                enforce_eager=True,
+                compilation_config=CompilationConfig(
+                    mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+                ),
                 max_model_len=1024,
                 enable_chunked_prefill=None,
             ) as vllm_model:
@@ -110,7 +117,7 @@ def get_eager_outputs(vllm_runner):
 def test_dynamic_shapes_compilation(
     monkeypatch,
     vllm_runner,
-    get_eager_outputs,
+    get_reference_outputs,
     test_case,
 ):
     """Test representative dynamic-shapes configurations end to end."""
@@ -138,7 +145,7 @@ def test_dynamic_shapes_compilation(
         compiled_outputs = generate_outputs(vllm_model)
 
     check_logprobs_close(
-        outputs_0_lst=get_eager_outputs(test_case.model_name),
+        outputs_0_lst=get_reference_outputs(test_case.model_name),
         outputs_1_lst=compiled_outputs,
         name_0="eager",
         name_1="compiled",

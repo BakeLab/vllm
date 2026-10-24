@@ -35,18 +35,16 @@ HIDDEN = 4
 
 
 @pytest.mark.parametrize(
-    "enabled,enforce_eager,supported,expected",
+    "enabled,supported,expected",
     [
-        (True, False, True, True),
-        (False, False, True, False),
-        (True, True, True, False),
-        (True, False, False, False),
+        (True, True, True),
+        (False, True, False),
+        (True, False, False),
     ],
 )
-def test_encoder_graph_configuration(enabled, enforce_eager, supported, expected):
+def test_encoder_graph_configuration(enabled, supported, expected):
     """Encoder graph eligibility is independent of decoder graph mode."""
     config = MagicMock()
-    config.model_config.enforce_eager = enforce_eager
     config.model_config.dtype = torch.float32
     config.model_config.get_inputs_embeds_size.return_value = HIDDEN
     config.scheduler_config.max_num_batched_tokens = 8

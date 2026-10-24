@@ -226,7 +226,11 @@ def test_no_compile_reference(vllm_runner, monkeypatch):
         compilation_counter.expect(num_graphs_seen=0, stock_torch_compile_count=0),
         # loading the model causes compilation (if enabled) to happen
         vllm_runner(
-            "facebook/opt-125m", enforce_eager=True, gpu_memory_utilization=0.4
+            "facebook/opt-125m",
+            compilation_config=CompilationConfig(
+                mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+            ),
+            gpu_memory_utilization=0.4,
         ) as _,
     ):
         pass
