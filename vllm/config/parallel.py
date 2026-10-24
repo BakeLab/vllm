@@ -5,7 +5,7 @@ import os
 import socket
 from collections.abc import Callable
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Literal, Self, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, get_args, overload
 
 import regex as re
 import torch
@@ -21,22 +21,17 @@ from vllm.platforms import current_platform
 from vllm.utils.network_utils import get_open_ports_list
 
 if TYPE_CHECKING:
-    from ray.runtime_env import RuntimeEnv
-    from ray.util.placement_group import PlacementGroup
-
     from vllm.config.fault_tolerance import FaultToleranceConfig
     from vllm.v1.executor import Executor
 else:
-    RuntimeEnv = Any
-    PlacementGroup = Any
     Executor = Any
 
 logger = init_logger(__name__)
 _NUMACTL_CPUSET_PATTERN = re.compile(r"^\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*$")
 
 ExpertPlacementStrategy = Literal["linear", "round_robin"]
-DistributedExecutorBackend = Literal["ray", "mp", "uni", "external_launcher"]
-DataParallelBackend = Literal["ray", "mp"]
+DistributedExecutorBackend = Literal["mp", "uni", "external_launcher"]
+DataParallelBackend = Literal["mp"]
 EPLBPolicyOption = Literal["default"]
 DCPCommBackend = Literal["ag_rs", "a2a"]
 EPLBCommunicatorBackend = Literal[
@@ -164,7 +159,7 @@ class ParallelConfig:
     data_parallel_master_port: int = 29500
     """Port of the data parallel master."""
     data_parallel_backend: DataParallelBackend = "mp"
-    """Backend to use for data parallel, either "mp" or "ray"."""
+    """Backend to use for data parallel: "mp" (multiprocessing)."""
     data_parallel_external_lb: bool = False
     """Whether to use "external" DP LB mode. Applies only to online serving
     and when data_parallel_size > 0. This is useful for a "one-pod-per-rank"
@@ -277,25 +272,12 @@ class ParallelConfig:
     Defaults to True when async scheduling is enabled, False otherwise.
     """
 
-    ray_workers_use_nsight: bool = False
-    """Whether to profile Ray workers with nsight, see https://docs.ray.io/en/latest/ray-observability/user-guides/profiling.html#profiling-nsight-profiler."""
-
-    ray_runtime_env: RuntimeEnv | None = None
-    """Ray runtime environment to pass to distributed workers."""
-
-    placement_group: PlacementGroup | None = None
-    """ray distributed model workers placement group."""
-
     distributed_executor_backend: (
         str | DistributedExecutorBackend | type[Executor] | None
     ) = None
     """
-    Backend to use for distributed model workers, either "ray" or "mp"
-    (multiprocessing). If the product of pipeline_parallel_size and tensor_parallel_size
-    is less than or equal to the number of GPUs available, "mp" will be used to
-    keep processing on a single host. Otherwise, an error will be raised. To use "mp"
-    you must also set nnodes, and to use "ray" you must manually set
-    distributed_executor_backend to "ray".
+    Backend to use for model workers: "mp", "uni", "external_launcher",
+    or a custom Executor. For multi-node multiprocessing, set nnodes and node_rank.
     """
 
     worker_cls: str = "auto"
@@ -839,8 +821,7 @@ class ParallelConfig:
     ) -> int:
         """Map a worker's local rank to its host-local logical GPU index."""
         if (
-            self.distributed_executor_backend not in ("ray", "external_launcher")
-            and self.data_parallel_backend != "ray"
+            self.distributed_executor_backend != "external_launcher"
             and self.nnodes_within_dp == 1
         ):
             if dp_local_rank is None:
@@ -931,9 +912,6 @@ class ParallelConfig:
             "max_parallel_loading_workers",
             "disable_custom_all_reduce",
             "enable_shm_tensor_arena",
-            "ray_workers_use_nsight",
-            "ray_runtime_env",
-            "placement_group",
             "distributed_executor_backend",
             "worker_cls",
             "worker_extension_cls",
@@ -1048,44 +1026,17 @@ class ParallelConfig:
             logger.info("Disabling V1 multiprocessing for external launcher.")
 
         if self.distributed_executor_backend is None and self.world_size_across_dp > 1:
-            # We use multiprocessing by default if world_size fits on the
-            # current node and we aren't in a ray placement group.
-
-            from vllm.v1.executor import ray_utils
-
             backend: DistributedExecutorBackend = "mp"
-            ray_found = ray_utils.ray_is_available()
-            if current_platform.is_cuda() and self.nnodes > 1:
-                backend = "mp"
-            elif (
+            if (
                 current_platform.is_cuda()
+                and self.nnodes == 1
                 and current_platform.device_count() < self.world_size
             ):
-                gpu_count = current_platform.device_count()
                 raise ValueError(
-                    f"World size ({self.world_size}) is larger than the number of "
-                    f"available GPUs ({gpu_count}) in this node. If this is "
-                    "intentional and you are using:\n"
-                    "- ray, set '--distributed-executor-backend ray'.\n"
-                    "- multiprocessing, set '--nnodes' appropriately."
+                    f"World size ({self.world_size}) exceeds the available GPUs "
+                    f"({current_platform.device_count()}) on this node. "
+                    "For multi-node multiprocessing, set --nnodes appropriately."
                 )
-            elif self.data_parallel_backend == "ray":
-                logger.info(
-                    "Using ray distributed inference because "
-                    "data_parallel_backend is ray"
-                )
-                backend = "ray"
-            elif ray_found:
-                if self.placement_group:
-                    backend = "ray"
-                else:
-                    from ray import is_initialized as ray_is_initialized
-
-                    if ray_is_initialized():
-                        from ray.util import get_current_placement_group
-
-                        if get_current_placement_group():
-                            backend = "ray"
             self.distributed_executor_backend = backend
             logger.debug("Defaulting to use %s for distributed inference", backend)
 
@@ -1127,13 +1078,6 @@ class ParallelConfig:
             else:
                 self.eplb_config.communicator = "torch_gloo"
 
-    @property
-    def use_ray(self) -> bool:
-        return self.distributed_executor_backend == "ray" or (
-            isinstance(self.distributed_executor_backend, type)
-            and getattr(self.distributed_executor_backend, "uses_ray", False)
-        )
-
     @model_validator(mode="after")
     def _verify_args(self) -> Self:
         # Lazy import to avoid circular import
@@ -1150,13 +1094,19 @@ class ParallelConfig:
             raise ValueError(
                 "Unrecognized distributed executor backend "
                 f"{self.distributed_executor_backend}. Supported "
-                "values are 'ray', 'mp' 'uni', 'external_launcher', "
+                "values are 'mp', 'uni', 'external_launcher', "
                 " custom Executor subclass or its import path."
             )
-        if self.use_ray:
-            from vllm.v1.executor import ray_utils
-
-            ray_utils.assert_ray_available()
+        if (
+            isinstance(self.distributed_executor_backend, str)
+            and self.distributed_executor_backend
+            not in get_args(DistributedExecutorBackend)
+            and "." not in self.distributed_executor_backend
+        ):
+            raise ValueError(
+                "Unknown distributed executor backend: "
+                f"{self.distributed_executor_backend}"
+            )
 
         if not current_platform.use_custom_allreduce():
             self.disable_custom_all_reduce = True
@@ -1164,11 +1114,6 @@ class ParallelConfig:
                 "Disabled the custom all-reduce kernel because it is not "
                 "supported on current platform."
             )
-        if self.ray_workers_use_nsight and not self.use_ray:
-            raise ValueError(
-                "Unable to use nsight profiling unless workers run with Ray."
-            )
-
         # A batch below one token per microbatch cannot be split, so the
         # thresholds have to keep it out rather than the split having to cope.
         if self.use_ubatching and (

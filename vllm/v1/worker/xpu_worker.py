@@ -44,14 +44,9 @@ class XPUWorker(Worker):
         # In DP mode, XPU workers see all visible devices.
         # Offset local_rank by the local DP shard.
         parallel_config = self.parallel_config
-        if (
-            parallel_config.distributed_executor_backend
-            not in ("ray", "external_launcher")
-            and parallel_config.data_parallel_backend != "ray"
-            and (
-                parallel_config.data_parallel_external_lb
-                or parallel_config.nnodes_within_dp == 1
-            )
+        if parallel_config.distributed_executor_backend != "external_launcher" and (
+            parallel_config.data_parallel_external_lb
+            or parallel_config.nnodes_within_dp == 1
         ):
             dp_local_rank = parallel_config.data_parallel_rank_local
             if dp_local_rank is None:
@@ -133,14 +128,13 @@ class XPUWorker(Worker):
                 )
                 # NOTE: local_world_size is derived from parallel_config.nnodes,
                 # which is only set for the "mp" multi-node backend. With the
-                # "ray"/"external_launcher" backends nnodes stays 1, so
+                # "external_launcher" backends nnodes stays 1, so
                 # local_world_size collapses to the full world_size and this
                 # check wrongly fires on cross-node deployments.
                 # assigned_physical_gpu_ids is already per-node and the
                 # local_rank bound above fully validates the mapping for
                 # these backends, so skip the check for them.
                 if parallel_config.distributed_executor_backend not in (
-                    "ray",
                     "external_launcher",
                 ):
                     assert parallel_config.local_world_size <= len(

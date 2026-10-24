@@ -1282,7 +1282,6 @@ class AsyncLLM(EngineClient):
 
         # recreate stat loggers
         if new_data_parallel_size > old_data_parallel_size and self.log_stats:
-            # TODO(rob): fix this after talking with Ray team.
             # This resets all the prometheus metrics since we
             # unregister during initialization. Need to understand
             # the intended behavior here better.

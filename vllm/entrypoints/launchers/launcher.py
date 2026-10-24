@@ -53,7 +53,6 @@ def setup_server(args, *, reuse_port: bool):
     validate_api_server_args(args)
 
     # workaround to make sure that we bind the port before the engine is set up.
-    # This avoids race conditions with ray.
     # see https://github.com/vllm-project/vllm/issues/8204
     if args.uds:
         sock = create_server_unix_socket(args.uds)

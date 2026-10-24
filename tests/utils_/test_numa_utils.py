@@ -299,7 +299,7 @@ def test_get_numactl_args_engine_core_pct_dp_shard_picks_local_nodes(monkeypatch
 def test_get_numactl_args_engine_core_pct_external_launcher_spans_local_nodes(
     monkeypatch,
 ):
-    """external_launcher (or multi-node-within-DP, or Ray) hits the
+    """external_launcher (or multi-node-within-DP, or an external launcher) hits the
     fallback branch. EngineCore must still span every local NUMA node
     so it can mp-spawn its local workers without ``--physcpubind``
     strict-validation failures."""
@@ -442,12 +442,10 @@ def test_pcp_engine_core_covers_all_shard_workers(dp_rank, expected_nodes):
 @pytest.mark.parametrize(
     "parallel_kwargs",
     [
-        {"distributed_executor_backend": "ray"},
         {"distributed_executor_backend": "external_launcher"},
-        {"data_parallel_backend": "ray"},
         {"nnodes_within_dp": 2},
     ],
-    ids=["ray-executor", "external-launcher", "ray-dp", "multi-node-dp"],
+    ids=["external-launcher", "multi-node-dp"],
 )
 def test_pcp_worker_keeps_local_gpu_index_without_dp_offset(parallel_kwargs):
     """Node-local launcher ranks do not acquire a colocated DP offset."""

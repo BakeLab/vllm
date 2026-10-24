@@ -22,7 +22,6 @@ vector_quantize_pytorch # required for minicpmo_26 test
 vocos # required for minicpmo_26 test
 peft>=0.20.0 # required for phi-4-mm test
 pqdm
-ray[default]>=2.56.0,<2.57 # sharded-RDT weight transfer needs Ray Direct Transport (>=2.56)
 sentence-transformers>=5.2.0 # required for embedding tests
 soundfile # required for audio tests
 jiwer # required for audio tests
@@ -84,7 +83,7 @@ openpyxl # required for perf comparison excel report
 plotly # required for perf comparison html report
 
 # Dependabot GHSA floors for transitive test deps (excl. dependabot.yml ignores:
-# torch/torchvision/xformers/lm-format-enforcer/compressed-tensors/ray/lm-eval).
+# torch/torchvision/xformers/lm-format-enforcer/compressed-tensors/lm-eval).
 # Skipped (no patched release yet): sqlitedict, accelerate, lmcache, nltk GHSA-8mgp-746c-j5xp.
 urllib3>=2.7.0
 cryptography>=50.0.0

@@ -884,47 +884,6 @@ steps:
   - VLLM_ALLOW_INSECURE_SERIALIZATION=1 python3 ../examples/rl/rlhf_http_nccl.py
   - VLLM_ALLOW_INSECURE_SERIALIZATION=1 python3 ../examples/rl/rlhf_http_ipc.py
 
-- label: ":amd: (MI300) Elastic EP Scaling" # TBD
-  timeout_in_minutes: 55
-  mirror_hardwares: [amdexperimental, amdproduction, amdgfx942nightly, amdmi300]
-  dind: false
-  agent_pool: mi300_4
-  num_gpus: 4
-  optional: true
-  working_dir: "/vllm-workspace/tests"
-  source_file_dependencies:
-  - vllm/distributed/
-  - vllm/engine/
-  - vllm/v1/executor/
-  - vllm/compilation/
-  - tests/distributed/
-  - vllm/platforms/rocm.py
-  commands:
-  - uv pip install --system -r /vllm-workspace/requirements/kv_connectors_rocm.txt
-  - pytest -v -s distributed/test_elastic_ep.py
-
-- label: ":amd: (MI300) RayExecutorV2" # TBD
-  timeout_in_minutes: 75
-  mirror_hardwares: [amdexperimental, amdproduction, amdgfx942nightly, amdmi300]
-  dind: false
-  agent_pool: mi300_4
-  num_gpus: 4
-  working_dir: "/vllm-workspace/tests"
-  source_file_dependencies:
-  - vllm/v1/executor/ray_executor_v2.py
-  - vllm/v1/executor/abstract.py
-  - vllm/v1/executor/multiproc_executor.py
-  - tests/distributed/test_ray_v2_executor.py
-  - tests/distributed/test_ray_v2_executor_e2e.py
-  - tests/distributed/test_pipeline_parallel.py
-  - tests/basic_correctness/models/test_basic_correctness.py
-  - vllm/platforms/rocm.py
-  commands:
-  - pytest -v -s distributed/test_ray_v2_executor.py
-  - pytest -v -s distributed/test_ray_v2_executor_e2e.py
-  - pytest -v -s distributed/test_pipeline_parallel.py -k "ray"
-  - TARGET_TEST_SUITE=L4 pytest -v -s basic_correctness/models/test_basic_correctness.py -k "ray"
-
 - label: ":amd: (MI300) Distributed DP + EP" # TBD
   timeout_in_minutes: 50
   mirror_hardwares: [amdexperimental, amdproduction, amdgfx942nightly, amdmi300]
@@ -2192,24 +2151,6 @@ steps:
   - pip install 'modelscope<1.38'
   - pytest -v -s test_regression.py
 
-#---------------------------------------------------------  mi300 · ray_compat  ---------------------------------------------------------#
-
-- label: ":amd: (MI300) Ray Dependency Compatibility Check" # TBD
-  timeout_in_minutes: 25
-  mirror_hardwares: [amdexperimental, amdproduction, amdgfx942nightly, amdmi300]
-  dind: false
-  agent_pool: mi300_1
-  working_dir: "/"
-  source_file_dependencies:
-  - requirements/
-  - setup.py
-  - vllm/platforms/rocm.py
-  - .buildkite/scripts/check-ray-compatibility.sh
-  optional: true
-  commands:
-  - bash /vllm-workspace/.buildkite/scripts/check-ray-compatibility.sh
-
-#------------------------------------------------------------  mi300 · v1  -------------------------------------------------------------#
 
 - label: ":amd: (MI300) Batch Invariance" # TBD
   timeout_in_minutes: 60
@@ -2995,27 +2936,6 @@ steps:
   commands:
   - pytest -v -s distributed/test_eplb_algo.py
   - pytest -v -s distributed/test_eplb_utils.py
-
-- label: ":amd: (MI355 DPX) Sharded RDT Weight Transfer"
-  timeout_in_minutes: 45
-  mirror_hardwares: [amdexperimental, amdproduction, amdgfx950nightly, amdmi355]
-  dind: false
-  agent_pool: mi355_dpx
-  num_gpus: 1
-  optional: true
-  working_dir: "/vllm-workspace/tests"
-  source_file_dependencies:
-  - vllm/distributed/weight_transfer/
-  - tests/distributed/test_sharded_rdt_plan.py
-  - tests/distributed/test_sharded_rdt_producer.py
-  - tests/distributed/test_sharded_rdt_trainer.py
-  - vllm/platforms/rocm.py
-  commands:
-  - export VLLM_WORKER_MULTIPROC_METHOD=spawn
-  - uv pip install --system --no-deps 'ray==2.56.1'
-  - pytest -v -s distributed/test_sharded_rdt_plan.py
-  - pytest -v -s distributed/test_sharded_rdt_producer.py
-  - pytest -v -s distributed/test_sharded_rdt_trainer.py
 
 - label: ":amd: (MI355) GEMM-RS-AR"
   timeout_in_minutes: 20

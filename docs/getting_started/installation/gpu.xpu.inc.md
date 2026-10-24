@@ -156,7 +156,7 @@ vllm serve facebook/opt-13b \
      -tp=8
 ```
 
-By default, a ray instance will be launched automatically if no existing one is detected in the system, with `num-gpus` equals to `parallel_config.world_size`. We recommend properly starting a ray cluster before execution, referring to the [examples/ray_serving/run_cluster.sh](https://github.com/vllm-project/vllm/blob/main/examples/ray_serving/run_cluster.sh) helper script.
+Use the multiprocessing deployment described in [Parallelism and Scaling](../../serving/parallelism_scaling.md).
 
 --8<-- [end:supported-features]
 --8<-- [start:distributed-backend]

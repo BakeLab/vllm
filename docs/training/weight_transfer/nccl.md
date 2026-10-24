@@ -56,7 +56,7 @@ engine = WeightTransferTrainerFactory.trainer_init(
         rank=0,                  # this trainer rank; rank 0 is the sender
         packed=True,
     ),
-    client=HTTPVLLMWeightSyncClient("http://localhost:8000"),  # or RayVLLMWeightSyncClient(llm)
+    client=HTTPVLLMWeightSyncClient("http://localhost:8000"),
     source=ModuleSource(model),
 )
 
@@ -226,7 +226,7 @@ patch list is a no-op.
 
 ```python
 from vllm.distributed.weight_transfer import (
-    RayVLLMWeightSyncClient,
+    HTTPVLLMWeightSyncClient,
     WeightTransferTrainerFactory,
 )
 from vllm.distributed.weight_transfer.sparse_nccl_engine import (
@@ -234,7 +234,7 @@ from vllm.distributed.weight_transfer.sparse_nccl_engine import (
     SparseWeightPatch,
 )
 
-client = RayVLLMWeightSyncClient(llm)
+client = HTTPVLLMWeightSyncClient("http://localhost:8000")
 engine = WeightTransferTrainerFactory.trainer_init(
     init_info=SparseNCCLTrainerInitInfo(
         master_address=master_address,
@@ -269,12 +269,8 @@ client.finish_weight_update()
 
 Sparse NCCL sends only `O(nnz)` indices and values. Checkpoint application still uses `O(N)` staging through the native loader, and the caller owns export/diff state and restart or reseed after a partial failure.
 
-[`rlhf_sparse_nccl.py`](../../../examples/rl/rlhf_sparse_nccl.py) demonstrates per-expert checkpoint patches with a Qwen3 MoE TP2/EP2 engine.
 
 ## Examples
 
 - [RLHF with NCCL weight syncing (`vllm serve`, HTTP)](../../../examples/rl/rlhf_http_nccl.py) - **Start here.** Trainer on one GPU, 2x tensor-parallel fp8 server on two others; HTTP control plane, NCCL data plane. Launches and tears down its own server
 - [NCCL weight syncing from a trainer that does not import vLLM](../../../examples/rl/rlhf_http_nccl_no_vllm.py) - `torch` + `requests` only, `nccl_unique_id_b64` rendezvous; see [Trainer Without vLLM over HTTP](#trainer-without-vllm-over-http)
-- [RLHF with NCCL + FSDP2 and expert parallelism](../../../examples/rl/rlhf_nccl_fsdp_ep.py) - Multi-rank trainer: every FSDP rank builds an engine and joins the `full_tensor()` gather while only rank 0 touches the wire
-- [RLHF with sparse NCCL weight syncing (offline, Ray)](../../../examples/rl/rlhf_sparse_nccl.py) - Qwen3 MoE per-expert checkpoint updates with one trainer GPU and two TP2/EP2 inference GPUs
-- [RLHF with async weight syncing (offline, Ray)](../../../examples/rl/rlhf_async_new_apis.py) - Async generation with mid-flight pause, weight sync, resume, and validation against a fresh model; uses an in-process `AsyncLLMEngine` with `RayVLLMWeightSyncClient`

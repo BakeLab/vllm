@@ -8,16 +8,17 @@ M2N runtime and multiple GPUs, so it is exercised separately.
 """
 
 import logging
+import os
 from contextlib import contextmanager
-from functools import wraps
+from functools import partial, wraps
 from types import MethodType, SimpleNamespace
 from unittest.mock import Mock, call
 
 import pybase64 as base64
 import pytest
-import ray
 import torch
 
+from tests.utils import run_gpu_workers
 from vllm.config.weight_transfer import WeightTransferConfig
 from vllm.distributed.weight_transfer import (
     WeightTransferEngineFactory,
@@ -1186,7 +1187,7 @@ class TestRegistration:
 # End-to-end transfer
 #
 # Transport-only, in the style of the NCCL/sparse tests in
-# test_weight_transfer.py: two Ray tasks with one GPU each drive the two engines
+# test_weight_transfer.py: two spawned processes with one GPU each drive the two engines
 # directly, so no HTTP server or LLM instance is involved. The worker is not an
 # RPC endpoint here, so the trainer engine gets a no-op control-plane client --
 # the NCCL rendezvous and the reshard itself are the real thing.
@@ -1196,29 +1197,12 @@ SHAPE = [64, 32]
 DTYPE = "float32"
 
 
-def _init_ray() -> None:
-    if ray.is_initialized():
-        return
-    ray.init(
-        ignore_reinit_error=True,
-        runtime_env={
-            "env_vars": {
-                "RAY_EXPERIMENTAL_NOSET_CUDA_VISIBLE_DEVICES": "1",
-                "RAY_EXPERIMENTAL_NOSET_HIP_VISIBLE_DEVICES": "1",
-                "RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES": "1",
-            }
-        },
-    )
-
-
-def _assigned_device() -> "torch.device":
-    gpu_ids = ray.get_gpu_ids()
-    device = torch.device(f"cuda:{int(gpu_ids[0])}" if gpu_ids else "cuda:0")
+def _assigned_device() -> torch.device:
+    device = torch.device(f"cuda:{os.environ['LOCAL_RANK']}")
     current_platform.set_device(device)
     return device
 
 
-@ray.remote(num_gpus=1)
 def _m2n_trainer_send(
     master_address: str,
     master_port: int,
@@ -1304,7 +1288,6 @@ def _m2n_trainer_send(
     return True
 
 
-@ray.remote(num_gpus=1)
 def _m2n_worker_receive(
     master_address: str,
     master_port: int,
@@ -1444,7 +1427,6 @@ def test_m2n_weight_transfer_between_processes(data_plane):
     in this file checks how a transfer is *described*.
     """
     pytest.importorskip("nccl.m2n", reason="nccl_m2n backend needs the m2n runtime")
-    _init_ray()
 
     master_address = "127.0.0.1"
     master_port = get_open_port()
@@ -1457,19 +1439,21 @@ def test_m2n_weight_transfer_between_processes(data_plane):
             bytes(nccl.get_unique_id().as_bytes)
         ).decode()
 
-    worker = _m2n_worker_receive.remote(
+    worker = partial(
+        _m2n_worker_receive,
         master_address,
         master_port,
         world_size,
         nccl_unique_id_b64=nccl_unique_id_b64,
     )
-    trainer = _m2n_trainer_send.remote(
+    trainer = partial(
+        _m2n_trainer_send,
         master_address,
         master_port,
         world_size,
         nccl_unique_id_b64,
     )
-    trainer_ok, result = ray.get([trainer, worker], timeout=300)
+    trainer_ok, result = run_gpu_workers([trainer, worker], timeout=300)
 
     assert trainer_ok, "trainer engine did not complete"
     assert result["count"] == 1, f"expected one parameter, got {result['count']}"
@@ -1485,18 +1469,17 @@ def test_m2n_weight_transfer_between_processes(data_plane):
 def test_m2n_weight_transfer_to_tp2_shards():
     """Two inference workers receive their own TP shard in live model storage."""
     pytest.importorskip("nccl.m2n", reason="nccl_m2n backend needs the m2n runtime")
-    _init_ray()
 
     master_address = "127.0.0.1"
     master_port = get_open_port()
     world_size = 3
 
     workers = [
-        _m2n_worker_receive.remote(master_address, master_port, world_size, rank)
+        partial(_m2n_worker_receive, master_address, master_port, world_size, rank)
         for rank in range(2)
     ]
-    trainer = _m2n_trainer_send.remote(master_address, master_port, world_size)
-    trainer_ok, *results = ray.get([trainer, *workers], timeout=300)
+    trainer = partial(_m2n_trainer_send, master_address, master_port, world_size)
+    trainer_ok, *results = run_gpu_workers([trainer, *workers], timeout=300)
 
     assert trainer_ok, "trainer engine did not complete"
     for rank, result in enumerate(results):
@@ -1514,12 +1497,12 @@ def test_m2n_weight_transfer_to_tp2_shards():
 def test_m2n_transfer_with_per_parameter_source_meshes():
     """One collective sequence accepts heterogeneous source factorizations."""
     pytest.importorskip("nccl.m2n", reason="nccl_m2n backend needs the m2n runtime")
-    _init_ray()
 
     master_address = "127.0.0.1"
     master_port = get_open_port()
     trainers = [
-        _m2n_trainer_send.remote(
+        partial(
+            _m2n_trainer_send,
             master_address,
             master_port,
             4,
@@ -1529,7 +1512,8 @@ def test_m2n_transfer_with_per_parameter_source_meshes():
         for rank in range(2)
     ]
     workers = [
-        _m2n_worker_receive.remote(
+        partial(
+            _m2n_worker_receive,
             master_address,
             master_port,
             4,
@@ -1538,7 +1522,7 @@ def test_m2n_transfer_with_per_parameter_source_meshes():
         )
         for rank in range(2)
     ]
-    results = ray.get(trainers + workers, timeout=300)
+    results = run_gpu_workers(trainers + workers, timeout=300)
     trainer_results, worker_results = results[:2], results[2:]
 
     assert trainer_results == [True, True]

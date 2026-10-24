@@ -172,8 +172,6 @@ if TYPE_CHECKING:
     VLLM_SERVER_DEV_MODE: bool = False
     VLLM_V1_OUTPUT_PROC_CHUNK_SIZE: int = 128
     VLLM_MLA_DISABLE: bool = False
-    VLLM_RAY_PER_WORKER_GPUS: float = 1.0
-    VLLM_RAY_BUNDLE_INDICES: str = ""
     VLLM_CUDART_SO_PATH: str | None = None
     VLLM_DP_RANK: int = 0
     VLLM_DP_RANK_LOCAL: int = -1
@@ -183,10 +181,6 @@ if TYPE_CHECKING:
     VLLM_DP_MASTER_IP: str = ""
     VLLM_DP_MASTER_PORT: int = 0
     VLLM_RANDOMIZE_DP_DUMMY_INPUTS: bool = False
-    VLLM_RAY_DP_PACK_STRATEGY: Literal["strict", "fill", "span"] = "strict"
-    VLLM_RAY_DP_PLACEMENT_NODE_IPS: str = ""
-    VLLM_RAY_EXTRA_ENV_VAR_PREFIXES_TO_COPY: str = ""
-    VLLM_RAY_EXTRA_ENV_VARS_TO_COPY: str = ""
     VLLM_MARLIN_USE_ATOMIC_ADD: bool = False
     VLLM_MARLIN_INPUT_DTYPE: Literal["int8", "fp8"] | None = None
     VLLM_HUMMING_ONLINE_QUANT_CONFIG: dict[str, Any] | None = None
@@ -1443,17 +1437,6 @@ environment_variables: dict[str, Callable[[], Any]] = {
     ),
     # If set, vLLM will disable the MLA attention optimizations.
     "VLLM_MLA_DISABLE": lambda: bool(int(os.getenv("VLLM_MLA_DISABLE", "0"))),
-    # If set, vLLM will pick up the provided Flash Attention MLA
-    # Number of GPUs per worker in Ray, if it is set to be a fraction,
-    # it allows ray to schedule multiple actors on a single GPU,
-    # so that users can colocate other actors on the same GPUs as vLLM.
-    "VLLM_RAY_PER_WORKER_GPUS": lambda: float(
-        os.getenv("VLLM_RAY_PER_WORKER_GPUS", "1.0")
-    ),
-    # Bundle indices for Ray, if it is set, it can control precisely
-    # which indices are used for the Ray bundle, for every worker.
-    # Format: comma-separated list of integers, e.g. "0,1,2,3"
-    "VLLM_RAY_BUNDLE_INDICES": lambda: os.getenv("VLLM_RAY_BUNDLE_INDICES", ""),
     # In some system, find_loaded_library() may not work. So we allow users to
     # specify the path through environment variable VLLM_CUDART_SO_PATH.
     "VLLM_CUDART_SO_PATH": lambda: os.getenv("VLLM_CUDART_SO_PATH", None),
@@ -1473,40 +1456,6 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # Randomize inputs during dummy runs when using Data Parallel
     "VLLM_RANDOMIZE_DP_DUMMY_INPUTS": lambda: (
         os.environ.get("VLLM_RANDOMIZE_DP_DUMMY_INPUTS", "0") == "1"
-    ),
-    # Strategy to pack the data parallel ranks for Ray.
-    # Available options:
-    # - "fill":
-    #   for DP master node, allocate exactly data-parallel-size-local DP ranks,
-    #   for non-master nodes, allocate as many DP ranks as can fit;
-    # - "strict":
-    #   allocate exactly data-parallel-size-local DP ranks to each picked node;
-    # - "span":
-    #   Should be used only when a single DP rank requires multiple nodes.
-    #   allocate one DP rank over as many nodes as required for set world_size;
-    # This environment variable is ignored if data-parallel-backend is not Ray.
-    "VLLM_RAY_DP_PACK_STRATEGY": lambda: os.getenv(
-        "VLLM_RAY_DP_PACK_STRATEGY", "strict"
-    ),
-    # Optional comma-separated list of node IPs that Ray data-parallel
-    # placement groups may use. When set, create_dp_placement_groups only
-    # considers these nodes (the DP master node is always included).
-    # This environment variable is ignored if data-parallel-backend is not Ray.
-    "VLLM_RAY_DP_PLACEMENT_NODE_IPS": lambda: os.getenv(
-        "VLLM_RAY_DP_PLACEMENT_NODE_IPS", ""
-    ),
-    # Comma-separated *additional* prefixes of env vars to copy from the
-    # driver to Ray workers.  These are merged with the built-in defaults
-    # defined in ``vllm.ray.ray_env`` (VLLM_, etc.).  Example: "MYLIB_,OTHER_"
-    "VLLM_RAY_EXTRA_ENV_VAR_PREFIXES_TO_COPY": lambda: os.getenv(
-        "VLLM_RAY_EXTRA_ENV_VAR_PREFIXES_TO_COPY", ""
-    ),
-    # Comma-separated *additional* individual env var names to copy from
-    # the driver to Ray workers.  Merged with the built-in defaults
-    # defined in ``vllm.ray.ray_env`` (PYTHONHASHSEED).
-    # Example: "MY_SECRET,MY_FLAG"
-    "VLLM_RAY_EXTRA_ENV_VARS_TO_COPY": lambda: os.getenv(
-        "VLLM_RAY_EXTRA_ENV_VARS_TO_COPY", ""
     ),
     # Use model_redirect to redirect the model name to a local folder.
     # `model_redirect` can be a json file mapping the model between
@@ -2341,7 +2290,6 @@ def compile_factors() -> dict[str, object]:
         "VLLM_RANDOMIZE_DP_DUMMY_INPUTS",
         "VLLM_MODEL_REDIRECT_PATH",
         "VLLM_HOST_IP",
-        "VLLM_RAY_BUNDLE_INDICES",
         "VLLM_CHAT_TEMPLATE_FUEL",
         "VLLM_ELASTIC_EP_SCALE_UP_LAUNCH",
         "VLLM_FORCE_AOT_LOAD",
@@ -2423,26 +2371,5 @@ def compile_factors() -> dict[str, object]:
             continue
 
         factors[factor] = normalize_value(raw)
-
-    ray_noset_env_vars = [
-        # Refer to
-        # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/nvidia_gpu.py#L11
-        # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/amd_gpu.py#L11
-        # https://github.com/ray-project/ray/blob/b97d21dab233c2bd8ed7db749a82a1e594222b5c/python/ray/_private/accelerators/amd_gpu.py#L10
-        # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/npu.py#L12
-        # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/neuron.py#L14
-        # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/intel_gpu.py#L10
-        # https://github.com/ray-project/ray/blob/c584b1ea97b00793d1def71eaf81537d70efba42/python/ray/_private/accelerators/rbln.py#L10
-        "RAY_EXPERIMENTAL_NOSET_CUDA_VISIBLE_DEVICES",
-        "RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES",
-        "RAY_EXPERIMENTAL_NOSET_HIP_VISIBLE_DEVICES",
-        "RAY_EXPERIMENTAL_NOSET_ASCEND_RT_VISIBLE_DEVICES",
-        "RAY_EXPERIMENTAL_NOSET_NEURON_RT_VISIBLE_CORES",
-        "RAY_EXPERIMENTAL_NOSET_ONEAPI_DEVICE_SELECTOR",
-        "RAY_EXPERIMENTAL_NOSET_RBLN_RT_VISIBLE_DEVICES",
-    ]
-
-    for var in ray_noset_env_vars:
-        factors[var] = normalize_value(os.getenv(var))
 
     return factors

@@ -472,7 +472,7 @@ def _collect_soft_mismatches(
 
 def _run_generation(
     *,
-    backend: Literal["mp", "ray"],
+    backend: Literal["mp"],
     quant_mode: str,
     expect_quick_reduce: bool,
 ) -> list[tuple[tuple[int, ...], str]]:
@@ -538,7 +538,7 @@ def _run_generation(
 
 def _run_quick_reduce_llm_e2e_in_subprocess(
     *,
-    backend: Literal["mp", "ray"],
+    backend: Literal["mp"],
 ) -> str | None:
     _log(f"running LLM e2e: backend={backend}")
     _log_prompt_summaries()
@@ -568,7 +568,7 @@ def _run_quick_reduce_llm_e2e_in_subprocess(
 
 def _quick_reduce_llm_e2e_worker(
     result_queue: mp.Queue,
-    backend: Literal["mp", "ray"],
+    backend: Literal["mp"],
 ) -> None:
     try:
         xfail_reason = _run_quick_reduce_llm_e2e_in_subprocess(backend=backend)
@@ -584,7 +584,7 @@ def _quick_reduce_llm_e2e_worker(
 
 def run_quick_reduce_llm_e2e(
     *,
-    backend: Literal["mp", "ray"],
+    backend: Literal["mp"],
 ) -> None:
     ctx = mp.get_context("spawn")
     result_queue = ctx.Queue()
@@ -876,12 +876,3 @@ def test_quick_allreduce_bf16_cast_mode():
 def test_quick_allreduce_llm_e2e():
     _log("LLM e2e case: backend=mp")
     run_quick_reduce_llm_e2e(backend="mp")
-
-
-@pytest.mark.skipif(
-    current_platform.device_count() < WORLD_SIZE,
-    reason="requires 2 ROCm GPUs",
-)
-def test_quick_allreduce_llm_e2e_ray():
-    _log("LLM e2e case: backend=ray")
-    run_quick_reduce_llm_e2e(backend="ray")

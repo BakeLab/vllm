@@ -11,22 +11,22 @@ trainer) initialize NCCL weight transfer from a unique id minted out of band.
   via vLLM's own ``PyNcclCommunicator``, one via a genuinely torch-free trainer
   (cupy buffer + raw ``ncclBroadcast``).
 
-The shared Ray helpers come from the sibling module (unchanged); the worker task
+The shared multiprocessing helpers come from the sibling module; the worker task
 is local so the sibling's TCP test and its worker stay untouched.
 """
 
+from functools import partial
 from unittest.mock import MagicMock
 
 import pybase64 as base64
 import pytest
-import ray
 import torch
 
 from tests.distributed.test_weight_transfer import (
-    _init_ray_for_weight_transfer,
-    _set_ray_assigned_device,
+    _set_assigned_device,
     create_mock_vllm_config,
 )
+from tests.utils import run_gpu_workers
 from vllm.config.weight_transfer import WeightTransferConfig
 from vllm.distributed.weight_transfer.nccl_engine import (
     NCCLTrainerInitInfo,
@@ -177,7 +177,6 @@ class TestNCCLRendezvousValidation:
             )
 
 
-@ray.remote(num_gpus=1)
 def inference_receive_tensor(
     init_info_dict: dict,
     tensor_shape: list[int],
@@ -192,7 +191,7 @@ def inference_receive_tensor(
 
     import torch
 
-    _set_ray_assigned_device()
+    _set_assigned_device()
 
     from vllm.config.parallel import ParallelConfig
     from vllm.config.weight_transfer import WeightTransferConfig
@@ -259,7 +258,6 @@ def inference_receive_tensor(
         engine.shutdown()
 
 
-@ray.remote(num_gpus=1)
 def trainer_broadcast_tensor_uid(
     uid_b64: str,
     world_size: int,
@@ -275,7 +273,7 @@ def trainer_broadcast_tensor_uid(
     import pybase64 as base64
     import torch
 
-    _set_ray_assigned_device()
+    _set_assigned_device()
 
     from vllm.distributed.weight_transfer import ModuleSource
     from vllm.distributed.weight_transfer.nccl_common import uid_init_process_group
@@ -327,7 +325,6 @@ def trainer_broadcast_tensor_uid(
         engine.shutdown()
 
 
-@ray.remote(num_gpus=1)
 def trainer_broadcast_tensor_torch_free(
     uid_b64: str,
     world_size: int,
@@ -346,7 +343,7 @@ def trainer_broadcast_tensor_torch_free(
     import numpy as np
     import pybase64 as base64
 
-    device = _set_ray_assigned_device()
+    device = _set_assigned_device()
     cp.cuda.Device(device.index).use()
 
     from vllm.distributed.device_communicators.pynccl_wrapper import (
@@ -406,8 +403,6 @@ def _run_uid_transfer(trainer_task) -> None:
     there is no store barrier on the UID path."""
     from vllm.distributed.device_communicators.pynccl_wrapper import NCCLLibrary
 
-    _init_ray_for_weight_transfer()
-
     nccl = NCCLLibrary()
     uid_b64 = base64.b64encode(bytes(nccl.ncclGetUniqueId().internal)).decode()
 
@@ -415,7 +410,8 @@ def _run_uid_transfer(trainer_task) -> None:
     tensor_shape = [100, 100]
     tensor_dtype = "float32"
 
-    inference_future = inference_receive_tensor.remote(
+    inference_future = partial(
+        inference_receive_tensor,
         {
             "rank_offset": 1,
             "world_size": world_size,
@@ -425,16 +421,13 @@ def _run_uid_transfer(trainer_task) -> None:
         tensor_shape,
         tensor_dtype,
     )
-    trainer_future = trainer_task.remote(
-        uid_b64, world_size, tensor_shape, tensor_dtype
+    trainer_future = partial(
+        trainer_task, uid_b64, world_size, tensor_shape, tensor_dtype
     )
 
-    try:
-        trainer_result, result = ray.get(
-            [trainer_future, inference_future], timeout=120
-        )
-    finally:
-        ray.shutdown()
+    trainer_result, result = run_gpu_workers(
+        [trainer_future, inference_future], timeout=120
+    )
 
     assert trainer_result["success"], "Trainer should complete successfully"
     assert result["success"], (

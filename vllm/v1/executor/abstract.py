@@ -57,11 +57,10 @@ class Executor(ABC):
     or it can be a distributed executor that can execute the model on multiple devices.
     """
 
-    uses_ray: bool = False  # whether the executor uses Ray for orchestration.
     supports_pp: bool = False  # whether the executor supports PP
 
     @staticmethod
-    def get_class(vllm_config: VllmConfig) -> type["Executor"]:
+    def get_class(vllm_config: VllmConfig) -> type[Executor]:
         executor_class: type[Executor]
         parallel_config = vllm_config.parallel_config
         distributed_executor_backend = parallel_config.distributed_executor_backend
@@ -73,10 +72,6 @@ class Executor(ABC):
                     f"Executor. Got {distributed_executor_backend}."
                 )
             executor_class = distributed_executor_backend
-        elif distributed_executor_backend == "ray":
-            from vllm.v1.executor.ray_executor_v2 import RayExecutorV2
-
-            executor_class = RayExecutorV2
         elif distributed_executor_backend == "mp":
             from vllm.v1.executor.multiproc_executor import MultiprocExecutor
 
@@ -339,7 +334,7 @@ class Executor(ABC):
         """Shutdown the executor."""
         self.collective_rpc("shutdown")
 
-    def init_kv_output_aggregator(self, connector: "KVConnectorBase") -> None:
+    def init_kv_output_aggregator(self, connector: KVConnectorBase) -> None:
         """Init KVOutputAggregator."""
         self.kv_output_aggregator = KVOutputAggregator.from_connector(
             connector, self.parallel_config.world_size

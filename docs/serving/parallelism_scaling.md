@@ -30,7 +30,7 @@ It's often advantageous to exploit the inherent parallelism of experts by using 
 
 vLLM supports distributed tensor-parallel and pipeline-parallel inference and serving. The implementation includes [Megatron-LM's tensor parallel algorithm](https://arxiv.org/pdf/1909.08053.pdf).
 
-The default distributed runtimes are [Ray](https://github.com/ray-project/ray) for multi-node inference and native Python `multiprocessing` for single-node inference. You can override the defaults by setting `distributed_executor_backend` in the `LLM` class or `--distributed-executor-backend` in the API server. Use `mp` for `multiprocessing` or `ray` for Ray.
+The default distributed runtime is native Python `multiprocessing` for both single-node and multi-node inference. Set `--distributed-executor-backend mp` explicitly if needed; `external_launcher` is also available for externally managed workers.
 
 For multi-GPU inference, set `tensor_parallel_size` in the `LLM` class to the desired GPU count. For example, to run inference on 4 GPUs:
 
@@ -58,87 +58,19 @@ vllm serve gpt2 \
 
 ## Multi-node deployment
 
+This fork does not support Ray, Ray Serve, Ray Data, or the `sharded_rdt`
+weight-transfer backend. Use `mp` or `external_launcher` instead. Ray-specific
+configuration fields, CLI flags, and `VLLM_RAY_*` environment controls have
+been removed. OTLP tracing and NCCL/RCCL communication remain available.
+The external deployment controller must allocate resources, launch all ranks,
+monitor worker health, and coordinate group restarts.
+
+
 If a single node lacks sufficient GPUs to hold the model, deploy vLLM across multiple nodes. Ensure that every node provides an identical execution environment, including the model path and Python packages. Using container images is recommended because they provide a convenient way to keep environments consistent and to hide host heterogeneity.
-
-### What is Ray?
-
-Ray is a distributed computing framework for scaling Python programs. Multi-node vLLM deployments can use Ray as the runtime engine.
-
-vLLM uses Ray to manage the distributed execution of tasks across multiple nodes and control where execution happens.
-
-Ray also offers high-level APIs for large-scale [offline batch inference](https://docs.ray.io/en/latest/data/working-with-llms.html) and [online serving](https://docs.ray.io/en/latest/serve/llm) that can leverage vLLM as the engine. These APIs add production-grade fault tolerance, scaling, and distributed observability to vLLM workloads.
-
-Ray is an optional dependency. Install it explicitly before using Ray-based execution, for example:
-
-```bash
-pip install ray
-```
-
-For details, see the [Ray documentation](https://docs.ray.io/en/latest/index.html).
-
-### Ray cluster setup with containers
-
-The helper script [examples/ray_serving/run_cluster.sh](../../examples/ray_serving/run_cluster.sh) starts containers across nodes and initializes Ray. By default, the script runs Docker without administrative privileges, which prevents access to the GPU performance counters when profiling or tracing. To enable admin privileges, add the `--cap-add=CAP_SYS_ADMIN` flag to the Docker command.
-
-Choose one node as the head node and run:
-
-```bash
-bash run_cluster.sh \
-                vllm/vllm-openai \
-                <HEAD_NODE_IP> \
-                --head \
-                /path/to/the/huggingface/home/in/this/node \
-                -e VLLM_HOST_IP=<HEAD_NODE_IP>
-```
-
-On each worker node, run:
-
-```bash
-bash run_cluster.sh \
-                vllm/vllm-openai \
-                <HEAD_NODE_IP> \
-                --worker \
-                /path/to/the/huggingface/home/in/this/node \
-                -e VLLM_HOST_IP=<WORKER_NODE_IP>
-```
-
-Note that `VLLM_HOST_IP` is unique for each worker. Keep the shells running these commands open; closing any shell terminates the cluster. Ensure that all nodes can communicate with each other through their IP addresses.
-
-!!! warning "Network security"
-    For security, set `VLLM_HOST_IP` to an address on a private network segment. Traffic sent over this network is unencrypted, and the endpoints exchange data in a format that can be exploited to execute arbitrary code if an adversary gains network access. Ensure that untrusted parties cannot reach the network.
-
-From any node, enter a container and run `ray status` and `ray list nodes` to verify that Ray finds the expected number of nodes and GPUs.
-
-!!! tip
-    Alternatively, set up the Ray cluster using KubeRay. For more information, see [KubeRay vLLM documentation](https://docs.ray.io/en/latest/cluster/kubernetes/examples/rayserve-llm-example.html).
-
-### Running vLLM on a Ray cluster
-
-!!! tip
-    If Ray is running inside containers, run the commands in the remainder of this guide *inside the containers*, not on the host. To open a shell inside a container, connect to a node and use `docker exec -it <container_name> /bin/bash`.
-
-Once a Ray cluster is running, use vLLM as you would in a single-node setting. All resources across the Ray cluster are visible to vLLM, so a single `vllm` command on a single node is sufficient.
-
-The common practice is to set the tensor parallel size to the number of GPUs in each node, and the pipeline parallel size to the number of nodes. For example, if you have 16 GPUs across 2 nodes (8 GPUs per node), set the tensor parallel size to 8 and the pipeline parallel size to 2:
-
-```bash
-vllm serve /path/to/the/model/in/the/container \
-    --tensor-parallel-size 8 \
-    --pipeline-parallel-size 2 \
-    --distributed-executor-backend ray
-```
-
-Alternatively, you can set `tensor_parallel_size` to the total number of GPUs in the cluster:
-
-```bash
-vllm serve /path/to/the/model/in/the/container \
-     --tensor-parallel-size 16 \
-     --distributed-executor-backend ray
-```
 
 ### Running vLLM with MultiProcessing
 
-Besides Ray, Multi-node vLLM deployments can also use `multiprocessing` as the runtime engine. Here's an example to deploy model across 2 nodes (8 GPUs per node) with `tp_size=8` and `pp_size=2`.
+Multi-node vLLM deployments use `multiprocessing` as the runtime engine. Here's an example to deploy model across 2 nodes (8 GPUs per node) with `tp_size=8` and `pp_size=2`.
 
 Choose one node as the head node and run:
 
@@ -161,8 +93,7 @@ vllm serve /path/to/the/model/in/the/container \
 ## Optimizing network communication for tensor parallelism
 
 Efficient tensor parallelism requires fast internode communication, preferably through high-speed network adapters such as InfiniBand.
-To set up the cluster to use InfiniBand, append additional arguments like `--privileged -e NCCL_IB_HCA=mlx5` to the
-[examples/ray_serving/run_cluster.sh](../../examples/ray_serving/run_cluster.sh) helper script.
+Set communication environment variables such as `NCCL_IB_HCA=mlx5` on every node before starting its vLLM process. Ensure containers have access to the required network devices.
 Contact your system administrator for more information about the required flags.
 
 ## Enabling GPUDirect RDMA
@@ -219,7 +150,6 @@ spec:
     - If you find `[send] via NET/Socket` in the logs, NCCL used a raw TCP socket, which *is not* efficient for cross-node tensor parallelism. 
 
 !!! tip "Pre-download Hugging Face models"
-    If you use Hugging Face models, downloading the model before starting vLLM is recommended. Download the model on every node to the same path, or store the model on a distributed file system accessible by all nodes. Then pass the path to the model in place of the repository ID. Otherwise, supply a Hugging Face token by appending `-e HF_TOKEN=<TOKEN>` to `run_cluster.sh`.
 
 ## Troubleshooting distributed deployments
 
