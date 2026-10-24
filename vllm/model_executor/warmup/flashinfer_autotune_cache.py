@@ -29,7 +29,7 @@ def _normalize_cache_config_for_hash(cache_config: CacheConfig) -> CacheConfig:
     return normalized
 
 
-def flashinfer_autotune_cache_hash(runner: "GPUModelRunner") -> str:
+def flashinfer_autotune_cache_hash(runner: GPUModelRunner) -> str:
     vllm_config: VllmConfig = runner.vllm_config
     cache_config = _normalize_cache_config_for_hash(vllm_config.cache_config)
     if cache_config is not vllm_config.cache_config:
@@ -38,7 +38,7 @@ def flashinfer_autotune_cache_hash(runner: "GPUModelRunner") -> str:
     return hashlib.sha256(config_hash.encode()).hexdigest()
 
 
-def resolve_flashinfer_autotune_file(runner: "GPUModelRunner") -> Path:
+def resolve_flashinfer_autotune_file(runner: GPUModelRunner) -> Path:
     override_dir = envs.VLLM_FLASHINFER_AUTOTUNE_CACHE_DIR
     if override_dir:
         root = Path(override_dir).expanduser()
@@ -58,7 +58,7 @@ def resolve_flashinfer_autotune_file(runner: "GPUModelRunner") -> Path:
     return output_dir / "autotune_configs.json"
 
 
-def use_flashinfer_autotune_v2(runner: "GPUModelRunner") -> bool:
+def use_flashinfer_autotune_v2(runner: GPUModelRunner) -> bool:
     from vllm.distributed.parallel_state import get_node_count, get_world_group
     from vllm.utils.flashinfer import has_flashinfer_autotune_v2
 
@@ -72,7 +72,7 @@ def use_flashinfer_autotune_v2(runner: "GPUModelRunner") -> bool:
         return False
     if not has_flashinfer_autotune_v2():
         return False
-    # Use the initialized topology: Ray may span nodes with config.nnodes=1.
+    # Use the initialized topology for external launchers as well.
     # A cache hit skips profiling collectives, so node-local stores with
     # different contents cannot safely participate in synchronized tuning.
     if get_node_count() != 1:
@@ -106,8 +106,8 @@ def resolve_flashinfer_autotune_v2_root() -> Path | None:
 
 
 def sync_flashinfer_autotune_cache(
-    runner: "GPUModelRunner",
-    group: "GroupCoordinator",
+    runner: GPUModelRunner,
+    group: GroupCoordinator,
 ) -> None:
     cache: bytes | str | None = None
     if (

@@ -40,46 +40,6 @@ def test_cuda_empty_vs_unset_configs(monkeypatch: pytest.MonkeyPatch):
     )
 
 
-def test_ray_runtime_env(monkeypatch: pytest.MonkeyPatch):
-    # In testing, this method needs to be nested inside as ray does not
-    # see the test module.
-    def create_config():
-        engine_args = EngineArgs(
-            model="deepseek-ai/DeepSeek-V2-Lite", trust_remote_code=True
-        )
-        return engine_args.create_engine_config()
-
-    config = create_config()
-    parallel_config = config.parallel_config
-    assert parallel_config.ray_runtime_env is None
-
-    import ray
-
-    ray.init()
-
-    runtime_env = {
-        "env_vars": {
-            "TEST_ENV_VAR": "test_value",
-            # In future ray versions, this will be default, so when setting a
-            # task or actor with num_gpus=None/0, the visible devices env var
-            # won't be overridden resulting in no GPUs being visible on a gpu
-            # machine.
-            "RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO": "0",
-        },
-    }
-
-    config_ref = ray.remote(create_config).options(runtime_env=runtime_env).remote()
-
-    config = ray.get(config_ref)
-    parallel_config = config.parallel_config
-    assert parallel_config.ray_runtime_env is not None
-    assert (
-        parallel_config.ray_runtime_env.env_vars().get("TEST_ENV_VAR") == "test_value"
-    )
-
-    ray.shutdown()
-
-
 def test_unrecognized_env(monkeypatch):
     import os
 

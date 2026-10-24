@@ -4,7 +4,6 @@
 import random
 
 import pytest
-import ray
 import torch
 import torch.distributed as dist
 
@@ -59,7 +58,6 @@ def _unfused_all_reduce_mhc(peers, residual, post, comb, pre, weight, eps):
     return output, (prenorm * inv_rms * weight.float()).bfloat16()
 
 
-@ray.remote(num_gpus=1, max_calls=1)
 def _all_reduce_mhc(monkeypatch, tp_size, pp_size, rank, distributed_init_port):
     from vllm.models.deepseek_v41.nvidia.ops.cute_dsl import AllReduceMHC
 
@@ -568,7 +566,6 @@ def test_mnnvl_multimem_reduce_scatter_initializes_signals(monkeypatch):
     assert communicator.mnnvl_multimem_rs_multicast_ptr == 0x3080
 
 
-@ray.remote(num_gpus=1, max_calls=1)
 def graph_allreduce(
     monkeypatch: pytest.MonkeyPatch,
     tp_size,
@@ -626,7 +623,6 @@ def graph_allreduce(
                 torch.testing.assert_close(out2, inp2)
 
 
-@ray.remote(num_gpus=1, max_calls=1)
 def eager_allreduce(
     monkeypatch: pytest.MonkeyPatch,
     tp_size,
@@ -662,7 +658,6 @@ def eager_allreduce(
         torch.testing.assert_close(out, inp * (tp_size**num_communication))
 
 
-@ray.remote(num_gpus=1, max_calls=1)
 def chunked_allreduce(
     monkeypatch: pytest.MonkeyPatch,
     tp_size,

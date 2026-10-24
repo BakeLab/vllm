@@ -7,20 +7,15 @@ transports. A `TrainerWeightTransferEngine` takes one of these (or any object
 with the same four methods — the protocol is structural) and drives the full
 handshake through it.
 
-Imports of `ray` / `requests` are deferred to call time so this module is
+Imports of `requests` are deferred to call time so this module is
 importable without those packages installed.
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from vllm.distributed.weight_transfer.base import (
-    WeightTransferInitRequest,
     WeightTransferUpdatePayload,
-    WeightTransferUpdateRequest,
 )
-
-if TYPE_CHECKING:
-    from ray.actor import ActorHandle
 
 
 def _json_safe_update_info(update_info: dict[str, Any]) -> dict[str, Any]:
@@ -94,45 +89,3 @@ class HTTPVLLMWeightSyncClient:
             {"weight_version": weight_version} if weight_version is not None else None
         )
         self._post("finish_weight_update", json)
-
-
-class RayVLLMWeightSyncClient:
-    """Talks to one or more vLLM `AsyncLLM`/`LLM` Ray actors.
-
-    Each call fans out to every handle and blocks on all of them, so a
-    multi-actor (e.g. multi-DP) deployment is driven as one unit.
-    """
-
-    def __init__(self, handle: "ActorHandle | list[ActorHandle]") -> None:
-        self.handles = handle if isinstance(handle, list) else [handle]
-
-    def init_weight_transfer_engine(self, init_info: dict[str, Any]) -> None:
-        import ray
-
-        request = WeightTransferInitRequest(init_info=init_info)
-        ray.get([h.init_weight_transfer_engine.remote(request) for h in self.handles])
-
-    def shutdown_weight_transfer_engine(self) -> None:
-        import ray
-
-        ray.get([h.shutdown_weight_transfer_engine.remote() for h in self.handles])
-
-    def start_weight_update(self) -> None:
-        import ray
-
-        ray.get([h.start_weight_update.remote() for h in self.handles])
-
-    def update_weights(self, update_info: WeightTransferUpdatePayload) -> None:
-        import ray
-
-        request = WeightTransferUpdateRequest(update_info=update_info)
-        ray.get([h.update_weights.remote(request) for h in self.handles])
-
-    def finish_weight_update(self, weight_version: str | None = None) -> None:
-        import ray
-
-        ray.get([h.finish_weight_update.remote() for h in self.handles])
-        if weight_version is not None:
-            ray.get(
-                [h.update_weight_version.remote(weight_version) for h in self.handles]
-            )

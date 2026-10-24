@@ -2,11 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 import contextlib
-import inspect
-import os
 import queue
-import tempfile
-import textwrap
 import threading
 import time
 import uuid
@@ -19,7 +15,6 @@ from unittest.mock import MagicMock, call, patch
 import msgspec
 import numpy as np
 import pytest
-import ray
 import torch
 
 from tests.v1.attention.utils import dense_kv_cache_views
@@ -122,7 +117,7 @@ def get_default_xfer_telemetry(
         __setattr__ = dict.__setitem__
 
     # We can't instantiate nixlXferTelemetry because it's read only and
-    # ray env does not have NIXL, so we must fake it
+    # the test environment may not have NIXL, so use test telemetry
     return AttributeDict(
         xferDuration=xferDurationS * 1e6,  # in us
         postDuration=postDurationS * 1e6,  # in us
@@ -137,9 +132,6 @@ class FakeNixlWrapper:
     We don't inherit from nixl._api.nixl_agent because nixl may not be
     installed.
 
-    Note: The complete source of this class is also used in the
-    `_make_fake_nixl_pkg` function to create a fake nixl package
-    for Ray workers.
     """
 
     AGENT_METADATA = b"fake_agent_metadata"
@@ -215,47 +207,6 @@ class FakeNixlWrapper:
 
     def get_xfer_telemetry(self, handle: int) -> dict:
         return get_default_xfer_telemetry()
-
-
-@contextlib.contextmanager
-def _make_fake_nixl_pkg():
-    """Context manager that creates a temporary package making
-       `from nixl._api import nixl_agent` resolve to our FakeNixlWrapper.
-       Also creates the ROCm NIXL packages.
-
-    Automatically cleans up the temporary directory when done.
-    """
-    with tempfile.TemporaryDirectory() as td:
-        for pkg_name in ["nixl", "nixl_rocm"]:
-            pkg_root = os.path.join(td, pkg_name, "_api")
-            os.makedirs(pkg_root, exist_ok=True)
-
-            # Get the source code of FakeNixlWrapper class and dedent it
-            fake_nixl_source = inspect.getsource(FakeNixlWrapper)
-            fake_nixl_source = textwrap.dedent(fake_nixl_source)
-
-            stub = f"""\
-# Copy of FakeNixlWrapper implementation for Ray workers
-import uuid
-from collections import defaultdict
-
-{fake_nixl_source}
-
-# Export as nixl_agent
-nixl_agent = FakeNixlWrapper
-"""
-            with open(os.path.join(pkg_root, "__init__.py"), "w") as f:
-                f.write(stub)
-
-            # Mock nixlXferTelemetry class
-            pkg_root2 = os.path.join(td, pkg_name, "_bindings")
-            os.makedirs(pkg_root2, exist_ok=True)
-            with open(os.path.join(pkg_root2, "__init__.py"), "w") as f:
-                f.write("class nixlXferTelemetry: pass")
-            # touch parent package
-            open(os.path.join(td, pkg_name, "__init__.py"), "w").close()
-
-        yield td
 
 
 def test_basic_interface():
@@ -1878,7 +1829,7 @@ class TestNixlHandshake:
 
 
 # NOTE: resource cleanup in mp backend is a bit finicky, so the order in which
-# we put here is important. First run ray, it will clean up the resources, then
+# we put here is important. First release worker resources, then
 # the rest of the tests.
 @patch(
     "vllm.distributed.kv_transfer.kv_connector.v1.nixl.base_worker.NixlWrapper",
@@ -2209,7 +2160,7 @@ def test_multi_kv_connector_stats_aggregation():
         def is_empty(self) -> bool:
             return self.data["num_foo_transfers"] == 0
 
-        def aggregate(self, other: "FooKVConnectorStats") -> "FooKVConnectorStats":
+        def aggregate(self, other: FooKVConnectorStats) -> FooKVConnectorStats:
             if not other.is_empty():
                 self.data["num_foo_transfers"] += other.data["num_foo_transfers"]
             return self
@@ -2324,7 +2275,7 @@ def test_scheduler_kv_connector_stats_aggregation():
     assert len(nixl_stats["transfer_duration"]) == 2
 
 
-@pytest.mark.parametrize("distributed_executor_backend", ["ray", None])
+@pytest.mark.parametrize("distributed_executor_backend", [None])
 @patch(
     "vllm.distributed.kv_transfer.kv_connector.v1.nixl.base_worker.NixlWrapper",
     FakeNixlWrapper,
@@ -2362,28 +2313,7 @@ def test_abort_timeout_on_prefiller(monkeypatch, distributed_executor_backend):
         finally:
             llm.llm_engine.engine_core.shutdown()
 
-    # Build runtime_env only if we're using Ray
-    if distributed_executor_backend == "ray":
-        with _make_fake_nixl_pkg() as working_dir:
-            runtime_env = {
-                "working_dir": working_dir,  # ship fake nixl package
-                "env_vars": {
-                    "NIXL_TELEMETRY_ENABLE": "1",
-                },
-            }
-            # On XPU/ROCm, vLLM expects Ray's device key to be "GPU".
-            # Explicitly reserving GPU resources here prevents false negatives
-            # when Ray cannot auto-detect accelerator resources in test envs.
-            ray_init_kwargs: dict[str, Any] = {"runtime_env": runtime_env}
-            if not current_platform.is_cuda():
-                ray_init_kwargs["num_gpus"] = 1
-            ray.init(**ray_init_kwargs)
-            try:
-                run_test_and_cleanup()
-            finally:
-                ray.shutdown()
-    else:
-        run_test_and_cleanup()
+    run_test_and_cleanup()
 
 
 class RequestIdMapper:

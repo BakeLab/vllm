@@ -11,7 +11,6 @@ from typing import Any
 from unittest.mock import Mock
 
 import pytest
-import ray
 import torch
 
 from vllm.distributed import (
@@ -33,7 +32,6 @@ from ..utils import (
 )
 
 
-@ray.remote(num_gpus=1, max_calls=1)
 def all_reduce_test_worker(
     monkeypatch: pytest.MonkeyPatch,
     tp_size: int,
@@ -60,7 +58,6 @@ def all_reduce_test_worker(
     torch.testing.assert_close(t, expected)
 
 
-@ray.remote(num_gpus=1, max_calls=1)
 def reduce_scatter_test_worker(
     monkeypatch: pytest.MonkeyPatch,
     tp_size: int,
@@ -91,7 +88,6 @@ def reduce_scatter_test_worker(
     torch.testing.assert_close(t, expected)
 
 
-@ray.remote(num_gpus=1, max_calls=1)
 def all_gather_test_worker(
     monkeypatch: pytest.MonkeyPatch,
     tp_size: int,
@@ -125,7 +121,6 @@ def all_gather_test_worker(
         torch.testing.assert_close(t, expected)
 
 
-@ray.remote(num_gpus=1, max_calls=1)
 def broadcast_tensor_dict_test_worker(
     monkeypatch: pytest.MonkeyPatch,
     tp_size: int,
@@ -165,7 +160,6 @@ def broadcast_tensor_dict_test_worker(
         torch.testing.assert_close(recv_dict["f"], test_dict["f"])
 
 
-@ray.remote(num_gpus=1, max_calls=1)
 def send_recv_tensor_dict_test_worker(
     monkeypatch: pytest.MonkeyPatch,
     tp_size: int,
@@ -710,7 +704,6 @@ def test_async_intermediate_tensors_lazy_wait() -> None:
     assert post_calls["n"] == 1
 
 
-@ray.remote(num_gpus=1, max_calls=1)
 def send_recv_test_worker(
     monkeypatch: pytest.MonkeyPatch,
     tp_size: int,

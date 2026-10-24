@@ -56,7 +56,7 @@ class FakeNixlWrapper:
     """Minimal mock of NixlWrapper for testing without NIXL hardware.
 
     Duplicated from test_nixl_connector.py to avoid importing that module
-    (which has heavy dependencies like ray).
+    (which has heavy runtime dependencies).
     """
 
     AGENT_METADATA = b"fake_agent_metadata"

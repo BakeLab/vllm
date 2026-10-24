@@ -23,7 +23,6 @@ steps:
       - "!vllm/model_executor/kernels/"
       - "!vllm/engine/"
       - "!vllm/entrypoints/"
-      - "!vllm/ray/"
       - "!vllm/v1/attention/backends/flash_attn.py"
       - "!vllm/v1/attention/backends/flash_attn_diffkv.py"
       - "!vllm/v1/attention/backends/flashinfer.py"

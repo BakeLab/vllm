@@ -804,7 +804,7 @@ def test_parallel_config_manages_decode_sharding(
     parallel_config = ParallelConfig(
         prefill_context_parallel_size=pcp_world_size,
         decode_context_parallel_size=dcp_world_size,
-        distributed_executor_backend="ray",
+        distributed_executor_backend="mp",
     )
 
     assert parallel_config.pcp_shard_decode_requests is expected

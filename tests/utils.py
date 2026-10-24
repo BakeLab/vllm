@@ -1358,7 +1358,7 @@ def init_test_distributed_environment(
     data_parallel_size: int = 1,
     data_parallel_master_port: int | None = None,
 ) -> None:
-    # Note: This function is often called from Ray worker processes, so we
+    # Note: This function is often called from spawned worker processes, so we
     # can't rely on pytest fixtures to set the config. We check if the config
     # is already set and only create a default one if needed.
     from vllm.config import (
@@ -1425,56 +1425,95 @@ def multi_process_parallel(
     test_target: Any,
     data_parallel_size: int = 1,
 ) -> None:
-    import ray
-
-    # Using ray helps debugging the error when it failed as compared to
-    # multiprocessing. For local Ray workers, putting the repo root on
-    # PYTHONPATH is enough and avoids uploading the full source tree, which
-    # exceeds Ray's working_dir package size limit on CI.
-    env_vars = {
-        "PYTHONPATH": os.pathsep.join(
-            filter(None, [str(VLLM_PATH), os.environ.get("PYTHONPATH")])
-        ),
-        **{env_var: "1" for env_var in current_platform.ray_noset_device_env_vars},
-    }
-    ray.init(
-        runtime_env={
-            "env_vars": env_vars,
-        }
-    )
+    from functools import partial
 
     distributed_init_port = get_open_port()
-    # Separate port for the DP master group; only used when data_parallel_size > 1.
-    data_parallel_master_port = get_open_port() if data_parallel_size > 1 else None
-    world_size = data_parallel_size * tp_size * pp_size
+    dp_port = get_open_port() if data_parallel_size > 1 else None
+    args = (tp_size, pp_size)
+    calls = []
+    for rank in range(data_parallel_size * tp_size * pp_size):
+        worker_args = (*args, rank, distributed_init_port)
+        if data_parallel_size > 1:
+            worker_args += (data_parallel_size, dp_port)
+        calls.append(partial(_distributed_test_worker, test_target, worker_args))
+    run_gpu_workers(calls)
+
+
+def _distributed_test_worker(test_target, args):
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        return test_target(monkeypatch, *args)
+
+
+def _run_gpu_worker(payload, rank, result_pipe):
+    import traceback
+
+    import cloudpickle
+
+    os.environ["LOCAL_RANK"] = str(rank)
     try:
-        refs = []
-        for rank in range(world_size):
-            if data_parallel_size > 1:
-                refs.append(
-                    test_target.remote(
-                        monkeypatch,
-                        tp_size,
-                        pp_size,
-                        rank,
-                        distributed_init_port,
-                        data_parallel_size,
-                        data_parallel_master_port,
-                    ),
-                )
-            else:
-                refs.append(
-                    test_target.remote(
-                        monkeypatch,
-                        tp_size,
-                        pp_size,
-                        rank,
-                        distributed_init_port,
-                    ),
-                )
-        ray.get(refs)
+        result = cloudpickle.loads(payload)()
+        result_pipe.send((True, result))
+    except BaseException:
+        result_pipe.send((False, traceback.format_exc()))
     finally:
-        ray.shutdown()
+        result_pipe.close()
+
+
+def run_gpu_workers(calls, timeout=600):
+    """Run one isolated spawned process per GPU; propagate failures and timeouts."""
+    from multiprocessing import get_context
+    from multiprocessing.connection import wait
+
+    import cloudpickle
+
+    ctx = get_context("spawn")
+    processes = []
+    readers = {}
+    results = [None] * len(calls)
+    deadline = time.monotonic() + timeout
+    try:
+        for rank, call in enumerate(calls):
+            reader, writer = ctx.Pipe(duplex=False)
+            process = ctx.Process(
+                target=_run_gpu_worker,
+                args=(cloudpickle.dumps(call), rank, writer),
+            )
+            readers[reader] = rank
+            processes.append(process)
+            process.start()
+            writer.close()
+        while readers:
+            ready = wait(readers, timeout=max(0, deadline - time.monotonic()))
+            if not ready:
+                raise TimeoutError("Distributed test workers exceeded their deadline")
+            for reader in ready:
+                rank = readers.pop(reader)
+                try:
+                    ok, result = reader.recv()
+                except EOFError as exc:
+                    raise RuntimeError(
+                        f"Worker {rank} exited without a result"
+                    ) from exc
+                finally:
+                    reader.close()
+                if not ok:
+                    raise RuntimeError(f"Worker {rank} failed:\n{result}")
+                results[rank] = result
+        for process in processes:
+            process.join(timeout=max(0, deadline - time.monotonic()))
+            if process.exitcode != 0:
+                raise RuntimeError(
+                    f"Worker {process.pid} exited with {process.exitcode}"
+                )
+        return results
+    finally:
+        for process in processes:
+            if process.pid is not None and process.is_alive():
+                process.kill()
+            if process.pid is not None:
+                process.join()
+        for reader in readers:
+            reader.close()
 
 
 def assert_rocm_custom_allreduce_backend_state(

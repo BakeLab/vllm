@@ -166,7 +166,7 @@ class WeightSource(ABC):
     def __iter__(self) -> Iterator[tuple[str, torch.Tensor]]:
         raise NotImplementedError
 
-    def held_names(self) -> "Collection[str] | None":
+    def held_names(self) -> Collection[str] | None:
         """The parameters this rank holds, or None for all of them.
 
         This is the whole ownership contract. Override it when producers are
@@ -382,7 +382,7 @@ class WeightTransferEngine(ABC, Generic[TInitInfo, TUpdateInfo]):
     def __init__(
         self,
         config: WeightTransferConfig,
-        vllm_config: "VllmConfig",
+        vllm_config: VllmConfig,
         device: torch.device,
         model: torch.nn.Module,
     ) -> None:
@@ -523,7 +523,7 @@ class VLLMWeightSyncClient(Protocol):
     """Trainer-side stub for the inference engine's weight-sync control plane.
 
     Mirrors the weight-sync methods that the inference engine exposes
-    (`EngineClient` / the HTTP RLHF routes / Ray actors). A
+    (`EngineClient` / the HTTP RLHF routes). A
     `TrainerWeightTransferEngine` drives the full handshake through this
     protocol so trainer code never has to know the transport.
 
@@ -583,8 +583,8 @@ class TrainerWeightTransferEngine(ABC, Generic[TTrainerInitInfo]):
     def __init__(
         self,
         *,
-        client: "VLLMWeightSyncClient",
-        source: "WeightSource | None" = None,
+        client: VLLMWeightSyncClient,
+        source: WeightSource | None = None,
         is_sender: bool = True,
     ) -> None:
         self.is_sender = is_sender
@@ -599,8 +599,8 @@ class TrainerWeightTransferEngine(ABC, Generic[TTrainerInitInfo]):
         cls,
         init_info: TTrainerInitInfo,
         *,
-        client: "VLLMWeightSyncClient",
-        source: "WeightSource | None" = None,
+        client: VLLMWeightSyncClient,
+        source: WeightSource | None = None,
     ) -> Self:
         """Rendezvous with the inference side and return a ready instance.
 

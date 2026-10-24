@@ -235,7 +235,7 @@ def test_hisparse_shares_host_pool_only_for_local_tp(monkeypatch):
         {"prefill_context_parallel_size": 2, "world_size": 4},
         {"decode_context_parallel_size": 2},
         {"world_size": 4},
-        {"distributed_executor_backend": "ray"},
+        {"distributed_executor_backend": "external_launcher"},
         {"nnodes_within_dp": 2},
     )
     for overrides in unsupported:

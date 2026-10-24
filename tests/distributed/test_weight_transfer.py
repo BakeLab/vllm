@@ -3,32 +3,33 @@
 """Tests for weight transfer engine backends.
 
 Unit tests for engine classes (parsing, validation, registry).
-Integration tests for NCCL and IPC weight transfer between processes using Ray.
+Integration tests for NCCL and IPC weight transfer between spawned processes.
 """
 
 import builtins
 import importlib.util
+import os
 import pickle
 import runpy
 import threading
 import time
 from contextlib import nullcontext
+from functools import partial
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pybase64 as base64
 import pytest
-import ray
 import torch
 from torch.multiprocessing.reductions import reduce_tensor
 
+from tests.utils import run_gpu_workers
 from vllm.config.parallel import ParallelConfig
 from vllm.config.weight_transfer import WeightTransferConfig
 from vllm.distributed.weight_transfer import (
     HTTPVLLMWeightSyncClient,
     ModuleSource,
     ParamMeta,
-    RayVLLMWeightSyncClient,
     TrainerWeightTransferEngine,
     VLLMWeightSyncClient,
     WeightSource,
@@ -38,15 +39,12 @@ from vllm.distributed.weight_transfer import (
 from vllm.distributed.weight_transfer.base import (
     TrainerInitInfo,
     WeightTransferEngine,
-    WeightTransferInitRequest,
-    WeightTransferUpdateRequest,
     layerwise_groups,
 )
 from vllm.distributed.weight_transfer.ipc_engine import (
     IPCTrainerInitInfo,
     IPCTrainerWeightTransferEngine,
     IPCWeightTransferEngine,
-    IPCWeightTransferInitInfo,
     IPCWeightTransferUpdateInfo,
 )
 from vllm.distributed.weight_transfer.nccl_engine import (
@@ -72,30 +70,12 @@ from vllm.utils.nccl import _nccl_has_no_cache
 from vllm.utils.network_utils import get_open_port
 
 
-def _init_ray_for_weight_transfer() -> None:
-    if ray.is_initialized():
-        return
-    ray.init(
-        ignore_reinit_error=True,
-        runtime_env={
-            "env_vars": {
-                "RAY_EXPERIMENTAL_NOSET_CUDA_VISIBLE_DEVICES": "1",
-                "RAY_EXPERIMENTAL_NOSET_HIP_VISIBLE_DEVICES": "1",
-                "RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES": "1",
-            }
-        },
-    )
+def _get_assigned_device() -> torch.device:
+    return torch.device(f"cuda:{os.environ['LOCAL_RANK']}")
 
 
-def _get_ray_assigned_device() -> torch.device:
-    gpu_ids = ray.get_gpu_ids()
-    if not gpu_ids:
-        return torch.device("cuda:0")
-    return torch.device(f"cuda:{int(gpu_ids[0])}")
-
-
-def _set_ray_assigned_device() -> torch.device:
-    device = _get_ray_assigned_device()
+def _set_assigned_device() -> torch.device:
+    device = _get_assigned_device()
     current_platform.set_device(device)
     return device
 
@@ -418,10 +398,9 @@ def test_sparse_nccl_receive_weights_without_init_raises():
         engine.receive_weights(update_info)
 
 
-# --- Integration Test: NCCL Weight Transfer Between Ray Tasks ---
+# --- Integration Test: NCCL Weight Transfer Between Processes ---
 
 
-@ray.remote(num_gpus=1)
 def trainer_broadcast_tensor(
     master_address: str,
     master_port: int,
@@ -432,7 +411,7 @@ def trainer_broadcast_tensor(
     """Trainer task that broadcasts a tensor via NCCL."""
     import torch
 
-    device = _set_ray_assigned_device()
+    device = _set_assigned_device()
 
     from vllm.distributed.device_communicators.pynccl import PyNcclCommunicator
     from vllm.distributed.utils import StatelessProcessGroup
@@ -456,7 +435,6 @@ def trainer_broadcast_tensor(
 
 
 # max_calls=1: a batch-invariant run leaves NCCL pins in the worker process.
-@ray.remote(num_gpus=1, max_calls=1)
 def inference_receive_tensor(
     master_address: str,
     master_port: int,
@@ -471,7 +449,7 @@ def inference_receive_tensor(
 
     import torch
 
-    _set_ray_assigned_device()
+    _set_assigned_device()
     if batch_invariant:
         from vllm.model_executor.determinism.batch_invariant import (
             override_envs_for_invariance,
@@ -587,14 +565,12 @@ def inference_receive_tensor(
     ],
 )
 def test_nccl_weight_transfer_between_processes(batch_invariant):
-    """Test NCCL weight transfer from trainer to inference process using Ray.
+    """Test NCCL weight transfer from trainer to a spawned inference process.
 
     This test verifies that the NCCLWeightTransferEngine can receive
     tensors broadcast by a trainer process via NCCL, including when the
     worker runs with batch-invariance NCCL pins the trainer does not have.
     """
-    _init_ray_for_weight_transfer()
-
     master_address = "127.0.0.1"
     master_port = get_open_port()
     world_size = 2  # 1 trainer + 1 inference worker
@@ -602,7 +578,8 @@ def test_nccl_weight_transfer_between_processes(batch_invariant):
     tensor_shape = [100, 100]
     tensor_dtype = "float32"
 
-    inference_future = inference_receive_tensor.remote(
+    inference_future = partial(
+        inference_receive_tensor,
         master_address,
         master_port,
         world_size,
@@ -610,12 +587,19 @@ def test_nccl_weight_transfer_between_processes(batch_invariant):
         tensor_dtype,
         batch_invariant,
     )
-    trainer_future = trainer_broadcast_tensor.remote(
-        master_address, master_port, world_size, tensor_shape, tensor_dtype
+    trainer_future = partial(
+        trainer_broadcast_tensor,
+        master_address,
+        master_port,
+        world_size,
+        tensor_shape,
+        tensor_dtype,
     )
 
     # A mismatched NCCL config deadlocks instead of failing.
-    trainer_result, result = ray.get([trainer_future, inference_future], timeout=300)
+    trainer_result, result = run_gpu_workers(
+        [trainer_future, inference_future], timeout=300
+    )
 
     assert trainer_result, "Trainer should complete successfully"
     assert result["success"], (
@@ -1021,187 +1005,13 @@ class TestIPCEngineParsing:
             )
 
 
-# --- Integration Test: IPC Weight Transfer Between Ray Tasks ---
+# --- Integration Test: IPC Weight Transfer Between Processes ---
 
 
 def get_physical_gpu_id(device_index: int = 0) -> str:
     """Get physical GPU UUID for a device."""
     props = torch.cuda.get_device_properties(device_index)
     return str(props.uuid)
-
-
-@ray.remote(num_gpus=0.5)
-class TrainerActor:
-    """Trainer actor that creates and holds CUDA IPC handles."""
-
-    def __init__(self, tensor_shape: list[int], tensor_dtype: str):
-        device = _set_ray_assigned_device()
-
-        # Create tensor on GPU and keep it alive
-        dtype = getattr(torch, tensor_dtype)
-        self.tensor = torch.ones(tensor_shape, dtype=dtype, device=device)
-        self.tensor.fill_(42.0)  # Fill with 42 to verify correct transfer
-
-        _, ipc_args = reduce_tensor(self.tensor)
-        gpu_uuid = get_physical_gpu_id(device.index)
-
-        torch.accelerator.synchronize()
-
-        self.ipc_handle_dict = {
-            "ipc_handle": ipc_args,
-            "gpu_uuid": gpu_uuid,
-            "shape": tensor_shape,
-            "dtype": tensor_dtype,
-        }
-
-    def get_ipc_handle_dict(self) -> dict:
-        """Return IPC handle dict. Tensor stays alive in this actor."""
-        return self.ipc_handle_dict
-
-
-@ray.remote(num_gpus=0.5)
-def inference_receive_ipc_tensor(
-    ipc_handle_dict: dict,
-    mode: str = "ray",
-) -> dict:
-    """Inference task that receives tensor via IPCWeightTransferEngine."""
-    import contextlib
-    import os
-
-    # Worker-side: ipc_handles_pickled is deserialized via pickle.
-    if mode == "http":
-        os.environ["VLLM_ALLOW_INSECURE_SERIALIZATION"] = "1"
-
-    from unittest.mock import MagicMock
-
-    import torch
-
-    device = _set_ray_assigned_device()
-
-    from vllm.config.parallel import ParallelConfig
-    from vllm.config.weight_transfer import WeightTransferConfig
-    from vllm.distributed.weight_transfer.ipc_engine import (
-        IPCWeightTransferEngine,
-    )
-
-    class Recorder(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.received = []
-
-        def load_weights(self, weights):
-            for name, tensor in weights:
-                self.received.append((name, tensor.clone()))
-
-    # Trainer sends unpacked IPC handles; the worker learns packed=False from
-    # the init handshake below (IPCWeightTransferInitInfo defaults to False).
-    config = WeightTransferConfig(backend="ipc")
-    vllm_config = MagicMock()
-    parallel_config = MagicMock(spec=ParallelConfig)
-    parallel_config.rank = 0
-    parallel_config.world_size = 1
-    parallel_config.data_parallel_rank = 0
-    parallel_config.data_parallel_index = 0
-    vllm_config.parallel_config = parallel_config
-    vllm_config.model_config = MagicMock()
-
-    recorder = Recorder()
-    engine = IPCWeightTransferEngine(config, vllm_config, device, recorder)
-    # Transport-only test: bypass the set_current_vllm_config context that
-    # receive_weights enters, since vllm_config here is a mock.
-    import vllm.config as _vllm_config_mod
-
-    _vllm_config_mod.set_current_vllm_config = lambda cfg: contextlib.nullcontext()
-
-    init_info = IPCWeightTransferInitInfo()
-    engine.init_transfer_engine(init_info)
-
-    ipc_handles = [{ipc_handle_dict["gpu_uuid"]: ipc_handle_dict["ipc_handle"]}]
-
-    if mode == "ray":
-        update_dict: dict = {
-            "names": ["test.weight"],
-            "dtype_names": [ipc_handle_dict["dtype"]],
-            "shapes": [ipc_handle_dict["shape"]],
-            "ipc_handles": ipc_handles,
-        }
-    elif mode == "http":
-        pickled = base64.b64encode(pickle.dumps(ipc_handles)).decode("utf-8")
-        update_dict = {
-            "names": ["test.weight"],
-            "dtype_names": [ipc_handle_dict["dtype"]],
-            "shapes": [ipc_handle_dict["shape"]],
-            "ipc_handles_pickled": pickled,
-        }
-    else:
-        raise ValueError(f"Unknown mode: {mode}")
-
-    update_info = engine.parse_update_info(update_dict)
-    engine.receive_weights(update_info)
-    torch.accelerator.synchronize()
-
-    success = False
-    received_shape = None
-    received_sum = None
-
-    if len(recorder.received) == 1:
-        name, tensor = recorder.received[0]
-        received_shape = list(tensor.shape)
-        received_sum = tensor.sum().item()
-        if received_shape == ipc_handle_dict["shape"]:
-            expected_sum = 42.0 * torch.tensor(ipc_handle_dict["shape"]).prod().item()
-            if abs(received_sum - expected_sum) < 0.01:
-                success = True
-
-    engine.shutdown()
-
-    return {
-        "success": success,
-        "received_shape": received_shape,
-        "received_sum": received_sum,
-    }
-
-
-@pytest.mark.skipif(
-    torch.accelerator.device_count() < 1,
-    reason="Need at least 1 GPU to run IPC weight transfer test.",
-)
-@pytest.mark.parametrize("mode", ["ray", "http"])
-def test_ipc_weight_transfer_between_processes(mode: str):
-    """Test IPC weight transfer from trainer to inference process using Ray."""
-    from ray.util.placement_group import placement_group
-    from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
-
-    _init_ray_for_weight_transfer()
-
-    pg = placement_group([{"GPU": 1, "CPU": 2}])
-    ray.get(pg.ready())
-
-    scheduling_strategy = PlacementGroupSchedulingStrategy(
-        placement_group=pg,
-        placement_group_capture_child_tasks=True,
-    )
-
-    tensor_shape = [100, 100]
-    tensor_dtype = "float32"
-
-    trainer_actor = TrainerActor.options(  # type: ignore[attr-defined]
-        scheduling_strategy=scheduling_strategy
-    ).remote(tensor_shape, tensor_dtype)
-
-    ipc_handle_dict = ray.get(trainer_actor.get_ipc_handle_dict.remote())
-
-    inference_result = ray.get(
-        inference_receive_ipc_tensor.options(
-            scheduling_strategy=scheduling_strategy
-        ).remote(ipc_handle_dict, mode=mode)
-    )
-
-    assert inference_result["success"], (
-        f"IPC weight transfer failed (mode={mode}). "
-        f"Received shape: {inference_result['received_shape']}, "
-        f"Received sum: {inference_result['received_sum']}"
-    )
 
 
 def test_ipc_receive_weights_missing_gpu_uuid_raises():
@@ -1287,34 +1097,6 @@ class TestTrainerClients:
         assert isinstance(
             HTTPVLLMWeightSyncClient("http://localhost:8000"), VLLMWeightSyncClient
         )
-
-    def test_ray_client_is_protocol(self):
-        assert isinstance(RayVLLMWeightSyncClient(MagicMock()), VLLMWeightSyncClient)
-
-    def test_ray_client_sends_typed_requests(self, monkeypatch):
-        """Ray client must hand the actor typed Request objects, not raw dicts."""
-        import ray
-
-        monkeypatch.setattr(ray, "get", lambda refs: None)
-        handle = MagicMock()
-        client = RayVLLMWeightSyncClient(handle)
-
-        client.init_weight_transfer_engine({"master_addr": "x"})
-        (init_req,), _ = handle.init_weight_transfer_engine.remote.call_args
-        assert isinstance(init_req, WeightTransferInitRequest)
-        assert init_req.init_info == {"master_addr": "x"}
-
-        client.update_weights({"names": ["w"]})
-        (update_req,), _ = handle.update_weights.remote.call_args
-        assert isinstance(update_req, WeightTransferUpdateRequest)
-        assert update_req.update_info == {"names": ["w"]}
-
-        client.finish_weight_update("step-42")
-        handle.finish_weight_update.remote.assert_called_once_with()
-        handle.update_weight_version.remote.assert_called_once_with("step-42")
-
-        client.shutdown_weight_transfer_engine()
-        handle.shutdown_weight_transfer_engine.remote.assert_called_once_with()
 
     def test_http_client_pickles_ipc_handles_for_json(self, monkeypatch):
         """HTTP update_weights must encode raw ipc_handles as a base64 pickle."""
@@ -1548,12 +1330,6 @@ class TestDeferredProcessingContract:
     def test_a_synchronous_engine_drains_as_a_no_op(self):
         engine = object.__new__(WeightTransferEngineFactory._registry["nccl"]())
         engine.drain_pending()  # must not raise, and must not need any state
-
-    def test_the_rdt_engine_defers_and_overrides_the_drain(self):
-        """The one engine the contract exists for."""
-        cls = WeightTransferEngineFactory._registry["sharded_rdt"]()
-        assert cls.defers_processing is True
-        assert cls.drain_pending is not WeightTransferEngine.drain_pending
 
 
 class TestTrainerFactory:

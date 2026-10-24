@@ -12,7 +12,7 @@ vLLM can be deployed with [LWS](https://github.com/kubernetes-sigs/lws) on Kuber
 
 ## Deploy and Serve
 
-Deploy the following yaml file `lws.yaml` (we have examples that use multiprocessing or Ray):
+Deploy the following yaml file `lws.yaml` (we have examples that use multiprocessing):
 
 ??? code "lws.yaml"
     === "Multiprocessing (default)"
@@ -109,101 +109,6 @@ Deploy the following yaml file `lws.yaml` (we have examples that use multiproces
           type: ClusterIP
         ```
 
-    === "Ray"
-        ```yaml
-        apiVersion: leaderworkerset.x-k8s.io/v1
-        kind: LeaderWorkerSet
-        metadata:
-          name: vllm
-        spec:
-          replicas: 1
-          leaderWorkerTemplate:
-            size: 2
-            restartPolicy: RecreateGroupOnPodRestart
-            leaderTemplate:
-              metadata:
-                labels:
-                  role: leader
-              spec:
-                containers:
-                  - name: vllm-leader
-                    image: docker.io/vllm/vllm-openai:latest
-                    env:
-                      - name: HF_TOKEN
-                        value: <your-hf-token>
-                    command:
-                      - sh
-                      - -c
-                      - "bash /vllm-workspace/examples/ray_serving/multi-node-serving.sh leader --ray_cluster_size=$(LWS_GROUP_SIZE);
-                        vllm serve meta-llama/Meta-Llama-3.1-405B-Instruct --port 8080 --tensor-parallel-size 8 --pipeline-parallel-size 2 --distributed-executor-backend ray"
-                    resources:
-                      limits:
-                        nvidia.com/gpu: "8"
-                        memory: 1124Gi
-                        ephemeral-storage: 800Gi
-                      requests:
-                        ephemeral-storage: 800Gi
-                        cpu: 125
-                    ports:
-                      - containerPort: 8080
-                    readinessProbe:
-                      tcpSocket:
-                        port: 8080
-                      initialDelaySeconds: 15
-                      periodSeconds: 10
-                    volumeMounts:
-                      - mountPath: /dev/shm
-                        name: dshm
-                volumes:
-                - name: dshm
-                  emptyDir:
-                    medium: Memory
-                    sizeLimit: 15Gi
-            workerTemplate:
-              spec:
-                containers:
-                  - name: vllm-worker
-                    image: docker.io/vllm/vllm-openai:latest
-                    command:
-                      - sh
-                      - -c
-                      - "bash /vllm-workspace/examples/ray_serving/multi-node-serving.sh worker --ray_address=$(LWS_LEADER_ADDRESS)"
-                    resources:
-                      limits:
-                        nvidia.com/gpu: "8"
-                        memory: 1124Gi
-                        ephemeral-storage: 800Gi
-                      requests:
-                        ephemeral-storage: 800Gi
-                        cpu: 125
-                    env:
-                      - name: HF_TOKEN
-                        value: <your-hf-token>
-                    volumeMounts:
-                      - mountPath: /dev/shm
-                        name: dshm
-                volumes:
-                - name: dshm
-                  emptyDir:
-                    medium: Memory
-                    sizeLimit: 15Gi
-        ---
-        apiVersion: v1
-        kind: Service
-        metadata:
-          name: vllm-leader
-        spec:
-          ports:
-            - name: http
-              port: 8080
-              protocol: TCP
-              targetPort: 8080
-          selector:
-            leaderworkerset.sigs.k8s.io/name: vllm
-            role: leader
-          type: ClusterIP
-        ```
-
 ```bash
 kubectl apply -f lws.yaml
 ```
@@ -242,18 +147,6 @@ Verify that the distributed tensor-parallel inference works:
 
     ```text
     (Worker_PP1_TP0 pid=396) INFO 04-28 08:17:09 [gpu_model_runner.py:4820] Model loading took 3.82 GiB memory and 168.878781 seconds
-    ```
-
-=== "Ray"
-    ```bash
-    kubectl logs vllm-0 | grep -i "Loading model weights took"
-    ```
-
-    Should get something similar to this:
-
-    ```text
-    INFO 05-08 03:20:24 model_runner.py:173] Loading model weights took 0.1189 GB
-    (RayWorkerWrapper pid=169, ip=10.20.0.197) INFO 05-08 03:20:28 model_runner.py:173] Loading model weights took 0.1189 GB
     ```
 
 ## Access ClusterIP service

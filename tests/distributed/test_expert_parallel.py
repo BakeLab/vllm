@@ -56,7 +56,7 @@ class EPTestSettings:
                     tp_size=2 * tp_base, eager_mode=True, chunked_prefill=False
                 ),
             ],
-            distributed_backends=["mp", "ray"],
+            distributed_backends=["mp"],
             runner=runner,
             test_options=EPTestOptions(
                 trust_remote_code=trust_remote_code,

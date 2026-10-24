@@ -18,7 +18,6 @@ import psutil
 import vllm.envs as envs
 from vllm.logger import init_logger, set_vllm_process_name
 from vllm.platforms import current_platform
-from vllm.ray.lazy_utils import is_in_ray_actor
 
 from .platform_utils import cuda_is_initialized, xpu_is_initialized
 
@@ -127,15 +126,6 @@ def _maybe_force_spawn():
         return
 
     reasons = []
-    if is_in_ray_actor():
-        # even if we choose to spawn, we need to pass the ray address
-        # to the subprocess so that it knows how to connect to the ray cluster.
-        # env vars are inherited by subprocesses, even if we use spawn.
-        import ray
-
-        os.environ["RAY_ADDRESS"] = ray.get_runtime_context().gcs_address
-        reasons.append("In a Ray actor and can only be spawned")
-
     # Force spawn if NUMA binding is enabled via --numa-bind.
     # NUMA binding uses executable hijacking which requires spawn
     if "--numa-bind" in sys.argv:

@@ -27,7 +27,7 @@ def allow_insecure_serialization(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def cleanup():
-    cleanup_dist_env_and_memory(shutdown_ray=True)
+    cleanup_dist_env_and_memory()
 
 
 @pytest.fixture()

@@ -415,13 +415,6 @@ jobs:
                   { term: "weight update",          searchIn: "title" },
                 ],
               },
-              ray: {
-                substrings: [
-                  { term: "Ray cluster",     searchIn: "title" },
-                  { term: "Ray executor",    searchIn: "title" },
-                  { term: "placement group", searchIn: "title" },
-                ],
-              },
               "vllm-ir": {
                 substrings: [
                   { term: "vllm-ir", searchIn: "title" },

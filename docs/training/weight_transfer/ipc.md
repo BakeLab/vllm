@@ -65,7 +65,7 @@ engine.send_weights()   # once per sync
 until after the post-send barrier — the consumer's views would otherwise dangle.
 
 Any [`VLLMWeightSyncClient`](base.md#vllmweightsyncclient) works here — the
-built-in HTTP and Ray clients, or an adapter for your own stack. The engine is
+built-in HTTP client, or an adapter for your own stack. The engine is
 identical either way.
 
 ### `IPCTrainerInitInfo`
@@ -157,4 +157,3 @@ worker to participate.
 
 - [RLHF with IPC weight syncing (`vllm serve`, HTTP)](../../../examples/rl/rlhf_http_ipc.py) - **Start here.** Server and training model share a single GPU; HTTP control plane, CUDA IPC data plane. Launches and tears down its own server
 - [IPC weight syncing from a trainer that does not import vLLM](../../../examples/rl/rlhf_http_ipc_no_vllm.py) - `torch` + `requests` only, `ipc_handles_pickled` over HTTP; see [Trainer Without vLLM over HTTP](#trainer-without-vllm-over-http)
-- [RLHF with IPC + FSDP2 and expert parallelism](../../../examples/rl/rlhf_ipc_fsdp_ep.py) - Multi-rank trainer colocated with a `--data-parallel-size 4` server on the same 4 GPUs: every FSDP rank builds an engine and joins the handle all-gather, with packed chunking and sleep/wake around the transfer

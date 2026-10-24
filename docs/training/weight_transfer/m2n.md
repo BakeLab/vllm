@@ -54,7 +54,7 @@ The trainer uses the stateful trainer engine. m2n needs each parameter's source 
 
 ```python
 from vllm.distributed.weight_transfer import (
-    RayVLLMWeightSyncClient,
+    HTTPVLLMWeightSyncClient,
     WeightTransferTrainerFactory,
 )
 from vllm.distributed.weight_transfer.m2n_source import DTensorModuleSource
@@ -69,7 +69,7 @@ engine = WeightTransferTrainerFactory.trainer_init(
         num_trainer_ranks=num_trainer_ranks,
         rank=my_rank,
     ),
-    client=RayVLLMWeightSyncClient(llm_handle),
+    client=HTTPVLLMWeightSyncClient("http://localhost:8000"),
     source=DTensorModuleSource(model, num_trainer_ranks),
 )
 
@@ -89,7 +89,6 @@ resolves their pointers but does not verify device ownership. Raw-pointer
 sources are additionally responsible for pointer lifetime and matching their
 declared dtype and local shape.
 
-See [`examples/rl/rlhf_m2n.py`](../../../examples/rl/rlhf_m2n.py) for a runnable FSDP → TP example.
 
 ## Limitations
 

@@ -8,7 +8,6 @@ import types
 from types import SimpleNamespace
 
 import pytest
-import ray
 import torch
 import torch.distributed as dist
 
@@ -405,7 +404,6 @@ def test_rocm_aiter_fused_rmsnorm_keeps_1stage_decode_path(
     torch.testing.assert_close(residual_out, residual + 1)
 
 
-@ray.remote(num_gpus=1, max_calls=1)
 def graph_quickreduce(
     monkeypatch: pytest.MonkeyPatch,
     tp_size,
@@ -465,7 +463,6 @@ def graph_quickreduce(
                 torch.testing.assert_close(out2, inp2, **tol)
 
 
-@ray.remote(num_gpus=1, max_calls=1)
 def eager_quickreduce(
     monkeypatch: pytest.MonkeyPatch,
     tp_size,
@@ -501,7 +498,6 @@ def eager_quickreduce(
         torch.testing.assert_close(out, inp * tp_size, **tol)
 
 
-@ray.remote(num_gpus=1, max_calls=1)
 def bf16_cast_quickreduce(
     monkeypatch: pytest.MonkeyPatch,
     tp_size,

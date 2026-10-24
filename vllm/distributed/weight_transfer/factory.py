@@ -84,10 +84,10 @@ class WeightTransferEngineFactory:
     @classmethod
     def create_engine(
         cls,
-        config: "WeightTransferConfig",
-        vllm_config: "VllmConfig",
-        device: "torch.device",
-        model: "torch.nn.Module",
+        config: WeightTransferConfig,
+        vllm_config: VllmConfig,
+        device: torch.device,
+        model: torch.nn.Module,
     ) -> WeightTransferEngine:
         """Create a weight transfer engine instance.
 
@@ -137,7 +137,7 @@ class WeightTransferTrainerFactory:
     def register_engine(
         cls,
         name: str,
-        module_path_or_cls: "str | type[TrainerWeightTransferEngine]",
+        module_path_or_cls: str | type[TrainerWeightTransferEngine],
         class_name: str | None = None,
     ) -> None:
         """Register a trainer engine. Same conventions as
@@ -166,10 +166,10 @@ class WeightTransferTrainerFactory:
     @classmethod
     def trainer_init(
         cls,
-        init_info: "TrainerInitInfo",
+        init_info: TrainerInitInfo,
         *,
-        client: "VLLMWeightSyncClient",
-        source: "WeightSource | None" = None,
+        client: VLLMWeightSyncClient,
+        source: WeightSource | None = None,
     ) -> TrainerWeightTransferEngine:
         """Build and rendezvous a ready-to-send trainer engine.
 
@@ -237,11 +237,6 @@ WeightTransferEngineFactory.register_engine(
     "SparseNCCLWeightTransferEngine",
 )
 
-WeightTransferEngineFactory.register_engine(
-    "sharded_rdt",
-    "vllm.distributed.weight_transfer.sharded_rdt_engine",
-    "ShardedRDTWeightTransferEngine",
-)
 
 WeightTransferEngineFactory.register_engine(
     "nccl_m2n",
@@ -276,11 +271,6 @@ WeightTransferTrainerFactory.register_engine(
     "SparseNCCLTrainerWeightTransferEngine",
 )
 
-WeightTransferTrainerFactory.register_engine(
-    "sharded_rdt",
-    "vllm.distributed.weight_transfer.sharded_rdt_trainer",
-    "ShardedRDTTrainerWeightTransferEngine",
-)
 
 WeightTransferTrainerFactory.register_engine(
     "nccl_m2n",

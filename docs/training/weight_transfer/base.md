@@ -129,16 +129,14 @@ def held_names(self):
 
 This covers various trainer layouts — pipeline stages (a rank holds some layers),
 expert parallelism (a rank holds some experts), both at once, or a shape that fits
-neither. Backends that can route per parameter (see
-[sharded RDT](sharded_rdt.md)) then pull each name from a rank that actually
-holds it.
+neither. Backends that route per parameter must pull each name from a rank
+that actually holds it.
 
 Three requirements come with overriding it:
 
 - **`metadata()` must still describe the whole model on every rank.** Only the
   sender's metadata reaches the inference side, so a rank that reported just its
-  own share would leave the rest silently un-transferred. Sharded RDT cross-checks
-  this across ranks at init.
+  own share would leave the rest silently un-transferred.
 - **Every name must be held by at least one rank**, or it can never be served.
   The engine raises at init naming the first orphan.
 - **Iteration yields `None` for a name this rank does not hold.** The name still
@@ -230,7 +228,6 @@ Two implementations ship with vLLM:
 
 | Client | Talks to |
 | ------ | -------- |
-| `RayVLLMWeightSyncClient(handle)` | One or more `AsyncLLM`/`LLM` Ray actors. Accepts a list and fans each call out to every handle, blocking on all of them, so a multi-actor (e.g. multi-DP) deployment is driven as one unit |
 | `HTTPVLLMWeightSyncClient(base_url, timeout=300)` | A vLLM server over the RLHF HTTP routes |
 
 Custom weight sync clients can be implemented like so:
@@ -263,8 +260,8 @@ Two things to get right in any adapter:
 - **Reach every replica, and block until all of them are done.** A weight update
   is not a load-balanced request: every worker holding a copy of the model must
   receive it. Returning before they all finish lets the trainer race ahead of
-  workers still loading. (Both built-in clients do this — Ray by fanning out over
-  its handles, HTTP because the server's DP client broadcasts internally.)
+  workers still loading. The HTTP client relies on the server's DP client to
+  broadcast internally.
 - **Raise on failure.** Trainer engines rely on exceptions to surface
   inference-side errors; a client that swallows them turns a failed sync into
   silently stale weights, or into a hang for backends whose transfer rendezvouses
@@ -499,10 +496,6 @@ The base class provides:
     means *queued*, not *applied*. `drain_pending()` is idempotent, and a no-op
     on an engine that processes synchronously, so it is always safe to call.
 
-    [Sharded RDT](sharded_rdt.md) is the built-in engine that sets it: it
-    scatters and quantizes on background threads with their own CUDA streams, so
-    its `drain_pending()` joins both queues and syncs both streams before
-    `finalize_layerwise_reload` runs.
 
 ### Request Classes
 
@@ -525,8 +518,7 @@ update_request = WeightTransferUpdateRequest(
 )
 ```
 
-Using a built-in client, you never construct these by hand — `RayVLLMWeightSyncClient`
-wraps the dicts for you, and `HTTPVLLMWeightSyncClient` posts them as JSON.
+The built-in `HTTPVLLMWeightSyncClient` posts these dictionaries as JSON.
 
 At the LLM/API layer, call `start_draft_weight_update()` instead of
 `start_weight_update()` to target the speculative draft model;
@@ -618,7 +610,7 @@ Once registered, users select your backend via `WeightTransferConfig(backend="my
 
 ### WeightTransferEngineFactory
 
-The factory uses a registry pattern with lazy loading. Built-in engines (`nccl`, `ipc`, `sparse_nccl` and `sharded_rdt`) are registered at import time but their modules are only loaded when the backend is actually requested. This avoids importing heavy dependencies (like NCCL communicators) when they aren't needed.
+The factory uses a registry pattern with lazy loading. Built-in engines (`nccl`, `ipc`, `sparse_nccl` and `nccl_m2n`) are registered at import time but their modules are only loaded when the backend is actually requested. This avoids importing heavy dependencies (like NCCL communicators) when they aren't needed.
 
 ```python
 from vllm.distributed.weight_transfer import WeightTransferEngineFactory

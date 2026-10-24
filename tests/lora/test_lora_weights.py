@@ -13,7 +13,7 @@ RSLORA_SCALING = ALPHA / RANK**0.5
 
 @pytest.fixture(autouse=True)
 def should_do_global_cleanup_after_test():
-    # Pure-python weight packing; skip GPU/ray cleanup.
+    # Pure-python weight packing; skip GPU cleanup.
     return False
 
 

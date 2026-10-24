@@ -247,7 +247,7 @@ class Worker(WorkerBase):
         self._sleep_mode_backend: SleepModeBackend | None = None
 
     @property
-    def sleep_mode_backend(self) -> "SleepModeBackend":
+    def sleep_mode_backend(self) -> SleepModeBackend:
         if self._sleep_mode_backend is None:
             from vllm.device_allocator.sleep_mode_backend import (
                 SleepModeBackendFactory,
@@ -445,7 +445,7 @@ class Worker(WorkerBase):
     @instrument(span_name="Init device")
     def init_device(self):
         if self.device_config.device_type == "cuda":
-            # This env var set by Ray causes exceptions with graph building.
+            # This setting conflicts with graph building.
             os.environ.pop("NCCL_ASYNC_ERROR_HANDLING", None)
             parallel_config = self.parallel_config
             self.local_rank = parallel_config.get_local_gpu_index(self.local_rank)
@@ -463,14 +463,13 @@ class Worker(WorkerBase):
                 )
                 # NOTE(patch pr45026): local_world_size is derived from
                 # parallel_config.nnodes, which is only set for the "mp"
-                # multi-node backend. With the "ray"/"external_launcher"
+                # multi-node backend. With the "external_launcher"
                 # backends nnodes stays 1, so local_world_size collapses to
                 # the full world_size and this check wrongly fires on
                 # cross-node deployments. assigned_physical_gpu_ids is already
                 # per-node and the local_rank bound above fully validates the
                 # mapping for these backends, so skip the check for them.
                 if parallel_config.distributed_executor_backend not in (
-                    "ray",
                     "external_launcher",
                 ):
                     assert self.parallel_config.local_world_size <= len(
@@ -564,7 +563,7 @@ class Worker(WorkerBase):
             # If usage stat is enabled, collect relevant info.
             report_usage_stats(self.vllm_config)
 
-    def _make_model_runner(self) -> "GPUModelRunner":
+    def _make_model_runner(self) -> GPUModelRunner:
         """Construct the platform's model runner; subclasses override this."""
         if self.use_v2_model_runner:
             if self.vllm_config.is_mm_encoder_only:
@@ -1316,14 +1315,14 @@ class Worker(WorkerBase):
     @torch.inference_mode()
     @with_gpu_sync_check
     def sample_tokens(
-        self, grammar_output: "GrammarOutput | None"
+        self, grammar_output: GrammarOutput | None
     ) -> ModelRunnerOutput | AsyncModelRunnerOutput:
         return self.model_runner.sample_tokens(grammar_output)
 
     @torch.inference_mode()
     @with_gpu_sync_check
     def execute_model(
-        self, scheduler_output: "SchedulerOutput"
+        self, scheduler_output: SchedulerOutput
     ) -> ModelRunnerOutput | AsyncModelRunnerOutput | None:
         # Wait for the previous step's sends so this forward pass cannot
         # overwrite buffers they are still reading.
@@ -1490,7 +1489,7 @@ class Worker(WorkerBase):
             max_size=max_size,
         )
 
-    def save_tensorized_model(self, tensorizer_config: "TensorizerConfig") -> None:
+    def save_tensorized_model(self, tensorizer_config: TensorizerConfig) -> None:
         TensorizerLoader.save_model(
             self.get_model(),
             tensorizer_config=tensorizer_config,
