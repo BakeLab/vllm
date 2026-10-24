@@ -1,20 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
-import json
 import math
-from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
-from functools import partial
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import Literal
 
-import pybase64
 import torch
 
 from vllm.config import ModelConfig
-from vllm.entrypoints.serve.engine.protocol import UsageInfo
 from vllm.logger import init_logger
-from vllm.outputs import PoolingRequestOutput
 from vllm.renderers import TokenizeParams
 from vllm.tasks import SupportedTask
 from vllm.utils.serial_utils import (
@@ -22,19 +16,12 @@ from vllm.utils.serial_utils import (
     EmbedDType,
     Endianness,
     binary2tensor,
-    tensor2binary,
 )
-
-if TYPE_CHECKING:
-    from fastapi.responses import StreamingResponse
-
 
 logger = init_logger(__name__)
 
 JsonEncodingFormat = Literal["float", "base64"]
 BytesEncodingFormat = Literal["bytes", "bytes_only"]
-FloatEncodedPoolingOutput = list[float] | list[list[float]]
-JsonEncodedPoolingOutput = FloatEncodedPoolingOutput | str
 
 
 @dataclass
@@ -69,147 +56,6 @@ def build_metadata_items(
     ]
 
 
-def encode_pooling_output_float(
-    output: PoolingRequestOutput,
-) -> FloatEncodedPoolingOutput:
-    return output.outputs.data.tolist()
-
-
-def encode_pooling_output_float_or_ndarray(output: PoolingRequestOutput) -> Any:
-    """Return an ndarray when the response renderer can serialize NumPy."""
-    try:
-        data = output.outputs.data
-        if not data.is_contiguous():
-            data = data.contiguous()
-        return data.numpy()
-    except (RuntimeError, TypeError):
-        return output.outputs.data.tolist()
-
-
-def encode_pooling_output_base64(
-    output: PoolingRequestOutput,
-    embed_dtype: EmbedDType,
-    endianness: Endianness,
-) -> str:
-    embedding_bytes = tensor2binary(output.outputs.data, embed_dtype, endianness)
-    return pybase64.b64encode(embedding_bytes).decode("utf-8")
-
-
-def encode_pooling_bytes(
-    pooling_outputs: list[PoolingRequestOutput],
-    embed_dtype: EmbedDType,
-    endianness: Endianness,
-) -> tuple[list[bytes], list[dict[str, Any]]]:
-    items: list[dict[str, Any]] = []
-    body: list[bytes] = []
-    offset = 0
-    for idx, output in enumerate(pooling_outputs):
-        binary = tensor2binary(
-            tensor=output.outputs.data,
-            embed_dtype=embed_dtype,
-            endianness=endianness,
-        )
-        size = len(binary)
-
-        # Dictionary form of MetadataItem
-        item = dict(
-            index=idx,
-            embed_dtype=embed_dtype,
-            endianness=endianness,
-            start=offset,
-            end=offset + size,
-            shape=output.outputs.data.shape,
-        )
-
-        body.append(binary)
-        items.append(item)
-        offset += size
-
-    return body, items
-
-
-def get_pooling_output_encoder(
-    encoding_format: JsonEncodingFormat,
-    embed_dtype: EmbedDType,
-    endianness: Endianness,
-) -> Callable[[PoolingRequestOutput], JsonEncodedPoolingOutput]:
-    return cast(
-        Callable[[PoolingRequestOutput], JsonEncodedPoolingOutput],
-        (
-            encode_pooling_output_float
-            if encoding_format == "float"
-            else partial(
-                encode_pooling_output_base64,
-                embed_dtype=embed_dtype,
-                endianness=endianness,
-            )
-        ),
-    )
-
-
-def get_pooling_usage(
-    pooling_outputs: Sequence[PoolingRequestOutput],
-) -> UsageInfo:
-    num_prompt_tokens = sum(
-        len(output.prompt_token_ids) if output.prompt_token_ids is not None else 0
-        for output in pooling_outputs
-    )
-    return UsageInfo(
-        prompt_tokens=num_prompt_tokens,
-        total_tokens=num_prompt_tokens,
-    )
-
-
-def get_pooling_usage_payload(
-    pooling_outputs: Sequence[PoolingRequestOutput],
-) -> dict[str, int]:
-    usage = get_pooling_usage(pooling_outputs)
-    return {
-        "prompt_tokens": usage.prompt_tokens,
-        "total_tokens": usage.total_tokens,
-    }
-
-
-def build_pooling_bytes_streaming_response(
-    pooling_outputs: list[PoolingRequestOutput],
-    request_id: str,
-    created_time: int,
-    model_name: str,
-    encoding_format: BytesEncodingFormat,
-    embed_dtype: EmbedDType,
-    endianness: Endianness,
-) -> "StreamingResponse":
-    from fastapi.responses import StreamingResponse
-
-    content, items = encode_pooling_bytes(
-        pooling_outputs=pooling_outputs,
-        embed_dtype=embed_dtype,
-        endianness=endianness,
-    )
-
-    headers = (
-        None
-        if encoding_format == "bytes_only"
-        else {
-            "metadata": json.dumps(
-                {
-                    "id": request_id,
-                    "created": created_time,
-                    "model": model_name,
-                    "data": items,
-                    "usage": get_pooling_usage_payload(pooling_outputs),
-                }
-            )
-        }
-    )
-
-    return StreamingResponse(
-        content=content,
-        headers=headers,
-        media_type="application/octet-stream",
-    )
-
-
 def decode_pooling_output(items: list[MetadataItem], body: bytes) -> list[torch.Tensor]:
     return [
         binary2tensor(
@@ -223,7 +69,7 @@ def decode_pooling_output(items: list[MetadataItem], body: bytes) -> list[torch.
 
 
 def enable_scoring_api(
-    supported_tasks: tuple["SupportedTask", ...],
+    supported_tasks: tuple[SupportedTask, ...],
     model_config: ModelConfig | None = None,
 ) -> bool:
     if model_config is None:

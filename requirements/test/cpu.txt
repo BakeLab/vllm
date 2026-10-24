@@ -8,7 +8,7 @@ accelerate==1.13.0
     # via peft
 aiohappyeyeballs==2.6.1
     # via aiohttp
-aiohttp==3.14.5
+aiohttp==3.14.3
     # via
     #   -r requirements/test/../common.txt
     #   datasets
@@ -35,9 +35,7 @@ anyio==4.14.2
     #   anthropic
     #   httpx
     #   httpx2
-    #   mcp
     #   openai
-    #   sse-starlette
     #   starlette
     #   watchfiles
 apache-tvm-ffi==0.1.14.post0
@@ -153,7 +151,7 @@ cryptography==50.0.1
     #   pyjwt
 cycler==0.12.1
     # via matplotlib
-datamodel-code-generator==0.86.0
+datamodel-code-generator==0.79.0
     # via -r requirements/test/cuda.in
 dataproperty==1.0.1
     # via
@@ -300,9 +298,12 @@ grpcio==1.78.0
     # via
     #   -r requirements/test/cuda.in
     #   grpcio-reflection
+    #   grpcio-tools
     #   opentelemetry-exporter-otlp-proto-grpc
 grpcio-reflection==1.78.0
     # via -r requirements/test/cuda.in
+grpcio-tools==1.78.0
+    # via -r requirements/test/arctic-build.in
 h11==0.16.0
     # via
     #   httpcore
@@ -345,7 +346,6 @@ httpx==0.27.2
 httpx2==2.12.0
     # via
     #   -r requirements/test/cuda.in
-    #   mcp
 huggingface-hub==1.31.0
     # via
     #   -r requirements/test/../common.txt
@@ -429,7 +429,6 @@ jsonschema==4.23.0
     # via
     #   -r requirements/test/../common.txt
     #   hypothesis-jsonschema
-    #   mcp
     #   mistral-common
 jsonschema-rs==0.46.5
     # via schemathesis
@@ -491,10 +490,6 @@ mbstrdecoder==1.1.3
     #   dataproperty
     #   pytablewriter
     #   typepy
-mcp==2.3.0
-    # via -r requirements/test/../common.txt
-mcp-types==2.3.0
-    # via mcp
 mdurl==0.1.2
     # via markdown-it-py
 mistral-common==1.11.6
@@ -521,9 +516,8 @@ msgspec==0.21.1
     # via -r requirements/test/../common.txt
 mteb==2.8.3
     # via -r requirements/test/cuda.in
-multidict==7.1.0
+multidict==6.1.0
     # via
-    #   -r requirements/test/../common.txt
     #   aiohttp
     #   yarl
 multiprocess==0.70.16
@@ -532,6 +526,8 @@ multiprocess==0.70.16
     #   evaluate
 mypy-extensions==1.0.0
     # via black
+nanobind==2.9.2
+    # via -r requirements/test/arctic-build.in
 networkx==3.2.1
     # via
     #   scikit-image
@@ -585,7 +581,6 @@ numpy==2.2.6
     #   scikit-learn
     #   scipy
     #   segmentation-models-pytorch
-    #   sentence-transformers
     #   soxr
     #   statsmodels
     #   tensorizer
@@ -611,7 +606,6 @@ openpyxl==3.1.5
 opentelemetry-api==1.35.0
     # via
     #   -r requirements/test/../common.txt
-    #   mcp
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
     #   opentelemetry-sdk
@@ -695,7 +689,7 @@ perceptron==0.1.4
     # via -r requirements/test/cuda.in
 perf-analyzer==0.1.0
     # via genai-perf
-pillow==13.0.0
+pillow==12.3.0
     # via
     #   -r requirements/test/../common.txt
     #   genai-perf
@@ -735,7 +729,7 @@ prometheus-client==0.22.0
     #   prometheus-fastapi-instrumentator
 prometheus-fastapi-instrumentator==8.0.2
     # via -r requirements/test/../common.txt
-propcache==0.5.4
+propcache==0.2.0
     # via
     #   aiohttp
     #   yarl
@@ -747,6 +741,7 @@ protobuf==6.33.6
     #   google-api-core
     #   googleapis-common-protos
     #   grpcio-reflection
+    #   grpcio-tools
     #   opentelemetry-proto
     #   proto-plus
     #   tensorizer
@@ -794,8 +789,6 @@ pydantic==2.12.0
     #   fastapi-cloud-cli
     #   gpt-oss
     #   lm-format-enforcer
-    #   mcp
-    #   mcp-types
     #   mistral-common
     #   model-hosting-container-standards
     #   mteb
@@ -824,7 +817,6 @@ pygments==2.21.0
 pyjwt==2.15.1
     # via
     #   -r requirements/test/cuda.in
-    #   mcp
     #   msal
 pyparsing==3.2.0
     # via matplotlib
@@ -880,7 +872,6 @@ python-multipart==0.0.32
     # via
     #   -r requirements/test/cuda.in
     #   fastapi
-    #   mcp
 python-rapidjson==1.20
     # via tritonclient
 pytokens==0.4.1
@@ -1023,7 +1014,7 @@ scipy==1.13.1
     #   vocos
 segmentation-models-pytorch==0.5.0
     # via -r requirements/test/cuda.in
-sentence-transformers==5.6.0
+sentence-transformers==5.2.0
     # via
     #   -r requirements/test/cuda.in
     #   mteb
@@ -1072,16 +1063,12 @@ sqlalchemy==2.0.41
     #   optuna
 sqlitedict==2.1.0
     # via lm-eval
-sse-starlette==3.4.5
-    # via mcp
 starlette==1.3.1
     # via
     #   -r requirements/test/../common.txt
     #   fastapi
-    #   mcp
     #   model-hosting-container-standards
     #   prometheus-fastapi-instrumentator
-    #   sse-starlette
     #   starlette-testclient
 starlette-testclient==0.4.1
     # via schemathesis
@@ -1225,7 +1212,7 @@ typer==0.26.8
     #   transformers
 types-requests==2.33.0.20260712
     # via cohere
-typing-extensions==4.16.0
+typing-extensions==4.15.0
     # via
     #   -r requirements/test/../common.txt
     #   aiohttp
@@ -1240,7 +1227,6 @@ typing-extensions==4.16.0
     #   azure-storage-blob
     #   chz
     #   cohere
-    #   datamodel-code-generator
     #   fastapi
     #   grpcio
     #   httpx2
@@ -1248,8 +1234,6 @@ typing-extensions==4.16.0
     #   jupyter-client
     #   librosa
     #   lm-eval
-    #   mcp
-    #   mcp-types
     #   mistral-common
     #   mteb
     #   openai
@@ -1274,7 +1258,6 @@ typing-extensions==4.16.0
 typing-inspection==0.4.2
     # via
     #   fastapi
-    #   mcp
     #   pydantic
     #   pydantic-settings
 tzdata==2024.2
@@ -1296,7 +1279,6 @@ uvicorn==0.35.0
     #   fastapi-cli
     #   fastapi-cloud-cli
     #   gpt-oss
-    #   mcp
 uvloop==0.22.1
     # via uvicorn
 vector-quantize-pytorch==1.21.2
@@ -1326,7 +1308,7 @@ xxhash==3.5.0
     # via
     #   datasets
     #   evaluate
-yarl==1.25.1
+yarl==1.17.1
     # via aiohttp
 zipp==3.23.0
     # via importlib-metadata

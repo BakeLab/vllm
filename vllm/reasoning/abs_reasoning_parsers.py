@@ -7,7 +7,6 @@ from collections.abc import Callable, Iterable, Sequence
 from functools import cached_property
 from typing import TYPE_CHECKING, cast
 
-from vllm.entrypoints.mcp.tool_server import ToolServer
 from vllm.logger import init_logger
 from vllm.utils.collection_utils import is_list_of
 from vllm.utils.import_utils import import_plugin
@@ -31,7 +30,7 @@ class ReasoningParser:
 
     engine_based_streaming: bool = False
 
-    def __init__(self, tokenizer: "TokenizerLike", *args, **kwargs):
+    def __init__(self, tokenizer: TokenizerLike, *args, **kwargs):
         self.model_tokenizer = tokenizer
         # Optional vLLM ModelConfig from the server. Use get (not pop) so composite
         # parsers can forward **kwargs to nested parsers.
@@ -153,7 +152,7 @@ class ReasoningParser:
     def extract_reasoning(
         self,
         model_output: str,
-        request: "ChatCompletionRequest | ResponsesRequest",
+        request: ChatCompletionRequest | ResponsesRequest,
     ) -> tuple[str | None, str | None]:
         """Extract reasoning content from a complete model-generated string.
 
@@ -178,7 +177,7 @@ class ReasoningParser:
         previous_token_ids: Sequence[int],
         current_token_ids: Sequence[int],
         delta_token_ids: Sequence[int],
-    ) -> "DeltaMessage | None":
+    ) -> DeltaMessage | None:
         """Instance method that should be implemented for extracting reasoning
         from an incomplete response; for use when handling reasoning calls and
         streaming. Has to be an instance method because  it requires state -
@@ -187,8 +186,8 @@ class ReasoningParser:
         """
 
     def adjust_request(
-        self, request: "ChatCompletionRequest | ResponsesRequest"
-    ) -> "ChatCompletionRequest | ResponsesRequest":
+        self, request: ChatCompletionRequest | ResponsesRequest
+    ) -> ChatCompletionRequest | ResponsesRequest:
         """Adjust request parameters; override in subclasses as needed."""
         return request
 
@@ -212,14 +211,6 @@ class ReasoningParser:
         Default is a no-op; override in subclasses as needed.
         """
         return
-
-    def prepare_structured_tag(
-        self,
-        original_tag: str | None,
-        tool_server: ToolServer | None,
-    ) -> str | None:
-        """Instance method that is implemented for preparing the structured tag"""
-        return original_tag
 
 
 class ReasoningParserManager:

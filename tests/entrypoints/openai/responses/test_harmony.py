@@ -101,8 +101,6 @@ def server():
     args = [
         "--compilation-config.mode=0",
         "--compilation-config.cudagraph_mode=NONE",
-        "--tool-server",
-        "demo",
         "--max_model_len",
         "5000",
     ]

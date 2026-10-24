@@ -31,6 +31,15 @@ the former Python HTTP-only serving implementations are not included.
 
 Offline inference is possible in your own code using vLLM's [`LLM`][vllm.LLM] class.
 
+For benchmarks use `vllm-rs bench serve` or standalone `vllm-bench`. The
+standalone binary also provides `vllm-bench mm-processor`; the former Python
+`vllm bench` implementation and selector flags are removed.
+
+ROCm's base installation no longer installs Tensorizer, Run:ai Model Streamer,
+or Python gRPC/reflection. Install `vllm[tensorizer]` or `vllm[runai]` when using
+those optional loaders. Python-engine OpenTelemetry tracing requires
+`vllm[otel]`; the Rust frontend's gRPC service does not need Python grpcio.
+
 ## Model Types
 
 vLLM models can be categorized into two types:

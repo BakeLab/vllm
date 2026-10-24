@@ -14,17 +14,11 @@ non-streaming), see ``vllm.tool_parsers.gemma4_tool_parser``.
 For thinking/reasoning output parsing, see
 ``vllm.reasoning.gemma4_utils``.
 
-Usage with vLLM offline inference::
+Usage with decoded model output::
 
-    from vllm import LLM, SamplingParams
-    from vllm.tool_parsers.gemma4_utils import (
-        parse_tool_calls,
-        has_tool_response_tag,
-    )
+    from vllm.tool_parsers.gemma4_utils import parse_tool_calls
 
-    llm = LLM(model="google/gemma-4-it")
-    outputs = llm.generate(prompt, SamplingParams(...))
-    text = tokenizer.decode(outputs[0].outputs[0].token_ids, skip_special_tokens=False)
+    text = '<|tool_call>call:get_weather{city:<|"|>Paris<|"|>}<tool_call|>'
 
     # Extract tool calls
     tool_calls = parse_tool_calls(text)
