@@ -86,23 +86,8 @@ start_nodes() {
             /bin/bash -c "tail -f /dev/null")
         STARTED_CONTAINERS+=("$CONTAINER_ID")
 
-        # organize containers into a ray cluster
-        if [ "$node" -eq 0 ]; then
-            # start the ray head node
-            docker exec -d "$CONTAINER_ID" /bin/bash -c "ray start --head --port=6379 --block"
-            # wait for the head node to be ready
-            sleep 10
-        else
-            # start the ray worker nodes, and connect them to the head node
-            docker exec -d "$CONTAINER_ID" /bin/bash -c "ray start --address=192.168.10.10:6379 --block"
-        fi
     done
 
-    # wait for the cluster to be ready
-    sleep 10
-
-    # print the cluster status
-    docker exec "${STARTED_CONTAINERS[0]}" /bin/bash -c "ray status"
 }
 
 run_nodes() {

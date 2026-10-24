@@ -13,7 +13,6 @@ spec-verify step, random weights in the checkpoint's formats at TP8 shapes:
 """
 
 import pytest
-import ray
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
@@ -427,7 +426,6 @@ def _init_worker(monkeypatch, tp_size, pp_size, rank, distributed_init_port):
     return device
 
 
-@ray.remote(num_gpus=1, max_calls=1)
 def _k2_worker(
     monkeypatch: pytest.MonkeyPatch,
     tp_size: int,
@@ -507,7 +505,6 @@ def test_k2_tp8_matches_vllm_ops_and_replays(monkeypatch: pytest.MonkeyPatch) ->
 STALLED = 3
 
 
-@ray.remote(num_gpus=1, max_calls=1)
 def _fault_worker(
     monkeypatch: pytest.MonkeyPatch,
     tp_size: int,

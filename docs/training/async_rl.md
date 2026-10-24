@@ -56,7 +56,7 @@ With `VLLM_SERVER_DEV_MODE=1`, the vLLM HTTP server exposes the same functionali
 - `GET /weight_info` - Return the latest committed `weight_version`
 
 !!! note "Data Parallelism"
-    When using data parallelism with vLLM's **internal load balancer** (i.e. `data_parallel_backend="ray"`), pause and resume are handled automatically across all DP ranks -- a single call is sufficient. When using an **external load balancer** (i.e. multiple independent vLLM instances behind a proxy), you must send pause and resume requests to **every** engine instance individually before and after the weight update, and set the weight version on every instance too.
+    When using data parallelism with vLLM's **internal load balancer** (using `data_parallel_backend="mp"`), pause and resume are handled automatically across all DP ranks -- a single call is sufficient. When using an **external load balancer** (i.e. multiple independent vLLM instances behind a proxy), you must send pause and resume requests to **every** engine instance individually before and after the weight update, and set the weight version on every instance too.
 
 ## Typical Async RL Flow
 
@@ -90,5 +90,3 @@ The offsets cover the whole output, so with streamed delta outputs, collect the 
 An aborted request returns spans over its partial output. If you resubmit that output as part of a new prompt, the new request's spans start again at 0, so shift them by the number of tokens already generated before joining the two lists.
 
 ## Example
-
-The [async RLHF example](../../examples/rl/rlhf_async_new_apis.py) demonstrates this pattern with `vllm.AsyncLLMEngine`, NCCL weight transfer, and mid-flight pause/resume with validation.

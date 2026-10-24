@@ -19,7 +19,6 @@ MODULE_ATTRS = {
     "AsyncLLMEngine": ".v1.engine.async_llm:AsyncLLM",
     "LLMEngine": ".v1.engine.llm_engine:LLMEngine",
     "LLM": ".entrypoints.llm:LLM",
-    "initialize_ray_cluster": ".v1.executor.ray_utils:initialize_ray_cluster",
     "PromptType": ".inputs:PromptType",
     "TextPrompt": ".inputs:TextPrompt",
     "TokensPrompt": ".inputs:TokensPrompt",
@@ -59,7 +58,6 @@ if typing.TYPE_CHECKING:
     from vllm.sampling_params import SamplingParams
     from vllm.v1.engine.async_llm import AsyncLLM as AsyncLLMEngine
     from vllm.v1.engine.llm_engine import LLMEngine
-    from vllm.v1.executor.ray_utils import initialize_ray_cluster
 else:
 
     def __getattr__(name: str) -> typing.Any:
@@ -96,6 +94,5 @@ __all__ = [
     "EngineArgs",
     "AsyncLLMEngine",
     "AsyncEngineArgs",
-    "initialize_ray_cluster",
     "PoolingParams",
 ]

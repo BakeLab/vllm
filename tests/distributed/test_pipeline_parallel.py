@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 """WARNING: This test runs in both single-node (4 GPUs) and multi-node
 (2 node with 2 GPUs each) modes. If the test only uses 2 GPUs, it is
-important to set the distributed backend to "mp" to avoid Ray scheduling
+important to set the distributed backend to "mp" for local worker scheduling
 all workers in a node other than the head node, which can cause the test
 to fail.
 """
@@ -61,7 +61,7 @@ class PPTestSettings:
                 ParallelSetup(tp_size=2 * tp_base, pp_size=pp_base, eager_mode=False),
                 ParallelSetup(tp_size=2 * tp_base, pp_size=pp_base, eager_mode=True),
             ],
-            distributed_backends=["mp", "ray"],
+            distributed_backends=["mp"],
             runner=runner,
             test_options=PPTestOptions(
                 multi_node_only=multi_node_only, load_format=load_format
@@ -311,9 +311,6 @@ def _compare_tp(
 
     # compare without pipeline parallelism
     # NOTE: use mp backend for TP
-    # PP tests might involve multiple nodes, and ray might
-    #  schedule all workers in a node other than the head node,
-    #  which can cause the test to fail.
     tp_args = [
         *common_args,
         "--tensor-parallel-size",

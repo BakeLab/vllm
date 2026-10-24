@@ -40,7 +40,7 @@ def should_do_global_cleanup_after_test(request) -> bool:
 def cleanup_fixture(should_do_global_cleanup_after_test: bool):
     yield
     if should_do_global_cleanup_after_test:
-        cleanup_dist_env_and_memory(shutdown_ray=True)
+        cleanup_dist_env_and_memory()
 
 
 @pytest.fixture
@@ -73,7 +73,7 @@ def dist_init():
         )
         initialize_model_parallel(1, 1)
         yield
-    cleanup_dist_env_and_memory(shutdown_ray=True)
+    cleanup_dist_env_and_memory()
 
 
 class DummyLoRAModel(nn.Sequential, SupportsLoRA):

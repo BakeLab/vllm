@@ -260,7 +260,7 @@ def resolve_host_ip(extra_config: dict) -> str:
 
     Honors an explicit ``host_ip`` in ``kv_connector_extra_config`` before
     falling back to ``get_ip()``. An external router/orchestrator can set it to
-    the node's routable address; this is required under frameworks (e.g. Ray)
+    the node's routable address; this is required under external launchers
     where ``get_ip()`` resolves to an unroutable public IP and ``VLLM_HOST_IP``
     cannot be propagated to the worker processes that bind the transfer engine.
     """

@@ -264,17 +264,3 @@ the detected format, which can be one of:
 
 If the result is not what you expect, you can set the `--chat-template-content-format` CLI argument
 to override which format to use.
-
-## Ray Serve LLM
-
-Ray Serve LLM enables scalable, production-grade serving of the vLLM engine. It integrates tightly with vLLM and extends it with features such as auto-scaling, load balancing, and back-pressure.
-
-Key capabilities:
-
-- Exposes an OpenAI-compatible HTTP API as well as a Pythonic API.
-- Scales from a single GPU to a multi-node cluster without code changes.
-- Provides observability and autoscaling policies through Ray dashboards and metrics.
-
-The following example shows how to deploy a large model like DeepSeek R1 with Ray Serve LLM: [examples/ray_serving/ray_serve_deepseek.py](../../../examples/ray_serving/ray_serve_deepseek.py).
-
-Learn more about Ray Serve LLM with the official [Ray Serve LLM documentation](https://docs.ray.io/en/latest/serve/llm/index.html).

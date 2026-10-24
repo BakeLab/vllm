@@ -357,7 +357,7 @@ class TieringOffloadingSpec(CPUOffloadingSpec):
         self.all_layers_portable: bool | None = None
 
         # engine_id is unique per DP replica (suffixed with _dp{rank} in both
-        # the Ray and multiprocessing paths), so it names a per-replica offload
+        # the multiprocessing paths), so it names a per-replica offload
         # region.
         self._engine_id = config.engine_id
 

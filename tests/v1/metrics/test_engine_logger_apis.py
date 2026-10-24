@@ -10,7 +10,6 @@ from tests.plugins.vllm_add_dummy_stat_logger.dummy_stat_logger.dummy_stat_logge
 from tests.utils import wait_for_memory_to_settle
 from vllm.v1.engine.async_llm import AsyncEngineArgs, AsyncLLM
 from vllm.v1.metrics.loggers import PerEngineStatLoggerAdapter
-from vllm.v1.metrics.ray_wrappers import RayPrometheusStatLogger
 
 
 @pytest.fixture
@@ -24,24 +23,6 @@ def log_stats_enabled_engine_args():
         disable_log_stats=False,
         compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
     )
-
-
-@pytest.mark.asyncio
-async def test_async_llm_replace_default_loggers(log_stats_enabled_engine_args):
-    """RayPrometheusStatLogger should replace the default PrometheusStatLogger."""
-    engine = AsyncLLM.from_engine_args(
-        log_stats_enabled_engine_args, stat_loggers=[RayPrometheusStatLogger]
-    )
-    try:
-        assert engine.logger_manager is not None
-        assert isinstance(
-            engine.logger_manager.stat_loggers[0], RayPrometheusStatLogger
-        )
-    finally:
-        engine.shutdown()
-        wait_for_memory_to_settle(
-            threshold_ratio=1.0 - log_stats_enabled_engine_args.gpu_memory_utilization
-        )
 
 
 @pytest.mark.asyncio

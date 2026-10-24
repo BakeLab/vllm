@@ -44,10 +44,7 @@ COMMON_BROADCAST_SETTINGS = {
     "tensor_parallel_size": 2,
     "hf_model_kwargs": {"device_map": "auto"},
     "image_size_factors": [(0.25, 0.5, 1.0)],
-    "distributed_executor_backend": (
-        "ray",
-        "mp",
-    ),
+    "distributed_executor_backend": ("mp",),
 }
 
 ### Test configuration for specific models

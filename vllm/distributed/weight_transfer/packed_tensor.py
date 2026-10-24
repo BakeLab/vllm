@@ -316,7 +316,7 @@ def packed_ipc_producer(
     allocation exists for the lifetime of the transfer.
 
     Callers **must** ensure the consumer has finished reading the buffer
-    (e.g. ``ray.get`` returned) before resuming the generator for the
+    (e.g. the transfer completed) before resuming the generator for the
     next chunk.
 
     Args:
@@ -428,7 +428,7 @@ def packed_ipc_consumer(
     dtype_names: list[str],
     tensor_sizes: list[int],
     device_index: int,
-    importer: "PackedBufferImporter | None" = None,
+    importer: PackedBufferImporter | None = None,
 ) -> list[tuple[str, torch.Tensor]]:
     """Unpack a single packed IPC chunk into named tensors.
 

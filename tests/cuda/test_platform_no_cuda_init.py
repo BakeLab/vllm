@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 """Test that platform imports do not prematurely initialize CUDA.
 
-This is critical for Ray-based multi-GPU setups where workers need to
+This is critical for spawned multi-GPU setups where workers need to
 set CUDA_VISIBLE_DEVICES after importing vLLM but before CUDA is initialized.
 If CUDA is initialized during import, device_count() gets locked and ignores
 subsequent env var changes.

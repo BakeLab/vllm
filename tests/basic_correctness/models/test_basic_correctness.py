@@ -180,15 +180,7 @@ def test_models(
         "target_test_suites, extra_env"
     ),
     [
-        ("facebook/opt-125m", "ray", "", ALL_DISTRIBUTED_TEST_SUITES, {}),
         ("facebook/opt-125m", "mp", "", ALL_DISTRIBUTED_TEST_SUITES, {}),
-        (
-            "meta-llama/Llama-3.2-1B-Instruct",
-            "ray",
-            "",
-            GENERIC_DISTRIBUTED_TEST_SUITES,
-            {},
-        ),
         (
             "meta-llama/Llama-3.2-1B-Instruct",
             "mp",

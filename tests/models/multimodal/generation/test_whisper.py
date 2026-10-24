@@ -343,7 +343,7 @@ def test_models(
 @multi_gpu_test(num_gpus=2)
 @pytest.mark.core_model
 @pytest.mark.parametrize("model", ["openai/whisper-large-v3-turbo"])
-@pytest.mark.parametrize("distributed_executor_backend", ["ray", "mp"])
+@pytest.mark.parametrize("distributed_executor_backend", ["mp"])
 @pytest.mark.parametrize("dtype", ["half"])
 @pytest.mark.parametrize("max_tokens", [200])
 @pytest.mark.parametrize("num_logprobs", [5])

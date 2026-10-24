@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     import numpy as np
 
     from vllm.v1.engine.coordinator import DPCoordinator
-    from vllm.v1.engine.utils import CoreEngineActorManager, CoreEngineProcManager
+    from vllm.v1.engine.utils import CoreEngineProcManager
 
 logger = init_logger(__name__)
 
@@ -389,7 +389,7 @@ def _shutdown_subprocesses_and_cleanup_listeners(
 
 def wait_for_completion_or_failure(
     api_server_manager: RustFrontendProcessManager,
-    engine_manager: CoreEngineProcManager | CoreEngineActorManager | None = None,
+    engine_manager: CoreEngineProcManager | None = None,
     coordinator: DPCoordinator | None = None,
 ) -> None:
     """Wait for all processes to complete or detect if any fail.
@@ -400,7 +400,7 @@ def wait_for_completion_or_failure(
         api_server_manager: The manager for API servers.
         engine_manager: The manager for engine processes.
             If CoreEngineProcManager, it manages local engines;
-            if CoreEngineActorManager, it manages all engines.
+            if it manages all engines.
         coordinator: The coordinator for data parallel.
 
     """

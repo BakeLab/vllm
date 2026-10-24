@@ -640,7 +640,7 @@ run_native_preflight() {
     return 1
   fi
 
-  python3 -c "import encodings, importlib.metadata as im, importlib.util as iu; [im.version(d) for d in ('transformers', 'torch', 'ray', 'sympy', 'markupsafe', 'vllm')]; missing=[m for m in ('torch.utils.model_zoo', 'transformers.models.nomic_bert', 'ray.dag', 'sympy.physics', 'markupsafe._speedups') if iu.find_spec(m) is None]; assert not missing, missing" || return 1
+  python3 -c "import encodings, importlib.metadata as im, importlib.util as iu; [im.version(d) for d in ('transformers', 'torch', 'sympy', 'markupsafe', 'vllm')]; missing=[m for m in ('torch.utils.model_zoo', 'transformers.models.nomic_bert', 'sympy.physics', 'markupsafe._speedups') if iu.find_spec(m) is None]; assert not missing, missing" || return 1
 
   if [[ "${expected_gpus}" == "0" ]]; then
     echo "Native CPU-only AMD job: skipping ROCm device validation"
@@ -1679,7 +1679,7 @@ container_job_id="${container_job_id//[^A-Za-z0-9_.-]/_}"
 container_job_id_short="${container_job_id:0:8}"
 CONTAINER_TMPDIR="/tmp/vllm-${container_job_id_short}"
 CONTAINER_CACHE_ROOT="/tmp/vllm-buildkite-${container_job_id}/cache"
-CONTAINER_PREFLIGHT="mkdir -p \"\$TMPDIR\" \"\$TIKTOKEN_RS_CACHE_DIR\" \"\$TORCHINDUCTOR_CACHE_DIR\" \"\$TRITON_CACHE_DIR\" \"\$VLLM_CACHE_ROOT\" \"\$XDG_CACHE_HOME\" && python -c \"import encodings, importlib.metadata as im, importlib.util as iu; [im.version(d) for d in ('transformers', 'torch', 'ray', 'sympy', 'markupsafe', 'vllm')]; missing=[m for m in ('torch.utils.model_zoo', 'transformers.models.nomic_bert', 'ray.dag', 'sympy.physics', 'markupsafe._speedups') if iu.find_spec(m) is None]; assert not missing, missing\""
+CONTAINER_PREFLIGHT="mkdir -p \"\$TMPDIR\" \"\$TIKTOKEN_RS_CACHE_DIR\" \"\$TORCHINDUCTOR_CACHE_DIR\" \"\$TRITON_CACHE_DIR\" \"\$VLLM_CACHE_ROOT\" \"\$XDG_CACHE_HOME\" && python -c \"import encodings, importlib.metadata as im, importlib.util as iu; [im.version(d) for d in ('transformers', 'torch', 'sympy', 'markupsafe', 'vllm')]; missing=[m for m in ('torch.utils.model_zoo', 'transformers.models.nomic_bert', 'sympy.physics', 'markupsafe._speedups') if iu.find_spec(m) is None]; assert not missing, missing\""
 
 # Verify GPU access
 render_gid=$(getent group render | cut -d: -f3)

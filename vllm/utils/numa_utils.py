@@ -357,8 +357,7 @@ def _get_enginecore_numa_nodes(
         numa_nodes = parallel_config.numa_bind_nodes
 
     if (
-        parallel_config.distributed_executor_backend not in ("ray", "external_launcher")
-        and parallel_config.data_parallel_backend != "ray"
+        parallel_config.distributed_executor_backend != "external_launcher"
         and parallel_config.nnodes_within_dp == 1
     ):
         shard_start = parallel_config.get_local_gpu_index(0, dp_local_rank)
@@ -474,7 +473,7 @@ def _resolve_numactl_args(numactl_args: str) -> str:
 
 @contextmanager
 def configure_subprocess(
-    vllm_config: "VllmConfig",
+    vllm_config: VllmConfig,
     local_rank: int,
     dp_local_rank: int | None = None,
     process_kind: str = "worker",
