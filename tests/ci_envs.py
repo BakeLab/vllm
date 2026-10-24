@@ -25,9 +25,9 @@ environment_variables: dict[str, Callable[[], Any]] = {
     "VLLM_CI_HEAD_DTYPE": lambda: os.getenv("VLLM_CI_HEAD_DTYPE", None),
     # Allow changing the head dtype used by transformers in tests
     "VLLM_CI_HF_DTYPE": lambda: os.getenv("VLLM_CI_HF_DTYPE", None),
-    # Allow control over whether tests use enforce_eager
-    "VLLM_CI_ENFORCE_EAGER": lambda: maybe_convert_bool(
-        os.getenv("VLLM_CI_ENFORCE_EAGER", None)
+    # Run model reference tests without compilation or CUDA graphs.
+    "VLLM_CI_REFERENCE_EXECUTION": lambda: maybe_convert_bool(
+        os.getenv("VLLM_CI_REFERENCE_EXECUTION", None)
     ),
 }
 
