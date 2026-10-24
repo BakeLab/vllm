@@ -8,15 +8,14 @@ from vllm.config import CompilationConfig, CUDAGraphMode
 from vllm.config.compilation import CompilationMode
 from vllm.exceptions import VLLMValidationError
 
-REFERENCE_CONFIG = CompilationConfig(
-    mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
-)
-
 
 def test_empty_prompt(vllm_runner):
     with (
         vllm_runner(
-            "openai-community/gpt2", compilation_config=REFERENCE_CONFIG
+            "openai-community/gpt2",
+            compilation_config=CompilationConfig(
+                mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+            ),
         ) as runner,
         pytest.raises(VLLMValidationError, match="decoder prompt cannot be empty"),
     ):
@@ -26,7 +25,10 @@ def test_empty_prompt(vllm_runner):
 def test_out_of_vocab_token(vllm_runner):
     with (
         vllm_runner(
-            "openai-community/gpt2", compilation_config=REFERENCE_CONFIG
+            "openai-community/gpt2",
+            compilation_config=CompilationConfig(
+                mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+            ),
         ) as runner,
         pytest.raises(VLLMValidationError, match="out of vocabulary"),
     ):
@@ -39,7 +41,9 @@ def test_out_of_vocab_token_skip_tokenizer_init(vllm_runner):
     with (
         vllm_runner(
             "openai-community/gpt2",
-            compilation_config=REFERENCE_CONFIG,
+            compilation_config=CompilationConfig(
+                mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+            ),
             skip_tokenizer_init=True,
         ) as runner,
         pytest.raises(VLLMValidationError, match="out of vocabulary"),
@@ -51,7 +55,9 @@ def test_require_mm_embeds(vllm_runner):
     with (
         vllm_runner(
             "llava-hf/llava-1.5-7b-hf",
-            compilation_config=REFERENCE_CONFIG,
+            compilation_config=CompilationConfig(
+                mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+            ),
             enable_mm_embeds=False,
         ) as runner,
         pytest.raises(ValueError, match="--enable-mm-embeds"),

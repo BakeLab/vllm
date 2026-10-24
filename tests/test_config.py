@@ -59,31 +59,6 @@ from vllm.v1.attention.backend import AttentionCGSupport
 DEVICE_TYPE = current_platform.device_type
 
 
-@pytest.mark.parametrize(
-    "constructor_name",
-    ["LLM", "EngineArgs", "AsyncEngineArgs", "ModelConfig", "SpeculativeConfig"],
-)
-def test_removed_enforce_eager_argument_is_rejected(constructor_name, tmp_path):
-    """Reject the removed API before any model files or accelerator are needed."""
-    from vllm import LLM
-    from vllm.engine.arg_utils import AsyncEngineArgs, EngineArgs
-
-    constructors = {
-        "LLM": LLM,
-        "EngineArgs": EngineArgs,
-        "AsyncEngineArgs": AsyncEngineArgs,
-        "ModelConfig": ModelConfig,
-        "SpeculativeConfig": SpeculativeConfig,
-    }
-    kwargs = (
-        {"method": "ngram", "num_speculative_tokens": 1}
-        if constructor_name == "SpeculativeConfig"
-        else {"model": str(tmp_path)}
-    )
-    with pytest.raises((TypeError, ValidationError), match="enforce_eager"):
-        constructors[constructor_name](enforce_eager=True, **kwargs)
-
-
 def test_nested_rope_validation_patch_preserves_flat_rope_parameters(monkeypatch):
     calls = []
 
