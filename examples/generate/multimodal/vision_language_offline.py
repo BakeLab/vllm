@@ -1033,31 +1033,6 @@ def run_kimi_vl(questions: list[str], modality: str) -> ModelRequestData:
     )
 
 
-# Kimi-VL
-def run_kimi_k25(questions: list[str], modality: str) -> ModelRequestData:
-    assert modality == "vision_chunk"
-
-    prompts = [
-        "<|im_user|>user<|media_begin|>image<|media_content|>"
-        f"<|media_pad|><|media_end|>{question}<|im_end|>"
-        "<|im_assistant|>assistant<|im_middle|>"
-        for question in questions
-    ]
-
-    engine_args = EngineArgs(
-        model="moonshotai/Kimi-K2.5",
-        trust_remote_code=True,
-        max_model_len=4096,
-        limit_mm_per_prompt={modality: 1},
-        tensor_parallel_size=4,
-    )
-
-    return ModelRequestData(
-        engine_args=engine_args,
-        prompts=prompts,
-    )
-
-
 # LightOnOCR
 def run_lightonocr(questions: list[str], modality: str) -> ModelRequestData:
     assert modality == "image"
@@ -2238,7 +2213,6 @@ model_example_map = {
     "keye_vl": run_keye_vl,
     "keye_vl1_5": run_keye_vl1_5,
     "kimi_vl": run_kimi_vl,
-    "kimi_k25": run_kimi_k25,
     "lightonocr": run_lightonocr,
     "lfm2_vl": run_lfm2_vl,
     "llama4": run_llama4,

@@ -22,10 +22,10 @@ from vllm.model_executor.models.interfaces import (
     SupportsPP,
     SupportsQuant,
 )
-from vllm.model_executor.models.kimi_k25 import KimiK25MediaPixelInputs
 from vllm.model_executor.models.kimi_k25_vit import (
     KimiK25MultiModalProjector,
     MoonViT3dPretrainedModel,
+    MoonViTMediaPixelInputs,
     vision_tower_forward,
 )
 from vllm.model_executor.models.utils import (
@@ -148,7 +148,7 @@ class KimiK3ForConditionalGeneration(
 
     def _parse_and_validate_media_input(
         self, **kwargs: object
-    ) -> KimiK25MediaPixelInputs | None:
+    ) -> MoonViTMediaPixelInputs | None:
         pixel_values = kwargs.pop("pixel_values", None)
         grid_thws = kwargs.pop("grid_thws", None)
         if pixel_values is None:
@@ -175,14 +175,14 @@ class KimiK3ForConditionalGeneration(
             f"unexpected shape for grid_thws: {grid_thws.shape}"
         )
 
-        return KimiK25MediaPixelInputs(
+        return MoonViTMediaPixelInputs(
             type="pixel_values",
             pixel_values=pixel_values,
             grid_thws=grid_thws,
         )
 
     def _process_media_input(
-        self, media_input: KimiK25MediaPixelInputs
+        self, media_input: MoonViTMediaPixelInputs
     ) -> list[torch.Tensor]:
         media_features = vision_tower_forward(
             self.vision_tower,

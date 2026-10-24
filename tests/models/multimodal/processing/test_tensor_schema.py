@@ -158,12 +158,6 @@ def initialize_dummy_model(
 @create_new_process_for_each_test()
 @pytest.mark.parametrize("model_id", get_model_ids_to_test())
 def test_model_tensor_schema(model_id: str):
-    if model_id == "moonshotai/Kimi-K2.5":
-        # FIXME(Isotr0py): Fix Kimi-K2.5's offline inference about vision chunks.
-        pytest.skip(
-            "Kimi-K2.5's offline inference has issues about vision chunks. Fix later."
-        )
-
     if (
         model_id == "deepseek-ai/DeepSeek-V4-Flash-Vision-Exp"
         and not current_platform.is_cuda_alike()

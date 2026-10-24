@@ -77,19 +77,6 @@ models:
       tp: "--gpu-memory-utilization 0.85"
       ep: '--gpu-memory-utilization 0.75 --compilation-config {"cudagraph_mode":"PIECEWISE","custom_ops":["+quant_fp8"]}'
 
-  - model: Kimi-K2.5-MXFP4
-    env:
-      VLLM_ROCM_USE_AITER: "1"
-      VLLM_ROCM_USE_AITER_MOE: "1"
-      VLLM_ROCM_USE_AITER_RMSNORM: "1"
-    base_flags: "--trust-remote-code"
-    prefill:
-      tp: "--gpu-memory-utilization 0.85"
-      ep: "--gpu-memory-utilization 0.85 -cc.mode=none -cc.cudagraph_mode=none"
-    decode:
-      tp: "--gpu-memory-utilization 0.85"
-      ep: '--gpu-memory-utilization 0.75 --compilation-config {"cudagraph_mode":"FULL_DECODE_ONLY","custom_ops":["+quant_fp8"]}'
-
   - model: Kimi-K2.6-MXFP4
     env:
       VLLM_ROCM_USE_AITER: "1"

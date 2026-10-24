@@ -25,5 +25,13 @@ those optional loaders. For Python-engine OpenTelemetry tracing, install
 `vllm[otel]`; its OTLP exporter supplies its required gRPC transport dependencies.
 The Rust frontend's gRPC service does not require Python grpcio/reflection.
 
-Numba and its llvmlite dependency remain required for fused Kimi K2.5 vision
-preprocessing, independently of the removed V1 n-gram implementation.
+Numba and its llvmlite dependency remain required by the shared Kimi vision
+preprocessing used by K3, independently of the removed V1 n-gram implementation.
+
+## Kimi model support
+
+The dedicated Kimi K2.5 model implementation, processor/config registrations,
+and native Rust multimodal selection have been removed. Kimi K3 support is
+retained, including the shared MoonViT/projector, pixel-input schema, and fused
+vision preprocessing. Some shared component filenames still contain `kimi_k25`;
+they are retained K3 dependencies, not dedicated K2.5 model support.

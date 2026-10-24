@@ -140,7 +140,6 @@ _CONFIG_REGISTRY: dict[str, type[PreTrainedConfig]] = LazyConfigDict(
     kimi_k2="DeepseekV3Config",  # Kimi K2 uses same architecture as DeepSeek V3
     kimi_linear="KimiLinearConfig",
     kimi_vl="KimiVLConfig",
-    kimi_k25="Kimi_K25Config",  # Upstream class, hub remote code uses old schema
     muse_spark_dspark="MuseSparkDSparkConfig",
     musespark1x_text="MuseSpark1xTextConfig",
     muse_spark_text="MuseSparkTextConfig",

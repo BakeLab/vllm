@@ -1,7 +1,7 @@
 # Common dependencies
 -r common.txt
 
-numba == 0.65.0 # Required for fused Kimi K2.5 vision preprocessing
+numba == 0.65.0 # Shared Kimi vision preprocessing (K3)
 
 # Dependencies for AMD GPUs
 packaging>=24.2

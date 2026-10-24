@@ -9,13 +9,12 @@ temporal pooling for video chunks.
 
 from collections.abc import Sequence
 from copy import deepcopy
-from typing import Any
+from typing import Annotated, Any, Literal
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import Kimi_K25VisionConfig
 from transformers.activations import GELUActivation
 
 from vllm.distributed import divide, get_tensor_model_parallel_world_size
@@ -43,14 +42,32 @@ from vllm.model_executor.models.vision import (
 from vllm.platforms import current_platform
 from vllm.transformers_utils.configs.kimi_k3 import KimiK3VisionConfig
 from vllm.triton_utils import HAS_TRITON
+from vllm.utils.tensor_schema import TensorSchema, TensorShape
 from vllm.utils.torch_utils import async_tensor_h2d
 
 logger = init_logger(__name__)
 
 
-def _get_pos_emb_size(
-    config: Kimi_K25VisionConfig | KimiK3VisionConfig, dim: str
-) -> int:
+class MoonViTMediaPixelInputs(TensorSchema):
+    """Media input schema for the MoonViT vision tower.
+
+    Dimensions:
+        - np: Number of patches (flattened from all media items)
+        - ps: Patch size
+        - nm: Number of media items
+    """
+
+    type: Literal["pixel_values"] = "pixel_values"
+
+    pixel_values: Annotated[
+        torch.Tensor | list[torch.Tensor],
+        TensorShape("np", 3, "ps", "ps"),
+    ]
+
+    grid_thws: Annotated[torch.Tensor, TensorShape("nm", 3)]
+
+
+def _get_pos_emb_size(config: KimiK3VisionConfig, dim: str) -> int:
     # Legacy checkpoints and Kimi-K3 use `init_pos_emb_*`
     legacy = getattr(config, f"init_pos_emb_{dim}", None)
     return legacy if legacy is not None else getattr(config, f"pos_emb_{dim}")
@@ -710,7 +727,7 @@ class MoonViT3dPretrainedModel(nn.Module):
 
     def __init__(
         self,
-        config: Kimi_K25VisionConfig | KimiK3VisionConfig,
+        config: KimiK3VisionConfig,
         quant_config: QuantizationConfig | None = None,
         input_norm: nn.Module | None = None,
         prefix: str = "",
@@ -892,7 +909,7 @@ class KimiK25MultiModalProjector(nn.Module):
 
     def __init__(
         self,
-        config: Kimi_K25VisionConfig | KimiK3VisionConfig,
+        config: KimiK3VisionConfig,
         out_hidden_size: int,
         use_data_parallel: bool = False,
         quant_config: QuantizationConfig | None = None,
