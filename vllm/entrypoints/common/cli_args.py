@@ -135,13 +135,6 @@ class BaseFrontendArgs:
     tools; `parameter` additionally pins argument schemas, as if every tool
     were `strict: true`. When unset, the tool parser's default level applies,
     which is `auto` for most parsers."""
-    tool_server: str | None = None
-    """Comma-separated list of host:port pairs (IPv4, IPv6, or hostname).
-    Examples: 127.0.0.1:8000, [::1]:8000, localhost:1234. Or `demo` for
-    built-in demo tools (browser and Python code interpreter). WARNING:
-    The `demo` Python tool executes model-generated code in Docker without
-    network isolation by default. See the security guide for more
-    information."""
     max_log_len: int | None = None
     """Max number of prompt characters or prompt ID numbers being printed in
     log. The default of None means unlimited."""

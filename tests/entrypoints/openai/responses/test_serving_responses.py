@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
-from contextlib import AsyncExitStack, asynccontextmanager
+from contextlib import AsyncExitStack
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -15,10 +15,6 @@ from openai.types.responses import (
 from openai.types.responses.response_format_text_json_schema_config import (
     ResponseFormatTextJSONSchemaConfig,
 )
-from openai.types.responses.tool import (
-    LocalShell,
-    Mcp,
-)
 from openai_harmony import Message as OpenAIHarmonyMessage
 from openai_harmony import Role
 from pydantic import ValidationError
@@ -30,13 +26,6 @@ from vllm.entrypoints.generate.base.protocol import (
     DeltaMessage,
     DeltaToolCall,
     RequestResponseMetadata,
-)
-from vllm.entrypoints.mcp.tool_server import ToolServer
-from vllm.entrypoints.openai.responses.context import (
-    ConversationContext,
-    HarmonyContext,
-    ParsableContext,
-    SimpleContext,
 )
 from vllm.entrypoints.openai.responses.protocol import (
     ResponseCreatedEvent,
@@ -51,7 +40,6 @@ from vllm.outputs import CompletionOutput, RequestOutput
 from vllm.parser.harmony import Segment
 from vllm.renderers.online_renderer import (
     OnlineRenderer,
-    _extract_allowed_tools_from_mcp_requests,
 )
 from vllm.sampling_params import SamplingParams
 from vllm.v1.metrics.stats import RequestStateStats
@@ -67,37 +55,6 @@ def _new_online_renderer() -> OnlineRenderer:
     return renderer
 
 
-class MockConversationContext(ConversationContext):
-    """Mock conversation context for testing."""
-
-    def __init__(self):
-        self.init_tool_sessions_called = False
-        self.init_tool_sessions_args = None
-        self.init_tool_sessions_kwargs = None
-
-    def append_output(self, output) -> None:
-        pass
-
-    def append_tool_output(self, output) -> None:
-        pass
-
-    async def call_tool(self):
-        return []
-
-    def need_builtin_tool_call(self) -> bool:
-        return False
-
-    def render_for_completion(self):
-        return []
-
-    async def init_tool_sessions(self, tool_server, exit_stack, request_id, mcp_tools):
-        self.init_tool_sessions_called = True
-        self.init_tool_sessions_args = (tool_server, exit_stack, request_id, mcp_tools)
-
-    async def cleanup_session(self) -> None:
-        pass
-
-
 def test_serialize_message_pydantic_model_returns_dict() -> None:
     msg = ResponseRawMessageAndToken(message="hello", tokens=[1, 2, 3])
 
@@ -106,12 +63,6 @@ def test_serialize_message_pydantic_model_returns_dict() -> None:
     assert isinstance(serialized, dict)
     assert serialized["type"] == "raw_message_tokens"
     assert serialized["message"] == "hello"
-
-
-@pytest.fixture
-def mock_context():
-    """Create a mock conversation context."""
-    return MockConversationContext()
 
 
 @pytest.fixture
@@ -701,7 +652,7 @@ async def test_online_renderer_preserves_missing_harmony_builtin_tool_behavior(
         tools=[{"type": "web_search_preview"}],
     )
 
-    result = await renderer.render_responses(request, tool_server=None)
+    result = await renderer.render_responses(request)
 
     assert not isinstance(result, ErrorResponse)
 
@@ -717,91 +668,6 @@ def test_responses_render_result_rejects_non_single_prompt(engine_inputs):
 
     assert isinstance(result, ErrorResponse)
     assert f"got {len(engine_inputs)}" in result.error.message
-
-
-class TestInitializeToolSessions:
-    """Test class for _initialize_tool_sessions method."""
-
-    @pytest.fixture(params=[ParsableContext, HarmonyContext])
-    def tool_context(self, request):
-        context = request.param.__new__(request.param)
-        context.available_tools = ["browser", "python"]
-        context._tool_sessions = {}
-        context.called_tools = set()
-        return context
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        ("available_tools", "called_tools"),
-        [
-            ([], []),
-            (["browser"], ["browser"]),
-            (["browser", "python"], []),
-            (["browser", "python"], ["browser"]),
-            (["browser", "python"], ["python"]),
-            (["browser", "python"], ["browser", "python"]),
-        ],
-        ids=["empty", "single", "unused", "first", "last", "both"],
-    )
-    async def test_mcp_sessions_cleaned_once_before_close(
-        self, tool_context, available_tools, called_tools
-    ):
-        events = []
-        sessions = {}
-
-        @asynccontextmanager
-        async def new_session(name, *_args):
-            session = MagicMock()
-            session.call_tool = AsyncMock(
-                side_effect=lambda *_: events.append(("cleanup", name))
-            )
-            sessions[name] = session
-            try:
-                yield session
-            finally:
-                events.append(("close", name))
-
-        tool_server = MagicMock(spec=ToolServer)
-        tool_server.new_session.side_effect = new_session
-        tool_context.available_tools = available_tools
-        async with AsyncExitStack() as stack:
-            await tool_context.init_tool_sessions(tool_server, stack, "req", {})
-            # Reinitializing existing sessions must not duplicate cleanup either.
-            await tool_context.init_tool_sessions(tool_server, stack, "req", {})
-            tool_context.called_tools.update(called_tools)
-
-        for name, session in sessions.items():
-            if name in called_tools:
-                session.call_tool.assert_awaited_once_with("cleanup_session", {})
-                assert events.index(("cleanup", name)) < events.index(("close", name))
-            else:
-                session.call_tool.assert_not_awaited()
-        assert [name for event, name in events if event == "close"] == list(
-            reversed(available_tools)
-        )
-
-    @pytest.mark.asyncio
-    async def test_mcp_partial_initialization_closes_opened_session(self, tool_context):
-        closed = []
-        session = MagicMock(call_tool=AsyncMock())
-
-        @asynccontextmanager
-        async def new_session(name, *_args):
-            if name == "python":
-                raise RuntimeError("session initialization failed")
-            try:
-                yield session
-            finally:
-                closed.append(name)
-
-        tool_server = MagicMock(spec=ToolServer)
-        tool_server.new_session.side_effect = new_session
-        with pytest.raises(RuntimeError, match="session initialization failed"):
-            async with AsyncExitStack() as stack:
-                await tool_context.init_tool_sessions(tool_server, stack, "req", {})
-
-        assert closed == ["browser"]
-        session.call_tool.assert_not_awaited()
 
 
 class _Qwen3FakeTokenizer:
@@ -852,101 +718,6 @@ async def _run_full_generator(serving, request, context, tokenizer):
         tokenizer=tokenizer,
         request_metadata=RequestResponseMetadata(request_id="req"),
     )
-
-
-class TestExtractAllowedToolsFromMcpRequests:
-    """Test class for _extract_allowed_tools_from_mcp_requests function."""
-
-    def test_extract_allowed_tools_basic_formats(self):
-        """Test extraction with list format, object format, and None."""
-        from openai.types.responses.tool import McpAllowedToolsMcpToolFilter
-
-        tools = [
-            # List format
-            Mcp(
-                type="mcp",
-                server_label="server1",
-                allowed_tools=["tool1", "tool2"],
-            ),
-            # Object format
-            Mcp(
-                type="mcp",
-                server_label="server2",
-                allowed_tools=McpAllowedToolsMcpToolFilter(
-                    tool_names=["tool3", "tool4"]
-                ),
-            ),
-            # None (no filter)
-            Mcp(
-                type="mcp",
-                server_label="server3",
-                allowed_tools=None,
-            ),
-        ]
-        result = _extract_allowed_tools_from_mcp_requests(tools)
-        assert result == {
-            "server1": ["tool1", "tool2"],
-            "server2": ["tool3", "tool4"],
-            "server3": None,
-        }
-
-    def test_extract_allowed_tools_star_normalization(self):
-        """Test that '*' wildcard is normalized to None (select all tools).
-
-        This is the key test requested by reviewers to explicitly demonstrate
-        that the "*" select-all scenario is handled correctly.
-        """
-        from openai.types.responses.tool import McpAllowedToolsMcpToolFilter
-
-        tools = [
-            # Star in list format
-            Mcp(
-                type="mcp",
-                server_label="server1",
-                allowed_tools=["*"],
-            ),
-            # Star mixed with other tools in list
-            Mcp(
-                type="mcp",
-                server_label="server2",
-                allowed_tools=["tool1", "*"],
-            ),
-            # Star in object format
-            Mcp(
-                type="mcp",
-                server_label="server3",
-                allowed_tools=McpAllowedToolsMcpToolFilter(tool_names=["*"]),
-            ),
-        ]
-        result = _extract_allowed_tools_from_mcp_requests(tools)
-        # All should be normalized to None (allows all tools)
-        assert result == {
-            "server1": None,
-            "server2": None,
-            "server3": None,
-        }
-
-    def test_extract_allowed_tools_filters_non_mcp(self):
-        """Test that non-MCP tools are ignored during extraction."""
-        tools = [
-            Mcp(
-                type="mcp",
-                server_label="server1",
-                allowed_tools=["tool1"],
-            ),
-            LocalShell(type="local_shell"),  # Non-MCP tool should be ignored
-            Mcp(
-                type="mcp",
-                server_label="server2",
-                allowed_tools=["tool2"],
-            ),
-        ]
-        result = _extract_allowed_tools_from_mcp_requests(tools)
-        # Non-MCP tools should be ignored
-        assert result == {
-            "server1": ["tool1"],
-            "server2": ["tool2"],
-        }
 
 
 class TestHarmonyPreambleStreaming:
@@ -1002,21 +773,6 @@ def _make_request_output(
         num_cached_tokens=0,
         metrics=metrics,
     )
-
-
-def _make_simple_context_with_output(
-    text,
-    token_ids,
-    response_parser=None,
-    metrics: RequestStateStats | None = None,
-    finish_reason: str | None = None,
-):
-    """Create a SimpleContext with a RequestOutput containing the given text."""
-    ctx = SimpleContext(response_parser=response_parser)
-    req_output = _make_request_output(text, token_ids, metrics, finish_reason)
-    ctx.append_output(req_output)
-    ctx.request_metrics = metrics
-    return ctx
 
 
 async def _empty_context_generator():

@@ -45,4 +45,3 @@ cbor2 # Required for cross-language serialization of hashable objects
 ijson # Required for mistral streaming tool parser
 setproctitle # Used to set process names for better debugging and monitoring
 oss-harmony >= 0.0.11  # Required for gpt-oss; includes embedded vocabularies
-mcp >= 2.0.0, < 3.0.0
