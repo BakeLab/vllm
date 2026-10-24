@@ -8,8 +8,9 @@ from typing import Any
 import pytest
 import torch
 
+from tests.engine_harness.llm import LLM
 from tests.evals.gsm8k.gsm8k_eval import _build_gsm8k_prompts, evaluate_gsm8k_offline
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 from vllm.assets.base import VLLM_S3_BUCKET_URL
 from vllm.assets.image import VLM_IMAGES_DIR
 from vllm.outputs import RequestOutput

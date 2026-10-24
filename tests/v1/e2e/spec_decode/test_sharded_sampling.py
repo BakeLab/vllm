@@ -12,8 +12,9 @@ per-request arithmetic and the rejection sampler are both exercised.
 import pytest
 import torch
 
+from tests.engine_harness.llm import LLM
 from tests.utils import wait_for_memory_to_settle
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 from vllm.distributed import cleanup_dist_env_and_memory
 
 from .utils import _skip_if_insufficient_gpus_for_tp, get_test_prompts, greedy_sampling

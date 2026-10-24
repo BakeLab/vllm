@@ -10,7 +10,8 @@ import pytest
 import zmq
 from tqdm import tqdm
 
-from vllm import LLM, SamplingParams, TokensPrompt
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams, TokensPrompt
 from vllm.config import KVEventsConfig, KVTransferConfig
 from vllm.distributed.kv_events import BlockStored, KVEventBatch
 from vllm.platforms import current_platform

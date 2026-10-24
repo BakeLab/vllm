@@ -487,7 +487,7 @@ class SamplingParams(
         routed_experts_prompt_start: int = 0,
         # Debugging / RL-specific parameters.
         trace_decode_token_ids: list[int] | None = None,
-    ) -> "SamplingParams":
+    ) -> SamplingParams:
         if logit_bias is not None:
             # Fast path uses a dict comprehension; on failure we iterate once
             # to identify the exact offending entry for the error message.
@@ -894,7 +894,7 @@ class SamplingParams(
             return self.logprobs
         return len(self.logprob_token_ids) if self.logprob_token_ids else None
 
-    def clone(self) -> "SamplingParams":
+    def clone(self) -> SamplingParams:
         """If skip_clone is True, uses shallow copy instead of deep copy."""
         if self.skip_clone:
             return copy.copy(self)
@@ -1474,7 +1474,7 @@ class SamplingParams(
         )
 
     @staticmethod
-    def for_sampler_warmup() -> "SamplingParams":
+    def for_sampler_warmup() -> SamplingParams:
         """Set parameters to exercise all sampler logic."""
         return SamplingParams(
             temperature=0.9,
@@ -1519,7 +1519,7 @@ class BeamSearchParams(
         _verify_num_sequences(self.beam_width, "beam_width")
 
     def configure_logprobs(
-        self, sampling_params: SamplingParams, config: "VllmConfig"
+        self, sampling_params: SamplingParams, config: VllmConfig
     ) -> None:
         ids = self.allowed_token_ids
         if ids is None:
@@ -1539,9 +1539,6 @@ class BeamSearchParams(
         if config.model_config.is_diffusion:
             # The diffusion sampler does not consume logprob_token_ids.
             raise ValueError("Beam allowlists with diffusion models are not supported")
-        if not config.use_v2_model_runner:
-            # V1 exact-ID logprobs overwrite other rows in a mixed batch.
-            raise ValueError("Beam allowlists require the V2 model runner")
         # Score the original distribution without applying a sampling mask.
         sampling_params.logprobs = None
         sampling_params.logprob_token_ids = ids

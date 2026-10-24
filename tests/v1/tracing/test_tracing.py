@@ -6,7 +6,9 @@ import pytest
 import time
 from opentelemetry.sdk.environment_variables import OTEL_EXPORTER_OTLP_TRACES_INSECURE
 
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
+
+from tests.engine_harness.llm import LLM
 from vllm.distributed import cleanup_dist_env_and_memory
 from vllm.platforms import current_platform
 from vllm.tracing import SpanAttributes

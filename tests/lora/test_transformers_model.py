@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-
 import pytest
 
 import vllm
+from tests.engine_harness.llm import LLM as TestLLM
 from vllm.lora.request import LoRARequest
 from vllm.platforms import current_platform
 
@@ -47,7 +47,7 @@ def do_sample(llm: vllm.LLM, lora_path: str, lora_id: int) -> list[str]:
 
 
 def test_ilama_lora(ilama_lora_files):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
@@ -71,7 +71,7 @@ def test_ilama_lora(ilama_lora_files):
 @multi_gpu_test(num_gpus=4)
 @create_new_process_for_each_test()
 def test_ilama_lora_tp4(ilama_lora_files):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
@@ -97,7 +97,7 @@ def test_ilama_lora_tp4(ilama_lora_files):
 @multi_gpu_test(num_gpus=4)
 @create_new_process_for_each_test()
 def test_ilama_lora_tp4_fully_sharded_loras(ilama_lora_files):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,

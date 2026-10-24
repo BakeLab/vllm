@@ -256,7 +256,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
     @abstractmethod
     def _o_proj(
         self,
-        attn_out: "torch.Tensor | QuantizedActivation",
+        attn_out: torch.Tensor | QuantizedActivation,
         positions: torch.Tensor,
     ) -> torch.Tensor:
         """Project whatever ``_alloc_attn_out`` produced through wo_a and wo_b.
@@ -274,8 +274,8 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
         return self.use_fp8_ds_mla_layout
 
     def _indexer_cls(
-        self, k_cache: "DeepseekV4IndexerCache | None"
-    ) -> type["DeepseekV4Indexer"]:
+        self, k_cache: DeepseekV4IndexerCache | None
+    ) -> type[DeepseekV4Indexer]:
         """The indexer for this layer's index K cache. A platform subclass
         returns one that writes and scores its own cache layout."""
         return DeepseekV4Indexer
@@ -491,11 +491,6 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
             )
 
         self._prepare_and_attn_fn = self._prepare_and_attn
-        if not vllm_config.use_v2_model_runner:
-            # MRV1's piecewise capture only tolerates the wide eager region: with
-            # the narrow one the attention input preparation stays in the captured
-            # graph and MRV1 produces garbage (#51430).
-            self._prepare_and_attn_fn = self._prepare_and_attn_eager
 
         self.aux_stream_list = aux_stream_list
         # [0]: GEMM start / post-GEMM event0. [1..3]: GEMM done events;
@@ -536,13 +531,6 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
             )
 
         swa_bounded_replay = cache_config.swa_bounded_replay
-        if swa_bounded_replay and not vllm_config.use_v2_model_runner:
-            logger.warning_once(
-                "SWA bounded replay needs model runner V2 (only it skips the "
-                "paged-KV writes of replayed tokens); the sliding-window cache "
-                "takes part in prefix caching instead."
-            )
-            swa_bounded_replay = False
         if (
             swa_bounded_replay
             and vllm_config.parallel_config.prefill_context_parallel_size > 1
@@ -766,7 +754,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
 
     def _alloc_attn_out(
         self, num_tokens: int, hidden_states: torch.Tensor
-    ) -> "torch.Tensor | QuantizedActivation":
+    ) -> torch.Tensor | QuantizedActivation:
         """The buffer ``forward_mqa`` fills, per the interface contract."""
         return torch.empty(
             (num_tokens, self.padded_heads, self.head_dim),
@@ -826,7 +814,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
         kv_score: torch.Tensor,
         indexer_weights: torch.Tensor,
         positions: torch.Tensor,
-        attn_out: "torch.Tensor | QuantizedActivation",
+        attn_out: torch.Tensor | QuantizedActivation,
     ) -> None:
         """Wide eager region: the whole of ``_prepare_and_attn`` runs eagerly.
 
@@ -853,7 +841,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
         kv_score: torch.Tensor,
         indexer_weights: torch.Tensor,
         positions: torch.Tensor,
-        attn_out: "torch.Tensor | QuantizedActivation",
+        attn_out: torch.Tensor | QuantizedActivation,
     ) -> None:
         """Attention input preparation followed by the sparse indexer and MLA.
 
@@ -1328,9 +1316,7 @@ class DeepseekV4Indexer(nn.Module):
     """
 
     # The scoring layers; a platform subclass swaps in its own.
-    mqa_cls: ClassVar[type["SparseMQAIndexer | RocmSparseMQAIndexer"]] = (
-        SparseMQAIndexer
-    )
+    mqa_cls: ClassVar[type[SparseMQAIndexer | RocmSparseMQAIndexer]] = SparseMQAIndexer
     attn_cls: ClassVar[type[SparseAttnIndexer]] = SparseAttnIndexer
 
     def __init__(

@@ -13,22 +13,13 @@ if TYPE_CHECKING:
 logger = init_logger(__name__)
 
 
-def mixed_batch_attention_warmup(worker: "Worker", num_tokens: int = 16) -> None:
+def mixed_batch_attention_warmup(worker: Worker, num_tokens: int = 16) -> None:
     """Run a mixed prefill+decode batch to warm up both attention paths."""
     num_tokens = min(
         num_tokens,
         worker.scheduler_config.max_num_batched_tokens,
         worker.model_config.max_model_len,
     )
-    if not worker.use_v2_model_runner:
-        worker.model_runner._dummy_run(
-            num_tokens=num_tokens,
-            skip_eplb=True,
-            is_profile=True,
-            force_attention=True,
-            create_mixed_batch=True,
-        )
-        return
 
     if not run_mixed_prefill_decode_warmup(
         cast("GPUModelRunner", worker.model_runner),

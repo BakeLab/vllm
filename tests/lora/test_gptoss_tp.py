@@ -1,10 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-
-
 import pytest
 
 import vllm
+from tests.engine_harness.llm import LLM as TestLLM
 from vllm.lora.request import LoRARequest
 from vllm.platforms import current_platform
 
@@ -134,7 +133,7 @@ def test_gpt_oss_lora(
 ):
     _enable_deterministic_lora_shrink(monkeypatch)
 
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
@@ -177,7 +176,7 @@ def test_gpt_oss_lora_tp2(
 ):
     _enable_deterministic_lora_shrink(monkeypatch)
 
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
@@ -205,7 +204,7 @@ def test_gpt_oss_lora_mixed_moe_format(
 ):
     _enable_deterministic_lora_shrink(monkeypatch)
 
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,

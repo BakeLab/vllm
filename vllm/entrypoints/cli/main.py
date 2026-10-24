@@ -25,7 +25,6 @@ COMMANDS = {
         "Launch a local OpenAI-compatible API server to serve LLM "
         "completions via HTTP.",
     ),
-    "bench": ("benchmark.main", "vLLM bench subcommand."),
     "collect-env": ("collect_env", "Start collecting environment information."),
     "download-kernels": (
         "download_kernels",
@@ -35,7 +34,6 @@ COMMANDS = {
         "preload",
         "Launch weight cache daemons (one per GPU) for fast engine restarts.",
     ),
-    "run-batch": ("run_batch", "Run batch prompts and write results to file."),
 }
 
 
@@ -113,25 +111,6 @@ def main():
     cmd = next(cmd for cmd in cmd_module.cmd_init() if cmd.name == selected.subparser)
 
     cli_env_setup()
-
-    if cmd.name == "bench":
-        cmd_module.maybe_exec_rust_bench()
-
-    # For 'vllm bench *': use CPU instead of UnspecifiedPlatform by default
-    if len(sys.argv) > 1 and sys.argv[1] == "bench":
-        logger.debug(
-            "Bench command detected, must ensure current platform is not "
-            "UnspecifiedPlatform to avoid device type inference error"
-        )
-        from vllm import platforms
-
-        if platforms.current_platform.is_unspecified():
-            from vllm.platforms.cpu import CpuPlatform
-
-            platforms.current_platform = CpuPlatform()
-            logger.info(
-                "Unspecified platform detected, switching to CPU Platform instead."
-            )
 
     parser = make_parser(cmd)
     args = parser.parse_args()

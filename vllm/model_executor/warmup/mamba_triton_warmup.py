@@ -9,12 +9,12 @@ import torch
 from vllm.logger import init_logger
 
 if TYPE_CHECKING:
-    from vllm.v1.worker.gpu_model_runner import GPUModelRunner
+    from vllm.v1.worker.gpu.model_runner import GPUModelRunner
 
 logger = init_logger(__name__)
 
 
-def _has_mamba_style_cache(runner: "GPUModelRunner") -> bool:
+def _has_mamba_style_cache(runner: GPUModelRunner) -> bool:
     from vllm.v1.kv_cache_interface import MambaSpec, UniformTypeKVCacheSpecs
 
     for group in runner.kv_cache_config.kv_cache_groups:
@@ -43,7 +43,7 @@ def _warm_batch_memcpy_kernel(device: torch.device) -> None:
 
 
 @torch.inference_mode()
-def mamba_triton_warmup(runner: "GPUModelRunner") -> None:
+def mamba_triton_warmup(runner: GPUModelRunner) -> None:
     """Warm prefix-cache memcpy for every Mamba-style KV cache group."""
     device = runner.device
     if device.type != "cuda":

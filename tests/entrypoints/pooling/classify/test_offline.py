@@ -5,8 +5,9 @@ import weakref
 import pytest
 import torch
 
+from tests.engine_harness.llm import LLM
 from tests.models.utils import softmax
-from vllm import LLM, ClassificationRequestOutput, PoolingParams
+from vllm import ClassificationRequestOutput, PoolingParams
 from vllm.inputs import PromptType
 from vllm.tasks import PoolingTask
 

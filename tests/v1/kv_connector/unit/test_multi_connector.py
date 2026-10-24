@@ -10,8 +10,9 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 
+from tests.engine_harness.llm import LLM
 from tests.v1.kv_connector.unit.utils import create_vllm_config, maybe_update_block_size
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 from vllm.config import KVTransferConfig
 from vllm.distributed.kv_transfer.kv_connector.factory import KVConnectorFactory
 from vllm.distributed.kv_transfer.kv_connector.v1 import KVConnectorRole

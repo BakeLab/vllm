@@ -6,9 +6,10 @@ import weakref
 
 import pytest
 
+from tests.engine_harness.llm import LLM
 from tests.utils import wait_for_gpu_memory_to_clear
 from tests.v1.attention.utils import full_cg_backend_configs as backend_configs
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 from vllm.config import CompilationConfig, CUDAGraphMode
 from vllm.outputs import RequestOutput
 from vllm.platforms import current_platform

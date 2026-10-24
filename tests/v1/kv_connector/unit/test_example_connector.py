@@ -5,7 +5,8 @@ from typing import NamedTuple
 import pytest
 from PIL import Image
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.assets.image import ImageAsset
 from vllm.config import AttentionConfig, KVTransferConfig
 from vllm.inputs import TextPrompt

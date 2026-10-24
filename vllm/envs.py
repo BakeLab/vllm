@@ -167,7 +167,6 @@ if TYPE_CHECKING:
     VLLM_REPLICATE_EMBED: bool = False
     VLLM_USE_LAYERNAME: bool = True
     VLLM_USE_RUST_FRONTEND: bool = True
-    VLLM_USE_RUST_BENCH: bool = False
     VLLM_RUST_FRONTEND_PATH: str = "auto"
     VLLM_SERVER_DEV_MODE: bool = False
     VLLM_V1_OUTPUT_PROC_CHUNK_SIZE: int = 128
@@ -302,7 +301,6 @@ if TYPE_CHECKING:
     VLLM_MULTI_STREAM_GEMM_TOKEN_THRESHOLD: int = 1024
     VLLM_COHERE2_ATTN_MOE_DUAL_STREAM_TOKEN_THRESHOLD: int = 256
     VLLM_COMPILE_CACHE_SAVE_FORMAT: Literal["binary", "unpacked"] = "binary"
-    VLLM_USE_V2_MODEL_RUNNER: bool | None = None
     VLLM_LOG_MODEL_INSPECTION: bool = False
     VLLM_DEBUG_MFU_METRICS: bool = False
     VLLM_WEIGHT_OFFLOADING_DISABLE_PIN_MEMORY: bool = False
@@ -1416,8 +1414,6 @@ environment_variables: dict[str, Callable[[], Any]] = {
     "VLLM_USE_LAYERNAME": lambda: bool(int(os.getenv("VLLM_USE_LAYERNAME", "1"))),
     # The Rust frontend is mandatory in this fork.
     "VLLM_USE_RUST_FRONTEND": lambda: True,
-    # If set, use the packaged Rust client for `vllm bench serve`.
-    "VLLM_USE_RUST_BENCH": lambda: bool(int(os.getenv("VLLM_USE_RUST_BENCH", "0"))),
     # Path to the vllm-rs binary. Defaults to "auto" which discovers the
     # binary installed with the vllm package.
     "VLLM_RUST_FRONTEND_PATH": lambda: _resolve_rust_cli_path(),
@@ -2054,10 +2050,6 @@ environment_variables: dict[str, Callable[[], Any]] = {
     #     Allows viewing and setting breakpoints in Inductor's code output files.
     "VLLM_COMPILE_CACHE_SAVE_FORMAT": env_with_choices(
         "VLLM_COMPILE_CACHE_SAVE_FORMAT", "binary", ["binary", "unpacked"]
-    ),
-    # Flag to control the v2 model runner. If unset, use config defaults.
-    "VLLM_USE_V2_MODEL_RUNNER": lambda: maybe_convert_bool(
-        os.getenv("VLLM_USE_V2_MODEL_RUNNER", None)
     ),
     # Log model inspection after loading.
     # If enabled, logs a transformers-style hierarchical view of the model

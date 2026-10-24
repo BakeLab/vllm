@@ -6,8 +6,9 @@ import os
 
 import pytest
 
+from tests.engine_harness.llm import LLM
 from tests.models.utils import TokensTextLogprobs, check_logprobs_close
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 from vllm.inputs import TokensPrompt
 from vllm.outputs import RequestOutput
 from vllm.platforms import current_platform

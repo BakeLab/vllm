@@ -5,7 +5,8 @@ from collections.abc import Generator
 
 import pytest
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.platforms import current_platform
 from vllm.sampling_params import StructuredOutputsParams
 
@@ -18,7 +19,7 @@ pytestmark = pytest.mark.skipif(
 
 
 @pytest.fixture(scope="module")
-def watermarked_llm(vllm_runner) -> Generator[LLM, None, None]:
+def watermarked_llm(vllm_runner) -> Generator[LLM]:
     with vllm_runner(
         MODEL,
         dtype="half",

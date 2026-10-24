@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 logger = init_logger(__name__)
 
 
-def qwen4_exp_qsa_triton_warmup(worker: "Worker") -> None:
+def qwen4_exp_qsa_triton_warmup(worker: Worker) -> None:
     """Warm every reachable QSA specialization: indexer decode-query-length
     profiles plus the sparse attention split-K/merge configs."""
     qsa_module = sys.modules.get("vllm.models.qwen4_exp.nvidia.indexer_qsa")
@@ -41,17 +41,10 @@ def qwen4_exp_qsa_triton_warmup(worker: "Worker") -> None:
             for i, group in enumerate(runner.kv_cache_config.kv_cache_groups)
             if prefix in group.layer_names
         )
-        if worker.use_v2_model_runner:
-            runner_v2 = cast("GPUModelRunnerV2", runner)
-            return runner_v2.block_tables.input_block_tables[group_id]
-        return runner.input_batch.block_table[group_id].get_device_tensor(
-            runner.max_num_reqs
-        )
+        runner_v2 = cast("GPUModelRunnerV2", runner)
+        return runner_v2.block_tables.input_block_tables[group_id]
 
-    if worker.use_v2_model_runner:
-        max_decode_query_len = cast("GPUModelRunnerV2", runner).decode_query_len
-    else:
-        max_decode_query_len = runner.uniform_decode_query_len
+    max_decode_query_len = cast("GPUModelRunnerV2", runner).decode_query_len
 
     from vllm.models.qwen4_exp.nvidia.ops.qsa_indexer import (
         warmup_qsa_mqa_paged_decode,

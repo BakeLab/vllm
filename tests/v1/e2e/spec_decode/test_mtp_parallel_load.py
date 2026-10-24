@@ -9,8 +9,9 @@ from typing import Any
 import pytest
 import torch
 
+from tests.engine_harness.llm import LLM
 from tests.utils import multi_gpu_marks
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 from vllm.config import CompilationConfig
 from vllm.distributed import cleanup_dist_env_and_memory
 from vllm.engine.arg_utils import AsyncEngineArgs

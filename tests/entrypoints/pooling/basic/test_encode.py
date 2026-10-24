@@ -5,7 +5,8 @@ import weakref
 
 import pytest
 
-from vllm import LLM, PoolingParams
+from tests.engine_harness.llm import LLM
+from vllm import PoolingParams
 from vllm.exceptions import VLLMValidationError
 
 MODEL_NAME = "intfloat/multilingual-e5-small"

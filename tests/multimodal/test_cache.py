@@ -1318,7 +1318,8 @@ _SLEEP_VISION_PROMPT = (
 )
 def test_sleep_wake_preserves_mm_cache_consistency():
     """Regression for vllm-project/vllm#42995."""
-    from vllm import LLM, SamplingParams
+    from tests.engine_harness.llm import LLM
+    from vllm import SamplingParams
     from vllm.assets.image import ImageAsset
     from vllm.inputs import TextPrompt
 

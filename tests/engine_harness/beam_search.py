@@ -8,8 +8,8 @@ from collections.abc import Callable, Sequence
 import torch
 from tqdm import tqdm
 
+from tests.engine_harness.offline import OfflineInferenceMixin
 from vllm import RequestOutput, TextPrompt, TokensPrompt
-from vllm.entrypoints.common.offline import OfflineInferenceMixin
 from vllm.logger import init_logger
 from vllm.lora.request import LoRARequest
 from vllm.pooling_params import PoolingParams

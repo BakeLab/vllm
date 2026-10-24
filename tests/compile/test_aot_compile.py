@@ -493,7 +493,7 @@ def test_gpt2_cache_hit(monkeypatch: pytest.MonkeyPatch):
     ``LLM.collective_rpc`` so the test works under default V1
     multiprocessing (no shared memory between test and engine).
     """
-    from vllm import LLM
+    from tests.engine_harness.llm import LLM
 
     def _snap(self):
         from vllm.compilation.counter import compilation_counter

@@ -11,7 +11,7 @@ from vllm.logger import init_logger
 
 if TYPE_CHECKING:
     from vllm.config import ModelConfig
-    from vllm.v1.worker.gpu_model_runner import GPUModelRunner
+    from vllm.v1.worker.gpu.model_runner import GPUModelRunner
 
 logger = init_logger(__name__)
 
@@ -282,8 +282,8 @@ def _synchronize_device(device: torch.device) -> None:
 
 @torch.inference_mode()
 def qwen_triton_warmup(
-    runner: "GPUModelRunner",
-    model_config: "ModelConfig",
+    runner: GPUModelRunner,
+    model_config: ModelConfig,
 ) -> None:
     """Warm Qwen GDN Triton kernels reported by the JIT monitor."""
     model_type = getattr(model_config.hf_text_config, "model_type", "") or getattr(

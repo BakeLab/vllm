@@ -5,9 +5,9 @@ from types import SimpleNamespace
 
 import pytest
 
+from tests.engine_harness.pooling import PoolingOfflineMixin
 from vllm import PoolingParams
 from vllm.entrypoints.pooling.base.io_processor import PoolingIOProcessor
-from vllm.entrypoints.pooling.offline import PoolingOfflineMixin
 from vllm.entrypoints.pooling.scoring.io_processor import CrossEncoderIOProcessor
 from vllm.entrypoints.pooling.typing import OfflineEncodeInputsContext
 from vllm.exceptions import VLLMValidationError

@@ -60,7 +60,7 @@ class AttentionBackend(ABC):
     """Abstract class for attention backends."""
 
     supported_dtypes: ClassVar[list[torch.dtype]] = [torch.float16, torch.bfloat16]
-    supported_kv_cache_dtypes: ClassVar[list["CacheDType"]] = [
+    supported_kv_cache_dtypes: ClassVar[list[CacheDType]] = [
         "auto",
         "float16",
         "bfloat16",
@@ -74,7 +74,7 @@ class AttentionBackend(ABC):
 
     @staticmethod
     def get_supported_kernel_block_sizes(
-        kv_cache_spec: "KVCacheSpec | None" = None,
+        kv_cache_spec: KVCacheSpec | None = None,
     ) -> list[int | MultipleOf]:
         return [MultipleOf(1)]
 
@@ -85,7 +85,7 @@ class AttentionBackend(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_impl_cls() -> type["AttentionImplBase"]:
+    def get_impl_cls() -> type[AttentionImplBase]:
         raise NotImplementedError
 
     @staticmethod
@@ -111,7 +111,7 @@ class AttentionBackend(ABC):
         return dtype in cls.supported_dtypes
 
     @classmethod
-    def supports_kv_cache_dtype(cls, kv_cache_dtype: "CacheDType | None") -> bool:
+    def supports_kv_cache_dtype(cls, kv_cache_dtype: CacheDType | None) -> bool:
         if kv_cache_dtype is None:
             return True
         return (not cls.supported_kv_cache_dtypes) or (
@@ -138,7 +138,7 @@ class AttentionBackend(ABC):
         return False
 
     @classmethod
-    def customize_spec(cls, spec: "AttentionSpec") -> "AttentionSpec":
+    def customize_spec(cls, spec: AttentionSpec) -> AttentionSpec:
         """Adjust the layer's KV cache spec for this backend's kernels. Used when the
         kernels want KV packed in a specific way.
 
@@ -257,7 +257,7 @@ class AttentionBackend(ABC):
         return attn_type == AttentionType.DECODER
 
     @classmethod
-    def supports_compute_capability(cls, capability: "DeviceCapability") -> bool:
+    def supports_compute_capability(cls, capability: DeviceCapability) -> bool:
         return True
 
     @classmethod
@@ -265,13 +265,13 @@ class AttentionBackend(ABC):
         cls,
         head_size: int,
         dtype: torch.dtype,
-        kv_cache_dtype: "CacheDType | None",
+        kv_cache_dtype: CacheDType | None,
         block_size: int | None,
         use_mla: bool,
         has_sink: bool,
         use_sparse: bool,
         use_mm_prefix: bool,
-        device_capability: "DeviceCapability",
+        device_capability: DeviceCapability,
     ) -> str | None:
         return None
 
@@ -280,14 +280,14 @@ class AttentionBackend(ABC):
         cls,
         head_size: int,
         dtype: torch.dtype,
-        kv_cache_dtype: "CacheDType | None",
+        kv_cache_dtype: CacheDType | None,
         block_size: int | None,
         use_mla: bool,
         has_sink: bool,
         use_sparse: bool,
         use_mm_prefix: bool,
         use_per_head_quant_scales: bool,
-        device_capability: "DeviceCapability",
+        device_capability: DeviceCapability,
         attn_type: str,
         has_sliding_window: bool = False,
         use_non_causal: bool = False,
@@ -483,7 +483,7 @@ class CommonAttentionMetadata:
         """Naive because it assumes that query ends where the next query starts."""
         return self.query_start_loc[1:] - self.query_start_loc[:-1]
 
-    def replace(self, **kwargs) -> "CommonAttentionMetadata":
+    def replace(self, **kwargs) -> CommonAttentionMetadata:
         return replace(self, **kwargs)
 
     def compute_num_computed_tokens(self) -> torch.Tensor:
@@ -519,7 +519,7 @@ class CommonAttentionMetadata:
     # TODO(lucas): remove once we have FULL-CG spec-decode support
     def unpadded(
         self, num_actual_tokens: int, num_actual_reqs: int
-    ) -> "CommonAttentionMetadata":
+    ) -> CommonAttentionMetadata:
         maybe_slice_reqs = lambda x: x[:num_actual_reqs] if x is not None else None
         return CommonAttentionMetadata(
             query_start_loc=self.query_start_loc[: num_actual_reqs + 1],
@@ -569,7 +569,7 @@ class AttentionCGSupport(Enum):
     """NO cudagraph support"""
 
 
-def max_decode_query_len(vllm_config: "VllmConfig") -> int:
+def max_decode_query_len(vllm_config: VllmConfig) -> int:
     """Widest request a spec-as-decode builder treats as a decode.
 
     On model runner V2 this is a verification request, 1 +
@@ -582,10 +582,6 @@ def max_decode_query_len(vllm_config: "VllmConfig") -> int:
         return 1
     num_speculative_tokens = speculative_config.num_speculative_tokens
     max_query_len = 1 + num_speculative_tokens
-    if speculative_config.parallel_drafting and not vllm_config.use_v2_model_runner:
-        # Model runner V1 only; remove with it. Its parallel drafter appends up
-        # to num_speculative_tokens mask slots to each verified request.
-        max_query_len += num_speculative_tokens
     return max_query_len
 
 
@@ -612,9 +608,9 @@ class AttentionMetadataBuilder(ABC, Generic[M]):
     @abstractmethod
     def __init__(
         self,
-        kv_cache_spec: "KVCacheSpec",
+        kv_cache_spec: KVCacheSpec,
         layer_names: list[str],
-        vllm_config: "VllmConfig",
+        vllm_config: VllmConfig,
         device: torch.device,
     ):
         self.kv_cache_spec = kv_cache_spec
@@ -624,18 +620,18 @@ class AttentionMetadataBuilder(ABC, Generic[M]):
 
     @classmethod
     def get_cudagraph_support(
-        cls: type["AttentionMetadataBuilder"],
-        vllm_config: "VllmConfig",
-        kv_cache_spec: "KVCacheSpec",
+        cls: type[AttentionMetadataBuilder],
+        vllm_config: VllmConfig,
+        kv_cache_spec: KVCacheSpec,
     ) -> AttentionCGSupport:
         """Get the cudagraph support level of this builder class."""
         return cls._cudagraph_support
 
     @classmethod
     def get_varlen_cudagraph_max_query_len(
-        cls: type["AttentionMetadataBuilder"],
-        vllm_config: "VllmConfig",
-        kv_cache_spec: "KVCacheSpec",
+        cls: type[AttentionMetadataBuilder],
+        vllm_config: VllmConfig,
+        kv_cache_spec: KVCacheSpec,
     ) -> int | None:
         """Get the largest per-request query length L of the variable-length
         decode batches a FULL cudagraph of this builder class can replay.
@@ -880,7 +876,7 @@ class AttentionImplBase(ABC, Generic[T]):
     def process_weights_after_loading(self, act_dtype: torch.dtype):
         pass
 
-    def get_impl_variants(self) -> tuple["AttentionImplBase", ...]:
+    def get_impl_variants(self) -> tuple[AttentionImplBase, ...]:
         return (self,)
 
     def prepare_for_batch(self, attn_metadata: T | None) -> None:
@@ -893,7 +889,7 @@ class AttentionImpl(AttentionImplBase[T], Generic[T]):
     kv_cache_dtype: str
 
     @property
-    def kv_quant_mode(self) -> "KVQuantMode":
+    def kv_quant_mode(self) -> KVQuantMode:
         """Return the KV cache quantization mode for this layer."""
         return get_kv_quant_mode(self.kv_cache_dtype)
 
@@ -928,7 +924,7 @@ class AttentionImpl(AttentionImplBase[T], Generic[T]):
     ) -> torch.Tensor:
         raise NotImplementedError
 
-    def fused_output_quant_supported(self, quant_key: "QuantKey") -> bool:
+    def fused_output_quant_supported(self, quant_key: QuantKey) -> bool:
         """Does this attention implementation support fused output quantization.
         This is used by the AttnFusionPass to only fuse output quantization
         onto implementations that support it.
@@ -1034,7 +1030,7 @@ class AttentionImpl(AttentionImplBase[T], Generic[T]):
 class MLAAttentionImpl(AttentionImplBase[T], Generic[T]):
     """MLA attention implementation with forward_mqa and forward_mha methods."""
 
-    hisparse_cache: "HiSparseCacheHandle | None" = None
+    hisparse_cache: HiSparseCacheHandle | None = None
     supports_pcp: bool = True
 
     @abstractmethod
@@ -1057,7 +1053,7 @@ class MLAAttentionImpl(AttentionImplBase[T], Generic[T]):
         qk_rope_head_dim: int,
         qk_head_dim: int,
         v_head_dim: int,
-        kv_b_proj: "ColumnParallelLinear",
+        kv_b_proj: ColumnParallelLinear,
         indexer: object | None = None,
         q_pad_num_heads: int | None = None,
     ) -> None:
@@ -1093,7 +1089,7 @@ class MLAAttentionImpl(AttentionImplBase[T], Generic[T]):
         that is otherwise reserved after profiling."""
         return
 
-    def fused_output_quant_supported(self, quant_key: "QuantKey"):
+    def fused_output_quant_supported(self, quant_key: QuantKey):
         """Does this attention implementation support fused output quantization.
         Since MLA quantization is done manually in forward_impl (common code),
         all MLA backends support it by default.

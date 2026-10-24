@@ -12,7 +12,8 @@ from dataclasses import dataclass
 
 import pytest
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.inputs import TokensPrompt
 
 from ..models.utils import dummy_hf_overrides

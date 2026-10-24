@@ -6,9 +6,9 @@ from contextlib import contextmanager, nullcontext
 
 import pytest
 
+from tests.engine_harness.llm import LLM
 from tests.models.registry import HF_EXAMPLE_MODELS
 from tests.utils import multi_gpu_test
-from vllm import LLM
 from vllm.config import CUDAGraphMode
 from vllm.engine.arg_utils import EngineArgs
 from vllm.platforms import current_platform

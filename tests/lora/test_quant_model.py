@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-
 # Adapted from
 # https://github.com/fmmoret/vllm/blob/fm-support-lora-on-quantized-models/tests/lora/test_llama.py
 from dataclasses import dataclass
@@ -8,6 +7,7 @@ from dataclasses import dataclass
 import pytest
 
 import vllm
+from tests.engine_harness.llm import LLM as TestLLM
 from vllm.distributed import cleanup_dist_env_and_memory
 from vllm.lora.request import LoRARequest
 from vllm.platforms import current_platform
@@ -80,7 +80,7 @@ def do_sample(
 
 @pytest.mark.parametrize("model", MODELS)
 def test_quant_model_lora(qwen3_meowing_lora_files, qwen3_woofing_lora_files, model):
-    llm = vllm.LLM(
+    llm = TestLLM(
         model=model.model_path,
         enable_lora=True,
         max_num_seqs=16,
@@ -124,7 +124,7 @@ def test_quant_model_lora(qwen3_meowing_lora_files, qwen3_woofing_lora_files, mo
 def test_quant_model_tp_equality(qwen3_meowing_lora_files, num_gpus_available, model):
     if num_gpus_available < 2:
         pytest.skip(f"Not enough GPUs for tensor parallelism {2}")
-    llm_tp1 = vllm.LLM(
+    llm_tp1 = TestLLM(
         model=model.model_path,
         enable_lora=True,
         max_num_seqs=16,
@@ -142,7 +142,7 @@ def test_quant_model_tp_equality(qwen3_meowing_lora_files, num_gpus_available, m
         del llm_tp1
         cleanup_dist_env_and_memory()
 
-    llm_tp2 = vllm.LLM(
+    llm_tp2 = TestLLM(
         model=model.model_path,
         enable_lora=True,
         max_num_seqs=16,

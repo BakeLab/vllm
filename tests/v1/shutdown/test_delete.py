@@ -5,12 +5,13 @@
 import pytest
 
 from tests.conftest import VllmRunner
+from tests.engine_harness.llm import LLM
 from tests.utils import create_new_process_for_each_test, wait_for_gpu_memory_to_clear
 from tests.v1.shutdown.utils import (
     SHUTDOWN_TEST_THRESHOLD_BYTES,
     SHUTDOWN_TEST_TIMEOUT_SEC,
 )
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 from vllm.config import KernelConfig
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.platforms import current_platform

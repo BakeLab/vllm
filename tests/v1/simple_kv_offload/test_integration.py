@@ -6,7 +6,8 @@ import time
 
 import pytest
 
-from vllm import LLM, SamplingParams, TokensPrompt
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams, TokensPrompt
 from vllm.config import KVTransferConfig
 from vllm.platforms import current_platform
 

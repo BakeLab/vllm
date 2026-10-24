@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-
 import pytest
 
 import vllm
 import vllm.config
+from tests.engine_harness.llm import LLM as TestLLM
 from vllm.lora.request import LoRARequest
 from vllm.platforms import current_platform
 
@@ -58,7 +58,7 @@ def do_sample(llm: vllm.LLM, lora_path: str, lora_id: int) -> list[str]:
 )
 @create_new_process_for_each_test()
 def test_chatglm3_lora(chatglm3_lora_files):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=512,
         enable_lora=True,
@@ -81,7 +81,7 @@ def test_chatglm3_lora(chatglm3_lora_files):
 )
 @multi_gpu_test(num_gpus=4)
 def test_chatglm3_lora_tp4(chatglm3_lora_files):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=512,
         enable_lora=True,
@@ -109,7 +109,7 @@ def test_chatglm3_lora_tp4_fully_sharded_loras(chatglm3_lora_files):
     # https://github.com/NVIDIA/nccl/issues/1790, set a lower value for
     # gpu_memory_utilization here because NCCL >= 2.26.3 seems to use
     # more GPU memory causing vLLM to OOM
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=512,
         enable_lora=True,

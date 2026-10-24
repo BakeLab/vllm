@@ -4,7 +4,8 @@ import weakref
 
 import pytest
 
-from vllm import LLM, PoolingRequestOutput
+from tests.engine_harness.llm import LLM
+from vllm import PoolingRequestOutput
 from vllm.config import PoolerConfig
 from vllm.tasks import PoolingTask
 

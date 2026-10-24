@@ -17,7 +17,8 @@ from utils import (
 )
 
 import vllm.envs as envs
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.inputs import TokensPrompt
 
 

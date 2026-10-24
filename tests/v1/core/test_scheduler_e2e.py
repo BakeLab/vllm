@@ -3,7 +3,7 @@
 
 import pytest
 
-from vllm import LLM
+from tests.engine_harness.llm import LLM
 
 MODEL = "hmellor/tiny-random-LlamaForCausalLM"
 PROMPT = "Hello my name is Robert and I"

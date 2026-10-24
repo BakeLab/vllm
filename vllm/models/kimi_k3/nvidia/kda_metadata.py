@@ -264,7 +264,7 @@ class KimiK3KDAMetadata(GDNAttentionMetadata, RecoverSSMMetadata):
     flashinfer_prefill_query_start_loc: torch.Tensor | None = None
     flashinfer_prefill_seq_order: torch.Tensor | None = None
     recoverssm_commit: KDARecoverSSMCommitMetadata | None = None
-    recoverssm_context: "KDARecoverSSMCommitContext | None" = field(
+    recoverssm_context: KDARecoverSSMCommitContext | None = field(
         default=None, repr=False, compare=False
     )
 
@@ -336,7 +336,7 @@ class KimiK3KDAMetadataBuilder(GDNAttentionMetadataBuilder):
                 device=device,
             )
 
-    def _get_recoverssm_context(self) -> "KDARecoverSSMCommitContext":
+    def _get_recoverssm_context(self) -> KDARecoverSSMCommitContext:
         context = self.recoverssm_context
         if context is not None:
             return context
@@ -376,16 +376,7 @@ class KimiK3KDAMetadataBuilder(GDNAttentionMetadataBuilder):
             if self.mamba_aligned_state_indices is not None:
                 block_table_tensor = self.mamba_aligned_state_indices[: m.num_reqs]
             else:
-                assert not self.vllm_config.use_v2_model_runner, (
-                    "Aligned Mamba state indices must be precomputed"
-                )
-                # TODO: remove this MRV1 fallback once MRV2 is the default runner.
-                block_table_tensor = _mamba_get_block_table_tensor(
-                    m.block_table_tensor,
-                    m.seq_lens,
-                    self.kv_cache_spec,
-                    self.vllm_config.cache_config.mamba_cache_mode,
-                )
+                raise ValueError("Aligned Mamba state indices must be precomputed")
         else:
             block_table_tensor = m.block_table_tensor
 

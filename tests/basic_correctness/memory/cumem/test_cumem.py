@@ -7,7 +7,8 @@ import pytest
 import torch
 
 import vllm.device_allocator.cumem as cumem
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.device_allocator import get_mem_allocator_instance
 from vllm.platforms import current_platform
 

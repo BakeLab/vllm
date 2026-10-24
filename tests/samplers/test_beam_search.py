@@ -13,9 +13,9 @@ import jsonschema
 import pytest
 from transformers import AutoModelForSeq2SeqLM
 
+from tests.engine_harness.llm import LLM
 from vllm import CompletionOutput, RequestOutput
 from vllm.assets.audio import AudioAsset
-from vllm.entrypoints.llm import LLM
 from vllm.inputs import TokensInput
 from vllm.logprobs import Logprob, SampleLogprobs
 from vllm.platforms import current_platform

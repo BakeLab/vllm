@@ -709,11 +709,7 @@ class ElasticEPScalingExecutor:
         runner = self.worker.model_runner
         all2all_manager = get_ep_all2all_manager()
         reuse_kernel = self._can_reuse_fused_moe_kernel()
-        serving_state = (
-            preserve_serving_state(runner)
-            if self.worker.use_v2_model_runner
-            else runner.preserve_serving_state()
-        )
+        serving_state = preserve_serving_state(runner)
         with (
             skip_dp_coordination() if reuse_kernel else nullcontext(),
             all2all_manager.mask_remote_ranks() if reuse_kernel else nullcontext(),

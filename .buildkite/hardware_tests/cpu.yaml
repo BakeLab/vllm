@@ -72,7 +72,6 @@ steps:
   source_file_dependencies:
   - vllm/v1/spec_decode/
   - vllm/v1/worker/cpu/
-  - vllm/v1/worker/cpu_model_runner.py
   - vllm/v1/worker/gpu/spec_decode/
   - vllm/v1/attention/backends/cpu_attn.py
   - vllm/config/speculative.py
@@ -158,7 +157,7 @@ steps:
       pytest -x -v -s tests/quantization/test_compressed_tensors.py::test_compressed_tensors_w8a8_logprobs
       pytest -x -v -s tests/quantization/test_cpu_wna16.py
       pytest -x -v -s tests/quantization/test_cpu_w8a8.py"
-      
+
 - label: CPU-Distributed Tests (PP+TP)
   key: cpu-distributed-tests-pp-tp
   depends_on: []
@@ -168,8 +167,6 @@ steps:
   - csrc/cpu/shm.cpp
   - vllm/v1/worker/cpu_worker.py
   - vllm/v1/worker/gpu_worker.py
-  - vllm/v1/worker/cpu_model_runner.py
-  - vllm/v1/worker/gpu_model_runner.py
   - vllm/platforms/cpu.py
   - vllm/distributed/parallel_state.py
   - vllm/distributed/device_communicators/cpu_communicator.py

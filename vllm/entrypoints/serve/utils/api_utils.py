@@ -288,7 +288,7 @@ def should_include_usage(
 def process_lora_modules(
     args_lora_modules: list[LoRAModulePath], default_mm_loras: dict[str, str] | None
 ) -> list[LoRAModulePath]:
-    from vllm.entrypoints.openai.models.serving import LoRAModulePath
+    from vllm.entrypoints.serve.lora.protocol import LoRAModulePath
 
     lora_modules = args_lora_modules
     if default_mm_loras:

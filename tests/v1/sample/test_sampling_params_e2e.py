@@ -3,7 +3,8 @@
 
 import pytest
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.exceptions import VLLMValidationError
 
 MODEL = "hmellor/tiny-random-LlamaForCausalLM"

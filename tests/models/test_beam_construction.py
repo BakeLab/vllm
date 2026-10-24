@@ -15,7 +15,8 @@ import pytest
 import torch
 from torch import nn
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.models.beam.nvidia import model as beam
 from vllm.platforms import current_platform
 from vllm.transformers_utils.configs.beam import BeamConfig

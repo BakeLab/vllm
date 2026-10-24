@@ -209,12 +209,6 @@ class LongcatFlashNgramForCausalLM(nn.Module, SupportsLoRA, SupportsPP):
 
     def __init__(self, *, vllm_config: VllmConfig, prefix: str = "") -> None:
         super().__init__()
-        if not vllm_config.use_v2_model_runner:
-            raise NotImplementedError(
-                "LongcatFlashNgramForCausalLM (LongCat-Flash-Lite) requires the "
-                "V2 model runner for its n-gram embedding state; it is selected "
-                "automatically unless VLLM_USE_V2_MODEL_RUNNER=0 is set."
-            )
         config = vllm_config.model_config.hf_config
         self.config = config
         self.quant_config = vllm_config.quant_config
@@ -237,7 +231,7 @@ class LongcatFlashNgramForCausalLM(nn.Module, SupportsLoRA, SupportsPP):
         )
 
     @staticmethod
-    def get_model_state_cls() -> type["LongcatNgramModelState"]:
+    def get_model_state_cls() -> type[LongcatNgramModelState]:
         return LongcatNgramModelState
 
     def embed_input_ids(self, input_ids: torch.Tensor) -> torch.Tensor:

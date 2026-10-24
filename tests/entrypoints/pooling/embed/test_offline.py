@@ -6,7 +6,8 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from vllm import LLM, EmbeddingRequestOutput, PoolingParams
+from tests.engine_harness.llm import LLM
+from vllm import EmbeddingRequestOutput, PoolingParams
 from vllm.inputs import PromptType
 from vllm.tasks import PoolingTask
 

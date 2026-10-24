@@ -3,7 +3,7 @@
 
 import pytest
 
-from vllm.entrypoints.llm import LLM
+from tests.engine_harness.llm import LLM
 from vllm.sampling_params import SamplingParams
 
 

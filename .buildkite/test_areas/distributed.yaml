@@ -1,5 +1,5 @@
 group: Distributed
-depends_on: 
+depends_on:
   - image-build
 steps:
 - label: ":nvidia: (L4) Distributed Comm Ops"
@@ -484,7 +484,6 @@ steps:
       - vllm/platforms/rocm.py
       - csrc/rocm/quickreduce/
       - vllm/model_executor/layers/
-      - vllm/entrypoints/llm.py
       - vllm/config/parallel.py
       - vllm/v1/engine/
       - vllm/v1/executor/

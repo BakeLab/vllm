@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+from tests.engine_harness.offline import OfflineInferenceMixin
 from vllm.distributed.weight_transfer.base import (
     WeightTransferInitRequest,
     WeightTransferUpdateRequest,
 )
-from vllm.entrypoints.common.offline import OfflineInferenceMixin
 
 
 class RLOfflineMixin(OfflineInferenceMixin):

@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from vllm.v1.kv_cache_interface import KVCacheConfig, KVCacheGroupSpec
 
 
-def get_offloading_group_ids(kv_cache_config: "KVCacheConfig") -> tuple[int, ...]:
+def get_offloading_group_ids(kv_cache_config: KVCacheConfig) -> tuple[int, ...]:
     if kv_cache_config.hisparse_host_num_blocks is None:
         return kv_cache_config.prefix_cacheable_group_ids
     return tuple(
@@ -43,7 +43,7 @@ def get_offloading_group_ids(kv_cache_config: "KVCacheConfig") -> tuple[int, ...
     )
 
 
-def _group_kv_bytes_per_block(group: "KVCacheGroupSpec") -> int:
+def _group_kv_bytes_per_block(group: KVCacheGroupSpec) -> int:
     """Return the physical bytes occupied by one block of a cache group.
 
     Worker configs may retain ``UniformTypeKVCacheSpecs`` while scheduler
@@ -57,8 +57,8 @@ def _group_kv_bytes_per_block(group: "KVCacheGroupSpec") -> int:
 
 
 def build_offloading_config(
-    vllm_config: "VllmConfig",
-    kv_cache_config: "KVCacheConfig",
+    vllm_config: VllmConfig,
+    kv_cache_config: KVCacheConfig,
 ) -> OffloadingConfig:
     """Translate vLLM configuration into the native offloading boundary."""
     kv_transfer_config = vllm_config.kv_transfer_config
@@ -150,11 +150,6 @@ def build_offloading_config(
             _group_kv_bytes_per_block(group) for _, group in selected_groups
         )
 
-    single_group_spec = (
-        kv_cache_config.kv_cache_groups[0].kv_cache_spec
-        if len(kv_cache_config.kv_cache_groups) == 1
-        else None
-    )
     replicated_layout = (
         vllm_config.model_config.use_mla
         and parallel_config.tensor_parallel_size > 1
@@ -176,17 +171,7 @@ def build_offloading_config(
     # pages is parallelism-invariant: replicated latent or GQA heads,
     # per-token-head scales, CP token sharding, and the V2 model runner's
     # layout are all excluded.
-    is_parallelism_agnostic = (
-        not vllm_config.use_v2_model_runner
-        and single_group_spec is not None
-        and isinstance(single_group_spec, FullAttentionSpec)
-        and not isinstance(single_group_spec, MLAAttentionSpec)
-        and single_group_spec.num_kv_heads * parallel_config.tensor_parallel_size
-        == vllm_config.model_config.get_total_num_kv_heads()
-        and not single_group_spec.kv_quant_mode.is_per_token_head
-        and parallel_config.decode_context_parallel_size == 1
-        and parallel_config.prefill_context_parallel_size == 1
-    )
+    is_parallelism_agnostic = False
     # Canonical pages are topology-free, so the gate widens to every config
     # whose mappings derive portable, group by group; certification happens
     # per layer at registration and create_worker fails closed on this flag.

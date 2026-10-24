@@ -6,7 +6,7 @@ from typing import Any
 
 from tqdm.auto import tqdm
 
-from vllm.entrypoints.common.offline import OfflineInferenceMixin
+from tests.engine_harness.offline import OfflineInferenceMixin
 from vllm.inputs import DataPrompt, PromptType
 from vllm.logger import init_logger
 from vllm.lora.request import LoRARequest

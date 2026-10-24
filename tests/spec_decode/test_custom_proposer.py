@@ -11,7 +11,8 @@ import os
 
 import torch
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.config import VllmConfig
 
 MODEL_ID = "facebook/opt-125m"

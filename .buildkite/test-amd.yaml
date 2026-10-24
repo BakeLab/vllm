@@ -809,7 +809,6 @@ steps:
   - vllm/platforms/rocm.py
   - csrc/rocm/quickreduce/
   - vllm/model_executor/layers/
-  - vllm/entrypoints/llm.py
   - vllm/config/parallel.py
   - vllm/v1/engine/
   - vllm/v1/executor/
@@ -1945,7 +1944,6 @@ steps:
   - tests/v1/sample/test_logprobs_e2e.py
   - vllm/platforms/rocm.py
   - tests/entrypoints/openai/chat_completion/test_include_reasoning.py
-  - tests/entrypoints/openai/chat_completion/test_serving_chat.py
   commands:
   - export VLLM_USE_RUST_FRONTEND=1
   - export VLLM_WORKER_MULTIPROC_METHOD=spawn
@@ -1953,7 +1951,6 @@ steps:
   - pytest -v -s entrypoints/openai/chat_completion/test_chat_completion.py -k "not test_invalid_json_schema and not test_invalid_regex and not test_kv_transfer_prompt_token_ids_round_trip and not test_kv_transfer_prompt_token_ids_streaming"
   - pytest -v -s entrypoints/openai/chat_completion/test_include_reasoning.py
   - pytest -v -s entrypoints/openai/chat_completion/test_chat_logit_bias_validation.py -k "not multiple"
-  - pytest -v -s entrypoints/openai/chat_completion/test_serving_chat.py -k "test_chat_per_request_metrics_follow_server_flag or test_streaming_reasoning_usage_counts_across_deltas or test_completion_tokens_details"
   - pytest -v -s entrypoints/launchers/test_shutdown.py -k "not engine_failure and not test_abort_timeout_exits_quickly"
   - pytest -v -s entrypoints/openai/test_return_token_ids.py -k "not test_comparison"
   - pytest -v -s entrypoints/serve/instrumentator/test_uds.py
@@ -2211,8 +2208,6 @@ steps:
   optional: true
   working_dir: "/vllm-workspace/tests"
   source_file_dependencies:
-  - vllm/v1/spec_decode/llm_base_proposer.py
-  - vllm/v1/spec_decode/eagle.py
   - vllm/v1/worker/gpu/spec_decode/eagle/
   - vllm/model_executor/models/deepseek_mtp.py
   - vllm/model_executor/models/deepseek_v2.py
@@ -2224,7 +2219,6 @@ steps:
   - vllm/v1/engine/
   - vllm/v1/spec_decode/
   - vllm/v1/worker/gpu/spec_decode/
-  - vllm/v1/worker/gpu_model_runner.py
   - vllm/platforms/rocm.py
   commands:
   - pytest -v -s v1/e2e/spec_decode/test_mtp_parallel_load.py
@@ -2336,8 +2330,6 @@ steps:
   - vllm/v1/attention/backends/
   - vllm/v1/attention/selector.py
   - vllm/v1/kv_cache_interface.py
-  - vllm/v1/spec_decode/extract_hidden_states.py
-  - vllm/v1/worker/gpu_model_runner.py
   - vllm/_aiter_ops.py
   - tests/v1/kv_connector/extract_hidden_states_integration/
   - vllm/platforms/rocm.py
@@ -2456,7 +2448,6 @@ steps:
   - vllm/v1/core/sched/
   - vllm/v1/engine/
   - vllm/v1/worker/ec_connector_model_runner_mixin.py
-  - vllm/v1/worker/gpu_model_runner.py
   - vllm/v1/worker/gpu_worker.py
   - vllm/v1/worker/gpu/ec_connector.py
   - vllm/v1/worker/gpu/model_runner.py
@@ -3192,7 +3183,6 @@ steps:
   - csrc/rocm/quickreduce/
   - vllm/distributed/
   - vllm/model_executor/layers/
-  - vllm/entrypoints/llm.py
   - vllm/config/parallel.py
   - vllm/model_executor/layers/fused_moe/
   - vllm/v1/engine/
@@ -5604,7 +5594,6 @@ steps:
   - vllm/platforms/rocm.py
   commands:
   - pytest -v -s v1/e2e/general/test_kv_sharing_fast_prefill.py
-  - pytest -v -s v1/e2e/general/test_mamba_prefix_cache.py::test_mamba_prefix_cache_mrv2 v1/e2e/general/test_mamba_prefix_cache.py::test_mamba_prefix_cache_mrv2_async
 
 - label: ":amd: (MI355 DPX) Extract Hidden States Integration Single GPU"
   timeout_in_minutes: 45
@@ -5615,7 +5604,6 @@ steps:
   optional: true
   working_dir: "/vllm-workspace"
   source_file_dependencies:
-  - vllm/v1/spec_decode/extract_hidden_states.py
   - vllm/model_executor/models/extract_hidden_states.py
   - vllm/transformers_utils/configs/extract_hidden_states.py
   - vllm/distributed/kv_transfer/kv_connector/v1/example_hidden_states_connector.py
@@ -5712,7 +5700,6 @@ steps:
   - vllm/v1/spec_decode/
   - vllm/v1/sample/
   - vllm/v1/worker/gpu/
-  - vllm/v1/worker/gpu_model_runner.py
   - vllm/v1/worker/gpu_worker.py
   - vllm/model_executor/model_loader/
   - vllm/model_executor/models/gemma4.py
@@ -5740,7 +5727,6 @@ steps:
   optional: true
   source_file_dependencies:
   - vllm/v1/attention/backends/utils.py
-  - vllm/v1/worker/gpu_model_runner.py
   - tests/v1/e2e/test_hybrid_chunked_prefill.py
   - vllm/v1/core/
   working_dir: /vllm-workspace/tests
@@ -5761,7 +5747,6 @@ steps:
   - vllm/transformers_utils/configs/speculators/
   - vllm/v1/spec_decode/
   - vllm/v1/worker/gpu/spec_decode/
-  - vllm/v1/worker/gpu_model_runner.py
   - vllm/v1/sample/
   - vllm/v1/attention/backends/
   - vllm/v1/attention/selector.py

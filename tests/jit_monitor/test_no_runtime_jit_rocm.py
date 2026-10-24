@@ -4,7 +4,7 @@
 
 import pytest
 
-from vllm import LLM
+from tests.engine_harness.llm import LLM
 from vllm.platforms import current_platform
 
 from ..models.utils import dummy_hf_overrides

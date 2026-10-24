@@ -10,7 +10,7 @@ sliding-window layers, so the model produces separate ``full_attention`` and
 
 import pytest
 
-from vllm import LLM
+from tests.engine_harness.llm import LLM
 from vllm.config.attention import AttentionConfig
 from vllm.platforms import current_platform
 from vllm.v1.attention.backends.registry import AttentionBackendEnum

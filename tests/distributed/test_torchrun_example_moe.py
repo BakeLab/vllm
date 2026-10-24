@@ -9,7 +9,8 @@ import torch
 import torch.distributed as dist
 
 import vllm.envs as envs
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.distributed.parallel_state import get_tp_group, get_world_group
 
 # By default, let PyTorch choose the WORLD backend for the current device

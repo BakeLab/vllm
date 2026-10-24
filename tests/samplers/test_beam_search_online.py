@@ -11,6 +11,7 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 
+from tests.engine_harness.beam_search import BeamSearchOfflineMixin
 from vllm import (
     CompletionOutput,
     PromptType,
@@ -20,7 +21,6 @@ from vllm import (
 )
 from vllm import logger as vllm_logger
 from vllm.config import VllmConfig
-from vllm.entrypoints.generate.beam_search.offline import BeamSearchOfflineMixin
 from vllm.entrypoints.generate.beam_search.online import BeamSearchOnlineMixin
 from vllm.entrypoints.generate.beam_search.utils import (
     BeamSearchInstance,
