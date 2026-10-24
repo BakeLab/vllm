@@ -1034,10 +1034,6 @@ _MULTIMODAL_EXAMPLE_MODELS = {
         tokenizer_mode="kimi_audio",
         trust_remote_code=True,
     ),
-    "KimiK25ForConditionalGeneration": _HfExamplesInfo(
-        "moonshotai/Kimi-K2.5",
-        trust_remote_code=True,
-    ),
     "KimiK3ForConditionalGeneration": _HfExamplesInfo(
         "moonshotai/Kimi-K3",
         trust_remote_code=True,

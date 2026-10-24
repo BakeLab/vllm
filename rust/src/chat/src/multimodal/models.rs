@@ -40,15 +40,18 @@ pub(super) fn lookup_spec(metadata: &ModelMetadata<'_>) -> Option<&'static dyn M
             .iter()
             .find_map(|&(alias, target)| (alias == model_type).then_some(target))
     });
-    let Some(target) = target else {
-        return LLM_MULTIMODAL_REGISTRY.lookup(metadata);
+    let spec = if let Some(target) = target {
+        let mut config = metadata.config.clone();
+        config["model_type"] = target.into();
+        LLM_MULTIMODAL_REGISTRY.lookup(&ModelMetadata {
+            config: &config,
+            ..*metadata
+        })
+    } else {
+        LLM_MULTIMODAL_REGISTRY.lookup(metadata)
     };
-    let mut config = metadata.config.clone();
-    config["model_type"] = target.into();
-    LLM_MULTIMODAL_REGISTRY.lookup(&ModelMetadata {
-        config: &config,
-        ..*metadata
-    })
+    // Exclude K2.5 even when the dependency matches it through a model ID alias.
+    spec.filter(|spec| spec.name() != "kimi_k25")
 }
 
 /// Ported from `llm-multimodal`'s `registry::test_helpers`, which is

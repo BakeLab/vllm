@@ -55,7 +55,7 @@ grpcio-reflection==1.78.0
 -r arctic-build.in
 
 arctic-inference == 0.1.1; platform_machine == "x86_64" # Required for suffix decoding test
-numba == 0.65.0 # Required for fused Kimi K2.5 vision preprocessing
+numba == 0.65.0 # Shared Kimi vision preprocessing (K3)
 runai-model-streamer==0.15.7
 fastsafetensors>=0.3.3
 instanttensor>=0.2.2; platform_machine == "x86_64"

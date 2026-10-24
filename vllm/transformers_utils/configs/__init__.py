@@ -82,7 +82,6 @@ _CLASS_TO_MODULE: dict[str, str] = {
     # Upstream Transformers classes registered in _CONFIG_REGISTRY
     "DeepseekV3Config": "transformers",
     "HyperCLOVAXConfig": "transformers",
-    "Kimi_K25Config": "transformers",
     "Step3p7TextConfig": "transformers",
 }
 
@@ -121,7 +120,6 @@ __all__ = [
     "MoonViTConfig",
     "KimiLinearConfig",
     "KimiVLConfig",
-    "Kimi_K25Config",
     "MuseSpark1xTextConfig",
     "MuseSparkTextConfig",
     "MuseSparkVisionConfig",

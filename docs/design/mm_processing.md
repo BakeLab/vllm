@@ -85,7 +85,6 @@ GPU-side fusion is controlled by `multimodal_config.mm_device_do_normalize`:
 | `glm-ocr`                  | `GlmOcrForConditionalGeneration`           | `zai-org/GLM-OCR`                                     |
 | `intern-s1-pro`            | `InternS1ProForConditionalGeneration`      | `internlm/Intern-S1-Pro`                              |
 | `intern-s2-mobius`         | `InternS2MobiusForConditionalGeneration`   | `internlm/Intern-S2-Mobius`                           |
-| `kimi-k2.5`                | `KimiK25ForConditionalGeneration`          | `moonshotai/Kimi-K2.5`, etc.                          |
 | `kimi-k3`                  | `KimiK3ForConditionalGeneration`           | `moonshotai/Kimi-K3`                                  |
 | `llama-nemotron-vl-embed`  | `LlamaNemotronVLForEmbedding`              | `nvidia/llama-nemotron-embed-vl-1b-v2`                |
 | `llama-nemotron-vl-rerank` | `LlamaNemotronVLForSequenceClassification` | `nvidia/llama-nemotron-rerank-vl-1b-v2`               |

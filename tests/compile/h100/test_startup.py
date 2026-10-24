@@ -135,17 +135,6 @@ MODEL_SPECS = [
     ),
     pytest.param(
         ModelStartupSpec(
-            model="moonshotai/Kimi-K2.5",
-            hf_overrides={"text_config": _SMALL_MOE_OVERRIDES},
-            cold_artifacts_saved=4,
-            # https://github.com/vllm-project/vllm/issues/38051
-            warm_artifacts_saved=0,
-            warm_artifacts_loaded=4,
-        ),
-        id="kimi_k2.5",
-    ),
-    pytest.param(
-        ModelStartupSpec(
             model="zai-org/GLM-4.5",
             hf_overrides=_SMALL_MOE_OVERRIDES,
             cold_artifacts_saved=4,
