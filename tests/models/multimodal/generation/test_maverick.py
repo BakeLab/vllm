@@ -19,7 +19,8 @@ import torch
 from safetensors.torch import save_file
 from transformers import AutoConfig, AutoProcessor, AutoTokenizer, GenerationConfig
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.v1.executor.abstract import Executor
 from vllm.v1.kv_cache_interface import ChunkedLocalAttentionSpec, FullAttentionSpec
 

@@ -22,8 +22,9 @@ import os
 
 import pytest
 
+from tests.engine_harness.llm import LLM
 from tests.models.registry import HF_EXAMPLE_MODELS
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 
 MODEL_NAME = "nvidia/audio-flamingo-3-hf"
 SINGLE_CONVERSATION = [

@@ -12,7 +12,7 @@ run_scenario() {
     vllm serve meta-llama/Llama-3.2-3B-Instruct "$@" --max-model-len=4096 &
     local server_pid=$!
     timeout 600 bash -c "until curl localhost:8000/v1/models > /dev/null 2>&1; do sleep 1; done" || exit 1
-    vllm bench serve \
+    vllm-rs bench serve \
         --backend vllm \
         --dataset-name random \
         --model meta-llama/Llama-3.2-3B-Instruct \

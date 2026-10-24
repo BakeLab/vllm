@@ -9,7 +9,7 @@ from unittest.mock import patch
 import pytest
 import torch
 
-from vllm import LLM
+from tests.engine_harness.llm import LLM
 from vllm.logger import init_logger
 from vllm.platforms import current_platform
 from vllm.utils.mem_constants import GiB_bytes
@@ -64,7 +64,7 @@ OTHER_MODEL_ARCH_LIST = set(HF_EXAMPLE_MODELS.get_supported_archs()) - set(
 
 
 @pytest.fixture(autouse=True)
-def cleanup_gpu_memory_between_tests() -> Generator[None, None, None]:
+def cleanup_gpu_memory_between_tests() -> Generator[None]:
     """Reclaim GPU memory left over by each test's forked subprocess.
 
     These tests are known to leave behind GPU memory (see the comment at

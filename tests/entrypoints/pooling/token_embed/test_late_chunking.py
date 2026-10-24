@@ -8,13 +8,13 @@ from unittest.mock import Mock
 import pytest
 import torch
 
+from tests.engine_harness.pooling import PoolingOfflineMixin
 from vllm import PoolingParams
 from vllm.config import PoolerConfig
 from vllm.entrypoints.pooling.embed.io_processor import (
     JinaRankingTokenEmbedIOProcessor,
     TokenEmbedIOProcessor,
 )
-from vllm.entrypoints.pooling.offline import PoolingOfflineMixin
 from vllm.entrypoints.pooling.token_embed.late_chunking import (
     build_late_chunking_metadata,
 )

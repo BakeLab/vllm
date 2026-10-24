@@ -17,8 +17,8 @@ import numpy as np
 import pytest
 import torch
 
+from tests.engine_harness.llm import LLM
 from tests.v1.attention.utils import dense_kv_cache_views
-from vllm import LLM
 from vllm.config import KVTransferConfig, set_current_vllm_config
 from vllm.distributed.kv_transfer.kv_connector.utils import (
     EngineTransferInfo,

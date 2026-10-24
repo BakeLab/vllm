@@ -1106,11 +1106,7 @@ class VllmBackend:
         # TODO(patchy): the V1 torch.compile ngram-gpu kernel causes vllm
         # torch compile cache errors. The V2 implementation is pure Triton and
         # does not need the cache disabled.
-        is_v1_ngram_gpu_enabled = (
-            vllm_config.speculative_config is not None
-            and vllm_config.speculative_config.use_ngram_gpu()
-            and not vllm_config.use_v2_model_runner
-        )
+        is_v1_ngram_gpu_enabled = False
         disable_cache = disable_cache or is_v1_ngram_gpu_enabled
 
         if disable_cache:

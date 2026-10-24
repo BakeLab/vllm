@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-
 import pytest
 
 import vllm
 import vllm.config
+from tests.engine_harness.llm import LLM as TestLLM
 from vllm.lora.request import LoRARequest
 from vllm.platforms import current_platform
 
@@ -88,7 +88,7 @@ def generate_and_test(llm, llama32_lora_files):
 @create_new_process_for_each_test()
 @pytest.mark.parametrize("cudagraph_specialize_lora", [True, False])
 def test_llama_lora(llama32_lora_files, cudagraph_specialize_lora: bool):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         enable_lora=True,
         # also test odd max_num_seqs
@@ -107,7 +107,7 @@ def test_llama_lora(llama32_lora_files, cudagraph_specialize_lora: bool):
 )
 @multi_gpu_test(num_gpus=4)
 def test_llama_lora_tp4(llama32_lora_files):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         enable_lora=True,
         max_num_seqs=7,
@@ -120,7 +120,7 @@ def test_llama_lora_tp4(llama32_lora_files):
 
 @multi_gpu_test(num_gpus=4)
 def test_llama_lora_tp4_fully_sharded_loras(llama32_lora_files):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         enable_lora=True,
         max_num_seqs=8,

@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 class EncoderGraphTestWorkerExtension:
     """Expose encoder replay evidence through the existing test RPC endpoint."""
 
-    model_runner: "MMEncoderModelRunner"
+    model_runner: MMEncoderModelRunner
 
     def encoder_graph_stats(self):
         from vllm.v1.worker.mm_encoder_model_runner import MMEncoderModelRunner

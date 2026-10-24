@@ -11,7 +11,8 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.model_executor.model_loader import ShardedStateLoader
 from vllm.transformers_utils.repo_utils import hf_api
 

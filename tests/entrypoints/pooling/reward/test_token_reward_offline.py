@@ -6,8 +6,9 @@ import weakref
 import pytest
 import torch
 
+from tests.engine_harness.llm import LLM
 from tests.models.utils import softmax
-from vllm import LLM, PoolingParams
+from vllm import PoolingParams
 
 MODEL_NAME = "internlm/internlm2-1_8b-reward"
 

@@ -11,7 +11,8 @@ import math
 import pytest
 import torch
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.model_executor.layers.logits_processor import LogitsProcessor
 from vllm.model_executor.layers.vocab_parallel_embedding import (
     ParallelLMHead,

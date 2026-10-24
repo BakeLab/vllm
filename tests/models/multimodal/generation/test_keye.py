@@ -6,7 +6,8 @@ import pytest
 from PIL.Image import Image
 from transformers import AutoProcessor
 
-from vllm import LLM, EngineArgs, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import EngineArgs, SamplingParams
 from vllm.multimodal.utils import encode_image_url
 
 MODEL_NAME = "Kwai-Keye/Keye-VL-8B-Preview"

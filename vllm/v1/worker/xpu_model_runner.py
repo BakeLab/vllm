@@ -9,20 +9,7 @@ from vllm.config import VllmConfig
 from vllm.v1.worker.gpu.model_runner import (
     GPUModelRunner as GPUModelRunnerV2,
 )
-from vllm.v1.worker.gpu_model_runner import GPUModelRunner
 from vllm.v1.worker.mm_encoder_model_runner import MMEncoderModelRunner
-
-
-class XPUModelRunner(GPUModelRunner):
-    """A model runner for XPU devices."""
-
-    def __init__(
-        self,
-        vllm_config: VllmConfig,
-        device: torch.device,
-    ):
-        with _torch_cuda_wrapper():
-            super().__init__(vllm_config, device)
 
 
 class XPUModelRunnerV2(GPUModelRunnerV2):

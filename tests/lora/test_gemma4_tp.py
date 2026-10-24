@@ -1,10 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-
 # NOTE To avoid overloading the CI pipeline, this test script will not
 # be triggered on CI and is primarily intended for local testing and verification.
-
 import vllm
+from tests.engine_harness.llm import LLM as TestLLM
 from vllm.assets.image import ImageAsset
 from vllm.lora.request import LoRARequest
 
@@ -52,7 +51,7 @@ def generate_and_test(llm: vllm.LLM, lora_path: str, lora_id: int) -> None:
 
 
 def test_gemma4_lora(gemma4_vision_lora_files):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
@@ -70,7 +69,7 @@ def test_gemma4_lora(gemma4_vision_lora_files):
 
 @multi_gpu_test(num_gpus=2)
 def test_gemma4_lora_tp2(gemma4_vision_lora_files):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
@@ -89,7 +88,7 @@ def test_gemma4_lora_tp2(gemma4_vision_lora_files):
 
 @multi_gpu_test(num_gpus=4)
 def test_gemma4_lora_tp4(gemma4_vision_lora_files):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         compilation_config={"mode": 0, "cudagraph_mode": "NONE"},

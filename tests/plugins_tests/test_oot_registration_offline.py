@@ -3,8 +3,9 @@
 
 import pytest
 
+from tests.engine_harness.llm import LLM
 from tests.utils import create_new_process_for_each_test
-from vllm import LLM, EmbeddingRequestOutput, SamplingParams
+from vllm import EmbeddingRequestOutput, SamplingParams
 from vllm.assets.image import ImageAsset
 from vllm.multimodal.image import convert_image_mode
 

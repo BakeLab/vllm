@@ -1,3 +1,8 @@
+!!! note "Only Model Runner V2 is available"
+    This fork has removed Model Runner V1 and `VLLM_USE_V2_MODEL_RUNNER`.
+    CUDA and ROCm workers instantiate Model Runner V2 directly. There is no
+    automatic fallback for unsupported features.
+
 # Model Runner V2 Design Document
 
 ## Introduction

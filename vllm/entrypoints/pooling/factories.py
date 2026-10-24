@@ -14,11 +14,6 @@ from .base.io_processor import PoolingIOProcessor
 from .utils import enable_scoring_api
 
 if TYPE_CHECKING:
-    from argparse import Namespace
-
-    from starlette.datastructures import State
-
-    from vllm.engine.protocol import EngineClient
     from vllm.entrypoints.serve.utils.request_logger import RequestLogger
 
 else:
@@ -98,55 +93,3 @@ def init_pooling_io_processors(
         )
         for task, processor_cls in processors.items()
     }
-
-
-def init_pooling_state(
-    engine_client: EngineClient,
-    state: State,
-    args: Namespace,
-    request_logger: RequestLogger | None,
-    supported_tasks: tuple[SupportedTask, ...],
-):
-    model_config = engine_client.model_config
-    if model_config is None:
-        return
-
-    from vllm.renderers.chat_utils import load_chat_template
-
-    from .embed.serving import ServingEmbedding
-    from .scoring.serving import ServingScores
-
-    resolved_chat_template = load_chat_template(args.chat_template)
-    pooling_task = model_config.get_pooling_task(supported_tasks)
-
-    chat_template_config = ChatTemplateConfig(
-        chat_template=resolved_chat_template,
-        chat_template_content_format=args.chat_template_content_format,
-        trust_request_chat_template=args.trust_request_chat_template,
-        trust_request_mm_kwargs=args.trust_request_mm_kwargs,
-    )
-
-    state.serving_embedding = (
-        ServingEmbedding(
-            engine_client,
-            state.openai_serving_models,
-            request_logger=request_logger,
-            chat_template_config=chat_template_config,
-        )
-        if pooling_task == "embed"
-        else None
-    )
-    state.serving_scores = (
-        ServingScores(
-            engine_client,
-            state.openai_serving_models,
-            supported_tasks=supported_tasks,
-            request_logger=request_logger,
-            chat_template_config=chat_template_config,
-            enable_flash_late_interaction=getattr(
-                args, "enable_flash_late_interaction", True
-            ),
-        )
-        if enable_scoring_api(supported_tasks, model_config)
-        else None
-    )

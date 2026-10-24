@@ -32,7 +32,7 @@ class WorkerSentinel:
     Methods are called via collective_rpc from EngineCoreSentinel.
     """
 
-    def __init__(self, worker: "Worker"):
+    def __init__(self, worker: Worker):
         self.worker = worker
         self.dp_rank = worker.parallel_config.data_parallel_rank
         self.dp_size = worker.parallel_config.data_parallel_size
@@ -71,20 +71,6 @@ class WorkerSentinel:
     def _clean_worker_state(self):
         model_runner = self.worker.model_runner
         model_runner.execute_model_state = None
-        if self.worker.use_v2_model_runner:
-            runner = cast("GPUModelRunnerV2", model_runner)
-            for req_id in list(runner.req_states.req_id_to_index):
-                runner._remove_request(req_id)
-        else:
-            model_runner.kv_connector_output = None
-
-            input_batch = model_runner.input_batch
-            cached_req_ids = list(input_batch.req_id_to_index)
-            for req_id in cached_req_ids:
-                model_runner.requests.pop(req_id, None)
-                model_runner.num_prompt_logprobs.pop(req_id, None)
-                input_batch.remove_request(req_id)
-
-            input_batch.condense()
-            input_batch.refresh_metadata()
-            input_batch.req_prompt_embeds.clear()
+        runner = cast("GPUModelRunnerV2", model_runner)
+        for req_id in list(runner.req_states.req_id_to_index):
+            runner._remove_request(req_id)

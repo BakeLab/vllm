@@ -34,14 +34,8 @@ logger = init_logger(__name__)
 class ECCPUConnector(ECConnectorBase):
     """EC connector that offloads encoder cache to a shared CPU mmap region."""
 
-    def __init__(self, vllm_config: "VllmConfig", role: ECConnectorRole) -> None:
+    def __init__(self, vllm_config: VllmConfig, role: ECConnectorRole) -> None:
         super().__init__(vllm_config=vllm_config, role=role)
-
-        if not vllm_config.use_v2_model_runner:
-            raise ValueError(
-                "ECCPUConnector requires the V2 model runner. "
-                "Set VLLM_USE_V2_MODEL_RUNNER=1."
-            )
 
         self.connector_worker = None
         self.connector_scheduler = None
@@ -54,7 +48,7 @@ class ECCPUConnector(ECConnectorBase):
             raise ValueError(f"Unknown ECConnectorRole: {role}")
 
     # Construction seams.
-    def _make_worker(self, vllm_config: "VllmConfig"):
+    def _make_worker(self, vllm_config: VllmConfig):
         # Deferred import: the worker module touches torch/CUDA at import time
         # via the region, so keep that cost off the scheduler path.
         from vllm.distributed.ec_transfer.ec_connector.cpu.worker import (
@@ -63,7 +57,7 @@ class ECCPUConnector(ECConnectorBase):
 
         return ECCPUWorker(vllm_config)
 
-    def _make_scheduler(self, vllm_config: "VllmConfig"):
+    def _make_scheduler(self, vllm_config: VllmConfig):
         from vllm.distributed.ec_transfer.ec_connector.cpu.scheduler import (
             ECCPUScheduler,
         )
@@ -97,7 +91,7 @@ class ECCPUConnector(ECConnectorBase):
         return self.connector_scheduler.has_cache_item(identifier)
 
     def ensure_cache_available(
-        self, request: "Request", num_computed_tokens: int
+        self, request: Request, num_computed_tokens: int
     ) -> bool:
         assert self.connector_scheduler is not None
         return self.connector_scheduler.ensure_cache_available(
@@ -108,19 +102,17 @@ class ECCPUConnector(ECConnectorBase):
         assert self.connector_scheduler is not None
         return self.connector_scheduler.take_unavailable_requests()
 
-    def update_state_after_alloc(self, request: "Request", index: int) -> None:
+    def update_state_after_alloc(self, request: Request, index: int) -> None:
         assert self.connector_scheduler is not None
         self.connector_scheduler.update_state_after_alloc(request, index)
 
     def build_connector_meta(
-        self, scheduler_output: "SchedulerOutput"
+        self, scheduler_output: SchedulerOutput
     ) -> ECCPUConnectorMetadata:
         assert self.connector_scheduler is not None
         return self.connector_scheduler.build_connector_meta(scheduler_output)
 
-    def request_finished(
-        self, request: "Request"
-    ) -> tuple[bool, "dict[str, Any] | None"]:
+    def request_finished(self, request: Request) -> tuple[bool, dict[str, Any] | None]:
         assert self.connector_scheduler is not None
         return self.connector_scheduler.request_finished(request)
 
@@ -136,7 +128,7 @@ class ECCPUConnector(ECConnectorBase):
             return self.connector_worker.build_connector_worker_meta()
         return None
 
-    def update_connector_output(self, connector_output: "ECConnectorOutput") -> None:
+    def update_connector_output(self, connector_output: ECConnectorOutput) -> None:
         if self.connector_scheduler is not None:
             self.connector_scheduler.update_connector_output(connector_output)
 

@@ -5,7 +5,8 @@ from typing import Any
 
 import pytest
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 
 MODEL = "meta-llama/llama-2-7b-hf"
 MAX_TOKENS = 200

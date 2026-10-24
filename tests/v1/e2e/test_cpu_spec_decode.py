@@ -6,9 +6,10 @@ import os
 
 import pytest
 
+from tests.engine_harness.llm import LLM
 from tests.models.utils import check_logprobs_close
 from tests.v1.e2e.spec_decode.utils import compute_acceptance_len
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 from vllm.platforms import current_platform
 from vllm.triton_utils import HAS_TRITON
 

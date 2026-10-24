@@ -1,107 +1,18 @@
-# Offline Inference
+# Direct inference interfaces
 
-In this fork, `vllm run-batch` initializes only its local chat completion,
-embedding, scoring/reranking, transcription, and translation handlers. Online
-HTTP and gRPC serving use the Rust frontend; Python ASGI endpoint plugins and
-the former Python HTTP-only serving implementations are not included.
+This fork uses Rust for public serving and inference clients. The Python
+`vllm.LLM` API and `vllm run-batch` command have been removed. Use the Rust
+`vllm-llm` crate for direct engine access, or connect an HTTP/gRPC client to
+the Rust frontend. See the [Rust architecture](../../rust/README.md).
 
+The Python/PyTorch engine remains responsible for model loading, Model Runner V2,
+torch.compile, Triton kernels, and GPU execution on CUDA/ROCm. Removing the public
+Python SDK does not remove this engine or make GPU kernels inherently faster.
 
-!!! note "BakeLab trim compatibility"
-    This fork removes deprecated `--log-config-file`, `--mamba-cache-mode`,
-    and `--disable-cascade-attn` options. Configure Python logging with
-    `--logging-config.pylogging_config_file` and Mamba prefix caching with
-    `--enable-prefix-caching`. Use `vllm run_batch` instead of
-    `python -m vllm.entrypoints.openai.run_batch`.
-    The unused cascade-attention compatibility fields and scheduler helper
-    are also removed; custom integrations must stop passing them.
+Python-only model-runner V1 fallbacks, suffix/custom-class speculative decoding,
+and external-launcher pipeline-parallel fallback are no longer available.
+Unsupported configurations fail instead of selecting the removed runner.
 
-    Custom model constructors must accept `vllm_config` and `prefix`; the loader
-    no longer guesses individual configuration arguments. Use the
-    `flashinfer_nvlink_two_sided` all-to-all backend and speculative method `mtp`;
-    the old `flashinfer_all2allv` and model-specific MTP method aliases are removed.
-    MTP model architecture detection is unchanged. Reranker configurations use
-    `use_sep_token`; the `use_pad_token` alias is removed. Tensorizer detects vLLM
-    checkpoints from `.vllm_tensorized_marker`; `vllm_tensorized` is removed.
-
-    MoRIIO settings belong in `kv_transfer_config.kv_connector_extra_config`.
-    The old `VLLM_MORIIO_CONNECTOR_READ_MODE`, `VLLM_MORIIO_QP_PER_TRANSFER`,
-    `VLLM_MORIIO_POST_BATCH_SIZE`, `VLLM_MORIIO_NUM_WORKERS`, and
-    `VLLM_MORIIO_TRANSFER_TIMEOUT_S` variables are ignored. Set
-    `recv_abort_timeout` in the connector configuration instead of the last one.
-
-Offline inference is possible in your own code using vLLM's [`LLM`][vllm.LLM] class.
-
-## Model Types
-
-vLLM models can be categorized into two types:
-
-- **[Generative Models](../models/supported_models.md)** - Models that produce text completions or chat responses (e.g., LLaMA, Qwen, DeepSeek). Use `LLM.generate()` and `LLM.chat()` for these models.
-
-- **[Pooling Models](../models/pooling_models/README.md)** - These models do not generate content. They are primarily used for classification and retrieval tasks, such as bge-m3 and Qwen3 Reranker.
-
-## Generative APIs
-
-For further details on generative models, please refer to [this page](../models/supported_models.md).
-
-- `LLM.generate` - Generates completions for the given input prompts.
-- `LLM.chat` - Generates responses for a chat conversation.
-
-## Asynchronous Queue APIs
-
-- `LLM.enqueue` - Enqueues prompts for generation without waiting for completion.
-- `LLM.enqueue_chat` - Enqueues chat conversations for generation without waiting.
-- `LLM.wait_for_completion` - Waits for all enqueued requests to complete and returns results.
-
-## Pooling APIs
-
-For further details on pooling models, please refer to [this page](../models/pooling_models/README.md).
-
-- `LLM.classify` - Only applicable to [classification models](../models/pooling_models/classify.md).
-- `LLM.embed` - Only applicable to [embedding models](../models/pooling_models/embed.md).
-- `LLM.score` - Applicable to [score models](../models/pooling_models/scoring.md) (cross-encoder, bi-encoder, late-interaction).
-- `LLM.encode` - Applicable to all [pooling models](../models/pooling_models/README.md).
-
-## Profiling APIs
-
-For further details on profiling, please refer to [this page](../contributing/profiling.md).
-
-- `LLM.start_profile` - Starts profiling with an optional custom trace prefix.
-- `LLM.stop_profile` - Stops the ongoing profiling session.
-
-## Sleep Mode APIs
-
-For further details on sleep mode, please refer to [this page](../features/sleep_mode.md).
-
-- `LLM.sleep` - Puts the engine into sleep mode.
-- `LLM.wake_up` - Wakes up the engine from sleep mode.
-
-## Cache Management APIs
-
-- `LLM.reset_mm_cache` - Resets the multi-modal cache.
-- `LLM.reset_prefix_cache` - Resets the prefix cache.
-
-## Metrics APIs
-
-For further details on metrics, please refer to [this page](../design/metrics.md).
-
-- `LLM.get_metrics` - Returns a snapshot of aggregated metrics from Prometheus.
-
-## Weight Transfer APIs (RL Training)
-
-For further details on Weight Transfer, please refer to [this page](../training/weight_transfer/README.md).
-
-- `LLM.init_weight_transfer_engine` - Initializes the weight transfer engine for RL training.
-- `LLM.start_weight_update` - Starts a new weight update cycle.
-- `LLM.update_weights` - Updates the model weights.
-- `LLM.finish_weight_update` - Finishes the current weight update cycle.
-- `LLM.update_weight_version` - Sets the weight version without updating model weights.
-- `LLM.get_weight_version` - Returns the latest committed weight version.
-
-## Additional APIs
-
-- `LLM.collective_rpc` - Executes a method or callable collectively across all workers.
-- `LLM.apply_model` - Applies a function directly to the model inside each worker.
-
-## API Reference
-
-[Offline Inference](../api/README.md#offline-inference)
+For benchmarks use `vllm-rs bench serve` or standalone `vllm-bench`.
+The standalone binary also provides `vllm-bench mm-processor`.
+The former Python `vllm bench` implementation and selector flags are removed.

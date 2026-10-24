@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 
 import tests.v1.logits_processors.utils as logitproc_test_utils
+from tests.engine_harness.llm import LLM
 from tests.utils import create_new_process_for_each_test, set_random_seed
 from tests.v1.logits_processors.utils import (
     DUMMY_LOGITPROC_ARG,
@@ -20,7 +21,7 @@ from tests.v1.logits_processors.utils import (
     prompts,
     setup_fake_entrypoint,
 )
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 from vllm.v1.sample.logits_processor import (
     STR_POOLING_REJECTS_LOGITSPROCS,
     STR_SPEC_DEC_REJECTS_LOGITSPROCS,

@@ -11,7 +11,8 @@ import torch
 from PIL import Image
 from utils import _extract_step_logprobs, skip_if_not_cuda_alike
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.inputs import TextPrompt
 
 VLM_TEST_MODEL = os.getenv("VLLM_VLM_TEST_MODEL", "Qwen/Qwen3-VL-2B-Instruct")

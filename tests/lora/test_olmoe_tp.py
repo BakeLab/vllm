@@ -1,7 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-
-
 import shutil
 from collections.abc import Sequence
 
@@ -10,6 +8,7 @@ import torch
 from safetensors.torch import load_file, save_file
 
 import vllm
+from tests.engine_harness.llm import LLM as TestLLM
 from vllm.lora.request import LoRARequest
 from vllm.platforms import current_platform
 
@@ -117,7 +116,7 @@ def generate_and_test(
 def test_olmoe_lora(olmoe_lora_files, maybe_enable_lora_dual_stream):
     # We enable enforce_eager=True here to reduce VRAM usage for lora-test CI,
     # Otherwise, the lora-test will fail due to CUDA OOM.
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
@@ -132,7 +131,7 @@ def test_olmoe_lora(olmoe_lora_files, maybe_enable_lora_dual_stream):
 
 
 def test_olmoe_lora_mixed(olmoe_lora_files):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
@@ -158,7 +157,7 @@ def test_olmoe_lora_mixed_random(
     random_weights = {k: torch.randn_like(v) for k, v in weights.items()}
     save_file(random_weights, str(weights_path))
 
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
@@ -189,7 +188,7 @@ def test_olmoe_lora_mixed_random(
 @pytest.mark.parametrize("fully_sharded_loras", [False, True])
 @multi_gpu_test(num_gpus=2)
 def test_olmoe_lora_tp2(olmoe_lora_files, fully_sharded_loras):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
@@ -208,7 +207,7 @@ def test_olmoe_lora_tp2(olmoe_lora_files, fully_sharded_loras):
 @pytest.mark.parametrize("fully_sharded_loras", [False, True])
 @multi_gpu_test(num_gpus=4)
 def test_olmoe_lora_tp4(olmoe_lora_files, fully_sharded_loras):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,

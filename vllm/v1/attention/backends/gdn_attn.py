@@ -77,7 +77,7 @@ class GDNAttentionBackend(AttentionBackend):
         return "GDN_ATTN"
 
     @staticmethod
-    def get_builder_cls() -> type["GDNAttentionMetadataBuilder"]:
+    def get_builder_cls() -> type[GDNAttentionMetadataBuilder]:
         return GDNAttentionMetadataBuilder
 
     @classmethod
@@ -183,10 +183,7 @@ class GDNAttentionMetadataBuilder(AttentionMetadataBuilder[GDNAttentionMetadata]
         # buffers, so only MRV2, which also reuses metadata at capture, may use
         # it.
         self.supports_update_block_table = (
-            vllm_config.use_v2_model_runner
-            and device.type == "cuda"
-            # Not isinstance: KDA's RecoverSSM/checkpoint metadata is per group.
-            and type(self) is GDNAttentionMetadataBuilder
+            device.type == "cuda" and type(self) is GDNAttentionMetadataBuilder
         )
         if self.supports_update_block_table:
             # Opts into MRV2's CUDA-only aligned-index precompute.
@@ -244,7 +241,7 @@ class GDNAttentionMetadataBuilder(AttentionMetadataBuilder[GDNAttentionMetadata]
 
     @staticmethod
     def _check_chunk_metadata_override(
-        builder_cls: type["GDNAttentionMetadataBuilder"], backend: str
+        builder_cls: type[GDNAttentionMetadataBuilder], backend: str
     ) -> None:
         """Reject a subclass whose chunk metadata the AITER path would skip.
 

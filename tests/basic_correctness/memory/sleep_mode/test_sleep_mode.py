@@ -10,7 +10,8 @@ import torch
 
 import vllm.device_allocator.cumem as cumem
 import vllm.envs as envs
-from vllm import LLM, AsyncEngineArgs, AsyncLLMEngine, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import AsyncEngineArgs, AsyncLLMEngine, SamplingParams
 from vllm.model_executor.model_loader import get_model_loader
 from vllm.platforms import current_platform
 from vllm.utils.mem_constants import GiB_bytes

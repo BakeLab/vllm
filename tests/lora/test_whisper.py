@@ -9,6 +9,7 @@ for speech-to-text transcription tasks.
 import pytest
 
 import vllm
+from tests.engine_harness.llm import LLM as TestLLM
 from vllm.assets.audio import AudioAsset
 from vllm.lora.request import LoRARequest
 from vllm.platforms import current_platform
@@ -34,7 +35,7 @@ def create_whisper_llm(
     enable_lora: bool = True, max_loras: int = 2, attn_backend: str | None = None
 ):
     """Create a Whisper LLM instance with optional LoRA support."""
-    return vllm.LLM(
+    return TestLLM(
         model=WHISPER_MODEL,
         enable_lora=enable_lora,
         max_loras=max_loras if enable_lora else 1,

@@ -1349,7 +1349,6 @@ class CompilationConfig:
         min_cg_support: AttentionCGSupport,
         min_cg_attn_backend: str | None,
         uniform_decode_query_len: int = 1,
-        use_v2_model_runner: bool = False,
         kv_cache_config: KVCacheConfig | None = None,
         max_num_reqs: int | None = None,
         is_profiling: bool = False,
@@ -1471,12 +1470,6 @@ class CompilationConfig:
         # sizes for decode and mixed prefill-decode.
         # MRV2 handles cudagraph capture sizing in cudagraph_utils.py
         # and doesn't need below: https://github.com/vllm-project/vllm/pull/45953
-        if (
-            not use_v2_model_runner
-            and cudagraph_mode.decode_mode() == CUDAGraphMode.FULL
-            and uniform_decode_query_len > 1
-        ):
-            self.adjust_cudagraph_sizes_for_spec_decode(uniform_decode_query_len)
 
         # For Mamba models with FULL decode cudagraphs, each decode
         # sequence needs one Mamba cache block. The decode cudagraph

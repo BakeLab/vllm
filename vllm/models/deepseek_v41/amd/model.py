@@ -581,7 +581,6 @@ class DeepseekV4Model(nn.Module, EagleModelMixin):
         cut = max(config.kv_source_layer_ids)
         if (
             vllm_config.cache_config.swa_bounded_replay
-            and vllm_config.use_v2_model_runner
             and cut < self.end_layer - 1
             and self._decoder_replay_supported(vllm_config, cut)
         ):
@@ -1274,9 +1273,9 @@ def _make_deepseek_v4_weights_mapper(
 
 
 class DeepseekV4MixtureOfExperts(MixtureOfExperts):
-    moe_mlp_layers: list["DeepseekV4MoE"]
+    moe_mlp_layers: list[DeepseekV4MoE]
 
-    def extract_moe_parameters(self, example_moe: "DeepseekV4MoE | None") -> None:
+    def extract_moe_parameters(self, example_moe: DeepseekV4MoE | None) -> None:
         if example_moe is None:
             self.num_moe_layers = 0
             self.num_expert_groups = 0

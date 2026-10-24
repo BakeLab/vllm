@@ -1,5 +1,5 @@
 group: LM Eval
-depends_on: 
+depends_on:
   - image-build
 steps:
 - label: ":nvidia: (H200 MIG 35GB) LM Eval Small Models"
@@ -328,7 +328,6 @@ steps:
   - tests/evals/gsm8k/configs/DeepSeek-V4-Flash-EPLB-TEP4.yaml
   - tests/evals/gsm8k/configs/Kimi-K3-pruned75-DSpark-TP4.yaml
   - tests/evals/gsm8k/configs/models-spec-decode.txt
-  - tests/evals/gsm8k/eplb_checks.py
   - vllm/distributed/eplb/
   - vllm/models/deepseek_v4/
   - vllm/models/deepseek_v41/

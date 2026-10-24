@@ -10,8 +10,9 @@ import weakref
 import pytest
 import torch
 
+from tests.engine_harness.llm import LLM
 from tests.models.registry import HF_EXAMPLE_MODELS
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 from vllm.distributed import cleanup_dist_env_and_memory
 from vllm.platforms import current_platform
 from vllm.renderers.chat_utils import ChatCompletionMessageParam

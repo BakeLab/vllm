@@ -14,7 +14,8 @@ import time
 import pytest
 from tqdm import tqdm
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.assets.image import ImageAsset
 from vllm.config import ECTransferConfig
 from vllm.platforms import current_platform

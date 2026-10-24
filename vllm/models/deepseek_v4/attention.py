@@ -173,14 +173,14 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
         q: torch.Tensor,
         kv: torch.Tensor,
         positions: torch.Tensor,
-        output: "torch.Tensor | QuantizedActivation",
+        output: torch.Tensor | QuantizedActivation,
     ) -> None:
         """Platform-specific sparse MLA forward; writes attention into ``output``."""
         raise NotImplementedError
 
     @abstractmethod
     def _o_proj(
-        self, o: "torch.Tensor | QuantizedActivation", positions: torch.Tensor
+        self, o: torch.Tensor | QuantizedActivation, positions: torch.Tensor
     ) -> torch.Tensor:
         """Inverse-RoPE + wo_a + wo_b output projection (platform-specific).
 
@@ -316,11 +316,6 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
             )
 
         self._prepare_and_attn_fn = self._prepare_and_attn
-        if not vllm_config.use_v2_model_runner:
-            # MRV1's piecewise capture only tolerates the wide eager region: with
-            # the narrow one the attention input preparation stays in the captured
-            # graph and MRV1 produces garbage (#51430).
-            self._prepare_and_attn_fn = self._prepare_and_attn_eager
 
         self.aux_stream_list = aux_stream_list
         # [0]: GEMM start / post-GEMM event0. [1..3]: GEMM done events;
@@ -501,7 +496,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
 
     def _alloc_attn_out(
         self, num_tokens: int, hidden_states: torch.Tensor
-    ) -> "torch.Tensor | QuantizedActivation":
+    ) -> torch.Tensor | QuantizedActivation:
         """The buffer ``forward_mqa`` fills.
 
         A bf16 ``[num_tokens, padded_heads, head_dim]`` buffer by default, whose
@@ -545,7 +540,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
         indexer_kv_score: torch.Tensor,
         indexer_weights: torch.Tensor,
         positions: torch.Tensor,
-        o_padded: "torch.Tensor | QuantizedActivation",
+        o_padded: torch.Tensor | QuantizedActivation,
     ) -> None:
         """Wide eager region: the whole of ``_prepare_and_attn`` runs eagerly.
 
@@ -574,7 +569,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
         indexer_kv_score: torch.Tensor,
         indexer_weights: torch.Tensor,
         positions: torch.Tensor,
-        o_padded: "torch.Tensor | QuantizedActivation",
+        o_padded: torch.Tensor | QuantizedActivation,
     ) -> None:
         """Attention input preparation followed by the sparse indexer and MLA.
 
@@ -739,7 +734,7 @@ class DeepseekV4Attention(nn.Module, AttentionLayerBase, ABC):
         q: torch.Tensor,
         kv: torch.Tensor,
         positions: torch.Tensor,
-        out: "torch.Tensor | QuantizedActivation",
+        out: torch.Tensor | QuantizedActivation,
     ) -> None:
         if self.indexer is not None and index_q is not None:
             assert index_weights is not None

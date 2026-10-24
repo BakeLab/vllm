@@ -7,8 +7,9 @@ import tempfile
 import pytest
 import torch
 
+from tests.engine_harness.llm import LLM
 from tests.utils import create_new_process_for_each_test, multi_gpu_test
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 from vllm.distributed.kv_transfer.kv_connector.v1 import (
     example_hidden_states_connector,
 )

@@ -60,7 +60,7 @@ else:
     # Parameterize APC
     params=[False, True],
 )
-def vllm_model(vllm_runner, request) -> Generator[VllmRunner, None, None]:
+def vllm_model(vllm_runner, request) -> Generator[VllmRunner]:
     with vllm_runner(
         MODEL,
         dtype=DTYPE,
@@ -81,7 +81,7 @@ def vllm_model(vllm_runner, request) -> Generator[VllmRunner, None, None]:
 
 
 @pytest.fixture(scope="module")
-def hf_model(hf_runner) -> Generator[HfRunner, None, None]:
+def hf_model(hf_runner) -> Generator[HfRunner]:
     with hf_runner(MODEL, dtype=DTYPE) as hf_model:
         yield hf_model
 
@@ -633,7 +633,7 @@ def test_logprobs_mode(logprobs_mode: LogprobsMode):
     For logprobs, we should have non-positive values.
     For logits, we should expect at least one positive values.
     """
-    from vllm import LLM
+    from tests.engine_harness.llm import LLM
 
     llm = LLM(
         "facebook/opt-125m",
@@ -675,7 +675,7 @@ def test_prompt_logprobs_mode():
     """prompt_logprobs must respect logprobs_mode: *_logits and *_logprobs
     must return different values. Prompt tokens skip sampling processors,
     so processed_* == raw_* on the prompt side."""
-    from vllm import LLM
+    from tests.engine_harness.llm import LLM
 
     values: dict[str, float] = {}
     for mode in get_args(LogprobsMode):
@@ -1236,7 +1236,7 @@ def test_spec_decode_logprobs(
             speculative_config dict, top_logprobs).
 
     """
-    from vllm import LLM
+    from tests.engine_harness.llm import LLM
 
     method, model_name, spec_config, top_logprobs = model_setup
 

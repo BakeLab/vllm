@@ -12,7 +12,8 @@ import pytest
 from transformers import AutoTokenizer
 
 from tests.quantization.utils import is_quant_method_supported
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
+from tests.engine_harness.llm import LLM
 
 from vllm.platforms import current_platform
 

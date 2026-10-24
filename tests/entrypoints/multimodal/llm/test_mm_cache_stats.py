@@ -6,8 +6,8 @@ import logging
 import pytest
 import regex as re
 
+from tests.engine_harness.llm import LLM
 from tests.entrypoints.multimodal.conftest import TEST_IMAGE_ASSETS
-from vllm import LLM
 from vllm.renderers.chat_utils import ChatCompletionMessageParam
 from vllm.v1.metrics import loggers as stat_loggers
 from vllm.v1.metrics.reader import Counter, Metric

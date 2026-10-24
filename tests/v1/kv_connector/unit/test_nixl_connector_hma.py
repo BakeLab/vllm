@@ -14,8 +14,9 @@ import msgspec
 import pytest
 import torch
 
+from tests.engine_harness.llm import LLM
 from tests.v1.attention.utils import MockMambaBuilder
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 from vllm.config import KVTransferConfig, set_current_vllm_config
 from vllm.distributed.kv_transfer.kv_connector.v1.nixl import base_worker as bw
 from vllm.distributed.kv_transfer.kv_connector.v1.nixl.metadata import (

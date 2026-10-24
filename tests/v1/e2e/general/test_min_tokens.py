@@ -16,7 +16,8 @@ import json
 
 import pytest
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.exceptions import VLLMValidationError
 from vllm.outputs import RequestOutput
 from vllm.sampling_params import StructuredOutputsParams
@@ -516,7 +517,7 @@ def test_min_tokens_validation():
 if __name__ == "__main__":
     """
     Run tests locally for development.
-    
+
     Usage:
         cd vllm/
         python -m pytest tests/v1/e2e/general/test_min_tokens.py -v

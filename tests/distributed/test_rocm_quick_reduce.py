@@ -18,7 +18,8 @@ import torch
 import torch.distributed as dist
 
 import vllm.envs as envs
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.distributed import cleanup_dist_env_and_memory
 from vllm.platforms import current_platform
 from vllm.transformers_utils.repo_utils import hf_api

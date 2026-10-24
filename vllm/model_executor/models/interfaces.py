@@ -388,9 +388,7 @@ class SupportsMultiModal(SupportsMultiModalEmbeddings, Protocol):
                     targets=targets,
                 )
                 if all(mm_config.get_limit_per_prompt(m) == 0 for m in modalities)
-                or (
-                    vllm_config.use_v2_model_runner and not get_pp_group().is_first_rank
-                )
+                or not get_pp_group().is_first_rank
                 else nullcontext()
             ):
                 yield
@@ -993,7 +991,7 @@ class IsHybrid(Protocol):
     is_hybrid: ClassVar[Literal[True]] = True
     """
         A flag that indicates this model has both mamba and attention blocks
-        , also indicates that the model's hf_config has 
+        , also indicates that the model's hf_config has
         'layers_block_type' """
 
     @classmethod
@@ -1685,7 +1683,7 @@ class SupportsEagle(SupportsEagleBase, Protocol):
 
     supports_eagle: ClassVar[Literal[True]] = True
     """
-    A flag that indicates this model supports EAGLE-1 and EAGLE-2 
+    A flag that indicates this model supports EAGLE-1 and EAGLE-2
     speculative decoding.
 
     Note:
@@ -1715,7 +1713,7 @@ class SupportsEagle3(SupportsEagleBase, Protocol):
 
     supports_eagle3: ClassVar[Literal[True]] = True
     """
-    A flag that indicates this model supports EAGLE-3 
+    A flag that indicates this model supports EAGLE-3
     speculative decoding.
 
     Note:

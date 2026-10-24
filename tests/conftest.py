@@ -47,7 +47,8 @@ from tests.models.utils import (
     TokensTextLogprobsPromptLogprobs,
     softmax,
 )
-from vllm import LLM, SamplingParams, envs
+from vllm import SamplingParams, envs
+from tests.engine_harness.llm import LLM
 from vllm.assets.audio import AudioAsset
 from vllm.assets.image import ImageAsset
 from vllm.assets.video import VideoAsset

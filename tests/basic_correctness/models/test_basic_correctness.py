@@ -13,7 +13,7 @@ import pytest
 import torch
 
 import vllm.envs as envs
-from vllm import LLM
+from tests.engine_harness.llm import LLM
 from vllm.config import CompilationConfig, CUDAGraphMode
 from vllm.config.compilation import CompilationMode
 from vllm.platforms import current_platform

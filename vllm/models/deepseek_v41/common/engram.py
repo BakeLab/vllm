@@ -244,7 +244,7 @@ class EngramLayout:
         self.offsets = torch.tensor(np.array(offsets))  # [n_layers, n_hash_cols]
 
     @classmethod
-    def from_config(cls, config) -> "EngramLayout | None":
+    def from_config(cls, config) -> EngramLayout | None:
         if not getattr(config, "engram_layer_ids", None):
             return None
         return cls(config)
@@ -440,7 +440,7 @@ class NgramHashState(nn.Module):
         self.swa_cache_module = swa_cache_module
         self.block_size: int = swa_cache_module.block_size
         self.lookback_depth: int = layout.max_ngram_size - 1
-        self.use_slot_cache: bool = not vllm_config.use_v2_model_runner
+        self.use_slot_cache: bool = False
         self._cache: torch.Tensor | None = None
         self._kv_cache_ref: weakref.ReferenceType[torch.Tensor] | None = None
 
@@ -1398,7 +1398,7 @@ class EngramBatch(nn.Module):
     A module so the model owns the peer exchange's pointer buffers.
     """
 
-    def __init__(self, layers: list["Engram"], max_tokens: int) -> None:
+    def __init__(self, layers: list[Engram], max_tokens: int) -> None:
         super().__init__()
         first = layers[0].layer_hash_index
         hash_indices = [layer.layer_hash_index for layer in layers]
@@ -1444,7 +1444,7 @@ class EngramBatch(nn.Module):
             )
 
     @classmethod
-    def create(cls, layers: list["Engram"], max_tokens: int) -> "EngramBatch | None":
+    def create(cls, layers: list[Engram], max_tokens: int) -> EngramBatch | None:
         """Batch DP-sharded tables whose WKV takes FlashInfer MXFP8 input."""
         if not layers:
             return None
@@ -1505,7 +1505,7 @@ class EngramBatch(nn.Module):
             PEER=peer,
         )
 
-    def wkv_input(self, layer: "Engram", num_tokens: int) -> QuantizedActivation:
+    def wkv_input(self, layer: Engram, num_tokens: int) -> QuantizedActivation:
         index = layer.layer_hash_index - self.layers[0].layer_hash_index
         values = self.fp8_values[index, :num_tokens].view(torch.float8_e4m3fn)
         return QuantizedActivation(

@@ -5,9 +5,9 @@ import dataclasses
 import pytest
 import torch
 
+from tests.engine_harness.llm import LLM
 from tests.evals.gsm8k.gsm8k_eval import evaluate_gsm8k_offline
 from tests.utils import large_gpu_mark
-from vllm import LLM
 from vllm.config import SpeculativeConfig
 from vllm.distributed import cleanup_dist_env_and_memory
 

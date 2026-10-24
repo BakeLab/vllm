@@ -268,7 +268,7 @@ class WeightCacheDaemon:
             assert self.model is not None, "warmup ran before load_model"
             runner.load_model(model=self.model)
             # The V2 runner requires skip_attn when no KV cache exists
-            flashinfer_autotune(runner, skip_attn=vllm_config.use_v2_model_runner)
+            flashinfer_autotune(runner, skip_attn=True)
             logger.info(
                 "Weight cache %s daemon rank %d tuned FlashInfer; the tuned "
                 "configs are in the on-disk autotune cache",
@@ -494,7 +494,7 @@ def _run_daemon(
     vllm_config: VllmConfig,
     distributed_init_method: str,
     socket_dir: str | None,
-    ready_queue: "multiprocessing.Queue[tuple[str, int]]",
+    ready_queue: multiprocessing.Queue[tuple[str, int]],
     is_draft: bool = False,
     dp_rank: int = 0,
     pp_rank: int = 0,

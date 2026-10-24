@@ -18,7 +18,8 @@ post-wake generation is neither degenerate (single repeated token) nor NaN.
 
 import pytest
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 
 # Small Qwen3-Next (GDN) model already used by the hybrid model test-suite.
 MODEL = "tiny-random/qwen3-next-moe"

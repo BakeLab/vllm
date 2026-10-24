@@ -1,13 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-
-
 # NOTE To avoid overloading the CI pipeline, this test script will not
 # be triggered on CI and is primarily intended for local testing and verification.
-
 import pytest
 
 import vllm
+from tests.engine_harness.llm import LLM as TestLLM
 from vllm.lora.request import LoRARequest
 
 from ..utils import multi_gpu_test
@@ -69,7 +67,7 @@ def generate_and_test(llm: vllm.LLM, lora_path: str, lora_id: int) -> None:
 def test_qwen3moe_lora(qwen3moe_lora_files):
     # We enable enforce_eager=True here to reduce VRAM usage for lora-test CI,
     # Otherwise, the lora-test will fail due to CUDA OOM.
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
@@ -88,7 +86,7 @@ def test_qwen3moe_lora(qwen3moe_lora_files):
 @pytest.mark.parametrize("ep", [False, True])
 @pytest.mark.parametrize("enable_mixed_moe_lora_format", [False, True])
 def test_qwen3moe_lora_tp2(ep, qwen3moe_lora_files, enable_mixed_moe_lora_format):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
@@ -107,7 +105,7 @@ def test_qwen3moe_lora_tp2(ep, qwen3moe_lora_files, enable_mixed_moe_lora_format
 @pytest.mark.parametrize("ep", [False, True])
 @pytest.mark.parametrize("enable_mixed_moe_lora_format", [False, True])
 def test_qwen3moe_lora_tp4(ep, qwen3moe_lora_files, enable_mixed_moe_lora_format):
-    llm = vllm.LLM(
+    llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,

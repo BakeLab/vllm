@@ -87,7 +87,7 @@ serving_tests() {
     VLLM_CPU_OMP_THREADS_BIND=$E2E_OMP_THREADS vllm serve Qwen/Qwen3-0.6B --max-model-len 2048 &
     server_pid=$!
     timeout 600 bash -c "until curl localhost:8000/v1/models; do sleep 1; done" || exit 1
-    vllm bench serve \
+    vllm-rs bench serve \
       --backend vllm \
       --dataset-name random \
       --model Qwen/Qwen3-0.6B \
@@ -100,7 +100,7 @@ serving_tests() {
     VLLM_CPU_OMP_THREADS_BIND=$E2E_OMP_THREADS vllm serve Qwen/Qwen3.5-0.8B --max-model-len 2048 &
     server_pid=$!
     timeout 600 bash -c "until curl localhost:8000/v1/models; do sleep 1; done" || exit 1
-    vllm bench serve \
+    vllm-rs bench serve \
       --backend vllm \
       --dataset-name random \
       --model Qwen/Qwen3.5-0.8B \

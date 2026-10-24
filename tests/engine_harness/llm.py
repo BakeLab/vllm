@@ -10,6 +10,10 @@ import torch.nn as nn
 from pydantic import ValidationError
 from tqdm.auto import tqdm
 
+from tests.engine_harness.beam_search import BeamSearchOfflineMixin
+from tests.engine_harness.offline import _O, _R, OfflineInferenceMixin
+from tests.engine_harness.pooling import PoolingOfflineMixin
+from tests.engine_harness.rl import RLOfflineMixin
 from vllm.config import (
     AttentionConfig,
     CompilationConfig,
@@ -28,11 +32,7 @@ from vllm.config.model import (
 )
 from vllm.config.quantization import QuantizationConfigArgs
 from vllm.engine.arg_utils import EngineArgs
-from vllm.entrypoints.common.offline import _O, _R, OfflineInferenceMixin
 from vllm.entrypoints.common.startup import log_non_default_args
-from vllm.entrypoints.generate.beam_search.offline import BeamSearchOfflineMixin
-from vllm.entrypoints.pooling.offline import PoolingOfflineMixin
-from vllm.entrypoints.rl.offline import RLOfflineMixin
 from vllm.inputs import PromptType
 from vllm.logger import configure_logging_if_needed, init_logger
 from vllm.lora.request import LoRARequest

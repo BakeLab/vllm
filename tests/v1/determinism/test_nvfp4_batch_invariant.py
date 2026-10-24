@@ -12,7 +12,8 @@ from utils import (
     skip_if_not_cuda_alike,
 )
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.platforms import current_platform
 
 # FLASH_ATTN is CUDA-only.

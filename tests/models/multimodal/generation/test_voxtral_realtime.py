@@ -12,7 +12,8 @@ from mistral_common.tokens.tokenizers.audio import Audio
 from mistral_common.tokens.tokenizers.mistral import MistralTokenizer
 from mistral_common.tokens.tokenizers.tekken import SpecialTokenPolicy
 
-from vllm import LLM, SamplingParams
+from tests.engine_harness.llm import LLM
+from vllm import SamplingParams
 from vllm.assets.audio import AudioAsset
 from vllm.config import CUDAGraphMode
 from vllm.engine.arg_utils import AsyncEngineArgs

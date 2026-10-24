@@ -42,7 +42,8 @@ def make_caption_prompt(length: str = "normal") -> str:
 def test_tensor_parallel(image_assets: ImageTestAssets):
     import gc
 
-    from vllm import LLM, SamplingParams
+    from tests.engine_harness.llm import LLM
+    from vllm import SamplingParams
     from vllm.distributed.parallel_state import destroy_model_parallel
 
     destroy_model_parallel()
@@ -83,7 +84,7 @@ def llm():
     model_info = HF_EXAMPLE_MODELS.get_hf_info("Moondream3ForCausalLM")
     model_info.check_transformers_version(on_fail="skip")
 
-    from vllm import LLM
+    from tests.engine_harness.llm import LLM
 
     try:
         return LLM(

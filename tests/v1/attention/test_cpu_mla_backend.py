@@ -108,7 +108,8 @@ def test_kv_cache_cpu_write() -> None:
 @pytest.mark.skipif(not current_platform.is_cpu(), reason="CPU only")
 def test_cpu_mla_backend_smoke(tmp_path) -> None:
     # Shrink the architecture aggressively so the test is CI-friendly.
-    from vllm import LLM, SamplingParams
+    from tests.engine_harness.llm import LLM
+    from vllm import SamplingParams
 
     hf_overrides = {
         "num_hidden_layers": 2,

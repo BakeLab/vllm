@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-
 import pytest
 
 import vllm
 import vllm.config
+from tests.engine_harness.llm import LLM as TestLLM
 from vllm.assets.image import ImageAsset
 from vllm.lora.request import LoRARequest
 
@@ -56,7 +56,7 @@ def _run_mixed_2d_3d_lora_test(
     tensor_parallel_size: int,
     fully_sharded_loras: bool,
 ) -> None:
-    llm = vllm.LLM(
+    llm = TestLLM(
         model=MODEL_PATH,
         max_model_len=4096,
         enable_lora=True,

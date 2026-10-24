@@ -3,8 +3,8 @@
 
 import pytest
 
+from tests.engine_harness.offline import OfflineInferenceMixin
 from vllm import SamplingParams
-from vllm.entrypoints.common.offline import OfflineInferenceMixin
 from vllm.exceptions import VLLMValidationError
 from vllm.lora.request import LoRARequest
 

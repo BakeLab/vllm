@@ -3,8 +3,9 @@
 
 import torch
 
+from tests.engine_harness.llm import LLM
 from tests.utils import multi_gpu_test
-from vllm import LLM, PoolingParams
+from vllm import PoolingParams
 from vllm.distributed import cleanup_dist_env_and_memory
 from vllm.lora.request import LoRARequest
 

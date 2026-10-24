@@ -6,8 +6,9 @@ import weakref
 import pytest
 import torch
 
+from tests.engine_harness.llm import LLM
 from tests.models.utils import softmax
-from vllm import LLM, PoolingParams
+from vllm import PoolingParams
 
 MODEL_NAME = "tomaarsen/Qwen3-Reranker-0.6B-seq-cls"
 PROMPT = "The chef prepared a delicious meal."

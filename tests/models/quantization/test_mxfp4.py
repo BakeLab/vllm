@@ -5,7 +5,9 @@
 
 import pytest
 
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
+
+from tests.engine_harness.llm import LLM
 
 MODELS = ["amd/Llama-2-7b-chat-hf-wmxfp4-amxfp4-kvfp8-scale-uint8"]
 

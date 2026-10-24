@@ -1571,7 +1571,6 @@ setup(
         "zen": ["zentorch==2.14.0.1"],
         # Optional computer vision model dependencies.
         "vision": ["timm>=1.0.17"],
-        "bench": ["pandas", "matplotlib", "seaborn", "datasets", "scipy", "plotly"],
         "tensorizer": ["tensorizer==2.10.1"],
         "fastsafetensors": ["fastsafetensors >= 0.3.3"],
         "instanttensor": ["instanttensor >= 0.2.2"],

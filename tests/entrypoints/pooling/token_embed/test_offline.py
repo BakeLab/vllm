@@ -5,8 +5,9 @@ import weakref
 import pytest
 import torch
 
+from tests.engine_harness.llm import LLM
 from tests.models.utils import check_embeddings_close
-from vllm import LLM, PoolingParams, PoolingRequestOutput
+from vllm import PoolingParams, PoolingRequestOutput
 from vllm.config import PoolerConfig
 from vllm.exceptions import VLLMValidationError
 from vllm.outputs import PoolingOutput

@@ -51,7 +51,7 @@ from vllm.utils.deep_gemm import is_deep_gemm_supported
 from vllm.utils.flashinfer import has_flashinfer
 
 if TYPE_CHECKING:
-    from vllm.v1.worker.gpu_model_runner import GPUModelRunner
+    from vllm.v1.worker.gpu.model_runner import GPUModelRunner
     from vllm.v1.worker.gpu_worker import Worker
 
 logger = init_logger(__name__)
@@ -161,18 +161,11 @@ def _autotune_kimi_k3_kda_qkvg(model: torch.nn.Module) -> None:
         module.autotune_kda_qkvg(model)
 
 
-def kernel_warmup(worker: "Worker", *, process_local_only: bool = False):
+def kernel_warmup(worker: Worker, *, process_local_only: bool = False):
     from vllm.model_executor.warmup.minimax_m3_msa_warmup import (
         minimax_m3_msa_warmup,
     )
     from vllm.model_executor.warmup.step5_dsa_warmup import step5_dsa_warmup
-
-    if not worker.use_v2_model_runner:
-        # The KV-block zeroing kernel is driven by the scheduler's
-        # `new_block_ids_to_zero`, so no dummy run ever reaches it.
-        zeroer = getattr(worker.model_runner, "_kv_block_zeroer", None)
-        if zeroer is not None:
-            zeroer.warmup(worker.model_runner.kv_cache_config.num_blocks)
 
     enable_jit_warmup = worker.vllm_config.kernel_config.enable_jit_warmup
     if enable_jit_warmup:
@@ -296,7 +289,7 @@ def kernel_warmup(worker: "Worker", *, process_local_only: bool = False):
         mixed_batch_attention_warmup(worker)
 
 
-def _flashinfer_autotune_skip_ops(runner: "GPUModelRunner") -> set[str] | None:
+def _flashinfer_autotune_skip_ops(runner: GPUModelRunner) -> set[str] | None:
     if envs.VLLM_FLASHINFER_AUTOTUNE_SKIP_OPS is not None:
         return set(envs.VLLM_FLASHINFER_AUTOTUNE_SKIP_OPS) or None
 
@@ -316,7 +309,7 @@ def _flashinfer_autotune_skip_ops(runner: "GPUModelRunner") -> set[str] | None:
 
 
 def _flashinfer_deferred_moe_token_counts(
-    runner: "GPUModelRunner",
+    runner: GPUModelRunner,
 ) -> tuple[int, ...]:
     """Return bounded token counts that exercise deferred MoE finalization."""
     from vllm.model_executor.layers.fused_moe import MoERunner
@@ -335,7 +328,7 @@ def _flashinfer_deferred_moe_token_counts(
     return tuple(dict.fromkeys(token_counts))
 
 
-def _flashinfer_autotune_token_counts(runner: "GPUModelRunner") -> tuple[int, ...]:
+def _flashinfer_autotune_token_counts(runner: GPUModelRunner) -> tuple[int, ...]:
     max_tokens = runner.scheduler_config.max_num_batched_tokens
     # Tune the widest bucket set first so bounded passes reuse its configs.
     token_counts = [max_tokens]
@@ -344,7 +337,7 @@ def _flashinfer_autotune_token_counts(runner: "GPUModelRunner") -> tuple[int, ..
 
 
 def _run_flashinfer_autotune_dummy_runs(
-    runner: "GPUModelRunner", *, skip_attn: bool = False
+    runner: GPUModelRunner, *, skip_attn: bool = False
 ) -> None:
     import vllm.utils.flashinfer as fi_utils
 
@@ -405,7 +398,7 @@ def _all_ranks_have_matching_cache(path: Path, group) -> bool:
     return fingerprint is not None and all(f == fingerprint for f in gathered)
 
 
-def flashinfer_autotune(runner: "GPUModelRunner", *, skip_attn: bool = False) -> None:
+def flashinfer_autotune(runner: GPUModelRunner, *, skip_attn: bool = False) -> None:
     """Autotune FlashInfer operations.
     FlashInfer have many implementations for the same operation,
     autotuning runs benchmarks for each implementation and stores

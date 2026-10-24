@@ -79,7 +79,8 @@ def _wait_for_driver_memory_release(baseline: dict, peak: dict) -> None:
 @pytest.mark.parametrize("model_name, sw_size", [("google/gemma-3-1b-it", 512)])
 def test_gpu_memory_nixl_hma(model_name, sw_size):
     """Track GPU memory through NixlConnector create/infer/shutdown cycle."""
-    from vllm import LLM, SamplingParams
+    from tests.engine_harness.llm import LLM
+    from vllm import SamplingParams
     from vllm.config import KVTransferConfig
     from vllm.distributed.parallel_state import cleanup_dist_env_and_memory
 
@@ -188,7 +189,8 @@ def test_gpu_memory_nixl_hma(model_name, sw_size):
 def test_gpu_memory_no_nixl_baseline(model_name):
     """Same workload without NixlConnector.  Comparing driver-level memory
     between this and test_gpu_memory_nixl_hma isolates UCX/NIXL impact."""
-    from vllm import LLM, SamplingParams
+    from tests.engine_harness.llm import LLM
+    from vllm import SamplingParams
     from vllm.distributed.parallel_state import cleanup_dist_env_and_memory
 
     print("\n" + "=" * 90)

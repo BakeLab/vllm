@@ -10,6 +10,4 @@ logger = init_logger(__name__)
 
 __all__ = [
     "create_error_response",
-    "register_vllm_serve_api_routers",
-    "register_vllm_dev_api_routers",
 ]

@@ -7,12 +7,13 @@ import inspect
 
 import pytest
 
+from tests.engine_harness.llm import LLM
 from tests.utils import wait_for_gpu_memory_to_clear
 from tests.v1.shutdown.utils import (
     SHUTDOWN_TEST_THRESHOLD_BYTES,
     SHUTDOWN_TEST_TIMEOUT_SEC,
 )
-from vllm import LLM, AsyncEngineArgs, SamplingParams
+from vllm import AsyncEngineArgs, SamplingParams
 from vllm.distributed import get_tensor_model_parallel_rank
 from vllm.model_executor.models.llama import LlamaForCausalLM
 from vllm.platforms import current_platform

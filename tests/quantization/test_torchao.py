@@ -187,7 +187,8 @@ def test_reload_weights():
     from torchao.core.config import config_to_dict
     from torchao.quantization import Float8DynamicActivationFloat8WeightConfig, PerRow
 
-    from vllm import LLM, SamplingParams
+    from tests.engine_harness.llm import LLM
+    from vllm import SamplingParams
 
     torchao_quant_config = Float8DynamicActivationFloat8WeightConfig(
         granularity=PerRow()

@@ -9,8 +9,9 @@ import os
 
 import pytest
 
+from tests.engine_harness.llm import LLM
 from tests.utils import multi_gpu_test
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 from vllm.exceptions import VLLMValidationError
 from vllm.lora.request import LoRARequest
 
