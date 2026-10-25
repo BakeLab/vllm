@@ -135,11 +135,24 @@ impl OpenAIChatBackend {
                             {
                                 output.output_tokens = ct as usize;
                             }
+                            if let Some(ref usage) = data.usage
+                                && let Some(pt) = usage.prompt_tokens
+                            {
+                                output.prompt_len = pt as usize;
+                            }
                         }
                     }
 
                     output.generated_text = generated_text;
-                    output.success = true;
+                    if first_token_received {
+                        output.success = true;
+                    } else {
+                        output.error = concat!(
+                            "Never received a valid chunk to calculate TTFT. ",
+                            "This response will be marked as failed!"
+                        )
+                        .to_string();
+                    }
                     output.latency = most_recent_timestamp.duration_since(st).as_secs_f64();
                 } else {
                     let status = response.status();
