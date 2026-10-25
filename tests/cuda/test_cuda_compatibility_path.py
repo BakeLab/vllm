@@ -14,8 +14,10 @@ import pytest
 # Import the functions directly (they're module-level in env_override)
 # We must import them without triggering the module-level side effects,
 # so we import the functions by name after the module is already loaded.
+from vllm import env_override
 from vllm.env_override import (
     _get_torch_cuda_version,
+    _maybe_promote_torch_symbols_for_rocm,
     _maybe_set_cuda_compatibility_path,
 )
 
@@ -185,3 +187,20 @@ class TestGetTorchCudaVersion:
             return_value=None,
         ):
             assert _get_torch_cuda_version() is None
+
+
+def test_rocm_sdk_skips_torch_symbol_promotion(monkeypatch):
+    monkeypatch.setattr(
+        env_override,
+        "_get_torch_version_attr",
+        lambda attr: "7.16.0" if attr == "hip" else None,
+    )
+    monkeypatch.setattr(
+        env_override.importlib.util,
+        "find_spec",
+        lambda name: object() if name == "rocm_sdk" else None,
+    )
+    with patch("ctypes.CDLL") as mock_cdll:
+        _maybe_promote_torch_symbols_for_rocm()
+
+    mock_cdll.assert_not_called()

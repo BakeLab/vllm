@@ -115,6 +115,14 @@ def _maybe_promote_torch_symbols_for_rocm():
     """
     if _get_torch_version_attr("hip") is None:
         return
+    # TheRock ships ROCm libraries as Python packages. Preloading
+    # libtorch_cpu.so globally before importing torch makes its LLVM
+    # command-line options visible to another LLVM copy loaded by the SDK;
+    # LLVM then aborts on duplicate option registration. Preserve normal
+    # inference startup for this layout and leave profiler symbol promotion
+    # disabled there.
+    if importlib.util.find_spec("rocm_sdk") is not None:
+        return
     try:
         import ctypes
         import glob
