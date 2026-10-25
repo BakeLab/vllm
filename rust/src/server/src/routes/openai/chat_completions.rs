@@ -16,7 +16,6 @@ use axum::http::HeaderMap;
 use axum::response::sse::Event;
 use axum::response::{IntoResponse, Response};
 use futures::{Stream, StreamExt as _, pin_mut};
-use serde_json::Value;
 use thiserror_ext::AsReport as _;
 use tracing::{debug, error, info, trace};
 use tracing_futures::Instrument as _;
@@ -24,7 +23,6 @@ use vllm_chat::{
     AssistantBlockKind, AssistantMessageExt as _, ChatEvent, ChatEventStream, ChatEventStreamTrait,
     ChatRequest, CollectedAssistantMessage, FinishReason,
 };
-use vllm_engine_core_client::protocol::output::StopReason;
 
 use self::convert::{ResponseOptions, prepare_chat_request};
 pub(crate) use self::types::ChatCompletionRequest;
@@ -165,7 +163,7 @@ async fn collect_chat_completion(
         kv_transfer_params,
         ec_transfer_params,
     } = collected;
-    let stop_reason = finish_reason.as_stop_reason().map(stop_reason_to_json);
+    let stop_reason = finish_reason.as_stop_reason().cloned();
     let saw_tool_calls = message.tool_calls().next().is_some();
     let reasoning = message.reasoning();
     // Output logprobs and token IDs cover the complete generated token stream.
@@ -792,7 +790,7 @@ fn final_chunk(
     finish_reason: FinishReason,
     use_tool_calls_finish_reason: bool,
 ) -> Result<ChatCompletionStreamResponse, ApiError> {
-    let stop_reason = finish_reason.as_stop_reason().map(stop_reason_to_json);
+    let stop_reason = finish_reason.as_stop_reason().cloned();
     let finish_reason = chat_finish_reason_to_openai(&finish_reason, use_tool_calls_finish_reason)?;
 
     debug!(
@@ -822,12 +820,6 @@ fn chat_finish_reason_to_openai(
         FinishReason::Repetition(_) => Ok("repetition"),
         FinishReason::Error(error) => Err(engine_error(error.as_deref())),
     }
-}
-
-/// Convert one internal stop reason into the OpenAI-compatible `stop_reason`
-/// JSON shape.
-fn stop_reason_to_json(stop_reason: &StopReason) -> Value {
-    serde_json::to_value(stop_reason).expect("StopReason must serialize to JSON")
 }
 
 #[cfg(test)]
@@ -907,7 +899,10 @@ mod tests {
         .expect("finish reason is valid");
 
         assert_eq!(chunk.choices[0].finish_reason.as_deref(), Some("stop"));
-        assert_eq!(chunk.choices[0].stop_reason, Some(json!("stop")));
+        assert_eq!(
+            chunk.choices[0].stop_reason,
+            Some(StopReason::Text("stop".to_string()))
+        );
     }
 
     #[test]

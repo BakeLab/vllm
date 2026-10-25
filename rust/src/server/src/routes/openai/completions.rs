@@ -16,11 +16,9 @@ use axum::http::HeaderMap;
 use axum::response::sse::Event;
 use axum::response::{IntoResponse, Response};
 use futures::{Stream, StreamExt as _, pin_mut};
-use serde_json::Value;
 use thiserror_ext::AsReport as _;
 use tracing::{debug, error, info, trace};
 use tracing_futures::Instrument as _;
-use vllm_engine_core_client::protocol::output::StopReason;
 use vllm_text::tokenizer::Tokenizer;
 use vllm_text::{
     DecodedPromptLogprobs, DecodedTextEvent, FinishReason, SampledDelta, TextOutputStream,
@@ -162,7 +160,7 @@ async fn collect_completion(
         .await
         .map_err(|error| server_error!("completion stream failed: {}", error.to_report_string()))?;
     let finish_reason = collected.finish_reason.clone();
-    let stop_reason = finish_reason.as_stop_reason().map(stop_reason_to_json);
+    let stop_reason = finish_reason.as_stop_reason().cloned();
     let finish_reason = completion_finish_reason_to_openai(&finish_reason)?.to_string();
 
     let prompt_char_count = echo.as_ref().map(|prompt| text_len(prompt)).unwrap_or_default();
@@ -470,7 +468,7 @@ fn final_chunk(
     envelope: &Arc<StreamResponseEnvelope>,
     finish_reason: FinishReason,
 ) -> Result<CompletionStreamResponse, ApiError> {
-    let stop_reason = finish_reason.as_stop_reason().map(stop_reason_to_json);
+    let stop_reason = finish_reason.as_stop_reason().cloned();
     let finish_reason = completion_finish_reason_to_openai(&finish_reason)?;
 
     let mut chunk = CompletionStreamResponse::new(envelope);
@@ -492,10 +490,6 @@ fn completion_finish_reason_to_openai(
         FinishReason::Abort => Ok("abort"),
         FinishReason::Error(error) => Err(engine_error(error.as_deref())),
     }
-}
-
-fn stop_reason_to_json(stop_reason: &StopReason) -> Value {
-    serde_json::to_value(stop_reason).expect("StopReason must serialize to JSON")
 }
 
 fn prompt_only_logprobs_to_openai(
@@ -862,7 +856,7 @@ mod tests {
                 );
                 assert_eq!(
                     chunk.choices[0].stop_reason,
-                    Some(serde_json::json!("repetition_detected"))
+                    Some(StopReason::Text("repetition_detected".to_string()))
                 );
             }
             CompletionSseChunk::Usage(_) => panic!("expected regular chunk"),
