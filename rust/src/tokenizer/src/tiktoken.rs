@@ -350,6 +350,7 @@ impl LoadedTiktokenConfig {
         })?;
         let mut encoder: FxHashMap<Vec<u8>, u32> =
             FxHashMap::with_capacity_and_hasher(content.lines().count(), Default::default());
+        let mut ranks = FxHashSet::default();
         for line in content.lines() {
             if line.is_empty() {
                 continue;
@@ -365,6 +366,9 @@ impl LoadedTiktokenConfig {
             let rank: u32 = rank_str
                 .parse()
                 .map_err(|error| tokenizer_error!("invalid rank in tiktoken file: {error}"))?;
+            if !ranks.insert(rank) {
+                return Err(tokenizer_error!("duplicate rank {rank} in tiktoken file"));
+            }
             encoder.insert(token_bytes, rank);
         }
 
