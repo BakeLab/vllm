@@ -81,7 +81,7 @@ cargo test -p vllm-bench -- --ignored
 ## Common Issues
 
 - **localhost vs 127.0.0.1**: Some systems resolve `localhost` to IPv6 `::1` while vLLM listens on IPv4 only. Use `127.0.0.1` or the actual hostname.
-- **Models without tokenizer.json** (e.g., `nvidia/Kimi-K2.5-NVFP4`): Automatically falls back to server-side tokenization. Can also use `--tokenizer` to point to a model with `tokenizer.json`.
+- **Models without tokenizer.json**: Automatically fall back to server-side tokenization. Use `--tokenizer` to point to a model with `tokenizer.json` when needed.
 - **usage.completion_tokens parsing**: vLLM sends final usage chunk with `"choices":[]` (empty array). The usage `if` must be separate from the choices `if` (not `else if`).
 
 ## Typical Usage
@@ -113,7 +113,7 @@ cargo test -p vllm-bench -- --ignored
 ./target/release/vllm-bench \
   --backend vllm \
   --base-url http://gb200-10:30000 \
-  --model nvidia/Kimi-K2.5-NVFP4 \
+  --model Qwen/Qwen3-32B \
   --dataset-name prefix_repetition \
   --prefix-repetition-prefix-len 256 \
   --prefix-repetition-suffix-len 256 \
@@ -124,7 +124,7 @@ cargo test -p vllm-bench -- --ignored
 ./target/release/vllm-bench \
   --backend openai-chat \
   --base-url http://gb200-10:30000 \
-  --model nvidia/Kimi-K2.5-NVFP4 \
+  --model Qwen/Qwen3-32B \
   --dataset-name custom \
   --dataset-path workload.jsonl \
   --custom-output-len -1 \
@@ -134,7 +134,7 @@ cargo test -p vllm-bench -- --ignored
 ./target/release/vllm-bench \
   --backend vllm \
   --base-url http://gb200-10:30000 \
-  --model nvidia/Kimi-K2.5-NVFP4 \
+  --model Qwen/Qwen3-32B \
   --dataset-name random \
   --random-input-len 8192 \
   --random-output-len 1024 \
@@ -161,7 +161,7 @@ cargo test -p vllm-bench -- --ignored
 ./target/release/vllm-bench \
   --backend openai-chat \
   --base-url http://gb200-10:30000 \
-  --model nvidia/Kimi-K2.5-NVFP4 \
+  --model Qwen/Qwen3-32B \
   --dataset-name hf \
   --dataset-path allenai/WildChat-4.8M \
   --hf-split train \
@@ -172,7 +172,7 @@ cargo test -p vllm-bench -- --ignored
 ./target/release/vllm-bench \
   --backend openai-chat \
   --base-url http://gb200-10:30000 \
-  --model nvidia/Kimi-K2.5-NVFP4 \
+  --model Qwen/Qwen3-32B \
   --dataset-name hf \
   --dataset-path THUDM/LongBench \
   --hf-subset narrativeqa \

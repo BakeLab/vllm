@@ -102,7 +102,7 @@ Add `--save-result` to write a JSON file, or `--dry-run` to generate and inspect
 vllm-bench \
   --backend vllm \
   --base-url http://127.0.0.1:8000 \
-  --model nvidia/Kimi-K2.5-NVFP4 \
+  --model Qwen/Qwen3-32B \
   --dataset-name random \
   --random-input-len 8192 \
   --random-output-len 1024 \
@@ -760,7 +760,7 @@ Tokenizers are loaded with a three-tier fallback chain:
 
 For the `random` dataset, prompt token lengths are verified against the server on the first run and cached; subsequent runs with the same model+server skip verification. Verification is also skipped when `--prompt-token-ids` is set (token counts are exact by construction).
 
-Models without `tokenizer.json` (e.g. `nvidia/Kimi-K2.5-NVFP4`) fall back to server-side tokenization automatically; you can also point `--tokenizer` at a model that ships `tokenizer.json`.
+If a model does not ship `tokenizer.json`, the client falls back to server-side tokenization. Use `--tokenizer` to specify a separate tokenizer when needed.
 
 ## Output Format
 
