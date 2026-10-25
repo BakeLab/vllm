@@ -161,6 +161,11 @@ impl OpenAICompletionsBackend {
                             {
                                 output.output_tokens = ct as usize;
                             }
+                            if let Some(ref usage) = data.usage
+                                && let Some(pt) = usage.prompt_tokens
+                            {
+                                output.prompt_len = pt as usize;
+                            }
                         }
                     }
 
