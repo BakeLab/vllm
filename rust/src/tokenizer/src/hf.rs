@@ -233,8 +233,11 @@ impl HuggingFaceTokenizer {
     pub fn new_fastokens(path: &Path) -> Result<Self> {
         info!(path = %path.display(), "loading tokenizer with fastokens");
         let tokenizer_json = load_tokenizer_json_with_extra_tokens(path)?;
-        let t = FastokensTokenizer::from_json(tokenizer_json)
+        let mut t = FastokensTokenizer::from_json(tokenizer_json)
             .map_err(|error| tokenizer_error!("failed to load tokenizer: {}", error.as_report()))?;
+        // vLLM controls prompt truncation itself and does not batch-pad inputs.
+        t.set_truncation(None);
+        t.set_padding(None);
         Ok(Self::from_fastokens_backend(t))
     }
 
