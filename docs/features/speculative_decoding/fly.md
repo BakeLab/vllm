@@ -44,7 +44,6 @@ FLy was faster than Standard SD in all 40 primary configurations. Across all fou
 | AMD MI355X | Qwen3-235B-A22B-Thinking-2507-FP8 / Qwen3-8B | 10-benchmark suite | Temperature 0, greedy draft | 1.067x–1.478x vs Standard SD |
 | NVIDIA B300 | DeepSeek-R1-Distill-Llama-70B / DeepSeek-R1-Distill-Llama-8B | MATH-500, HumanEval, HLE | Temperature 0, greedy draft | 1.26x–1.43x vs Standard SD |
 | NVIDIA B300 | Qwen2.5-72B-Instruct / Qwen2.5-7B-Instruct | GSM8K, MGSM, GPQA-Diamond, Spec-Bench | Temperature 0, greedy draft | 1.07x–1.32x vs Standard SD |
-| AMD MI300X | Kimi-K2.5 (1T) | Random 8K input / 1K output | DFlash comparison | >1.09x vs DFlash |
 
 The 10-benchmark suite contains GSM8K, MGSM, MATH-500, AIME 2024, AIME 2025, GPQA-Diamond, HumanEval, MBPP, Spec-Bench, and HLE. Subsets of GSM8K and MATH-500 were also validated with temperature 1 and probabilistic draft sampling.
 
