@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::{DefaultOnNull, SerializeDisplay};
 use validator::Validate;
+use vllm_engine_core_client::protocol::output::StopReason;
 use vllm_engine_core_client::protocol::sampling::RepetitionDetectionParams;
 use vllm_llm::WeightVersionSpan;
 use vllm_text::TruncationSide;
@@ -399,7 +400,7 @@ pub(super) struct ChatCompletionChoice {
     pub message: ChatCompletionMessage,
     pub logprobs: Option<ChatLogProbs>,
     pub finish_reason: Option<String>,
-    pub stop_reason: Option<Value>,
+    pub stop_reason: Option<StopReason>,
     pub token_ids: Option<Vec<u32>>,
     /// Always `None`.
     /// TODO: return routed experts when `--enable-return-routed-experts` is set.
@@ -467,7 +468,7 @@ pub(super) struct ChatCompletionStreamChoice {
     pub delta: ChatMessageDelta,
     pub logprobs: Option<ChatLogProbs>,
     pub finish_reason: Option<String>,
-    pub stop_reason: Option<Value>,
+    pub stop_reason: Option<StopReason>,
     pub token_ids: Option<Vec<u32>>,
 }
 
