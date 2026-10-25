@@ -41,6 +41,7 @@ fn is_byte_level_only(dec: &FastokensDecoder) -> bool {
         match dec {
             FastokensDecoder::ByteLevel(_) => 1,
             FastokensDecoder::Sequence(steps) => steps.iter().map(count_byte_level).sum(),
+            _ => 0,
         }
     }
     count_byte_level(dec) == 1
