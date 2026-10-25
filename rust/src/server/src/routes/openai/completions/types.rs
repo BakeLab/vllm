@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use serde_with::DefaultOnNull;
 use validator::Validate;
+use vllm_engine_core_client::protocol::output::StopReason;
 use vllm_engine_core_client::protocol::sampling::RepetitionDetectionParams;
 use vllm_text::{Prompt, TruncationSide};
 
@@ -264,7 +265,7 @@ pub(super) struct CompletionChoice {
     pub text: String,
     pub logprobs: Option<LogProbs>,
     pub finish_reason: Option<String>,
-    pub stop_reason: Option<Value>,
+    pub stop_reason: Option<StopReason>,
     pub prompt_logprobs: Option<PromptLogprobs>,
     pub token_ids: Option<Vec<u32>>,
     pub prompt_token_ids: Option<Vec<u32>>,
@@ -301,7 +302,7 @@ pub(super) struct CompletionStreamChoice {
     pub text: String,
     pub logprobs: Option<LogProbs>,
     pub finish_reason: Option<String>,
-    pub stop_reason: Option<Value>,
+    pub stop_reason: Option<StopReason>,
     pub token_ids: Option<Vec<u32>>,
     pub prompt_token_ids: Option<Vec<u32>>,
 }
