@@ -60,6 +60,7 @@ if TYPE_CHECKING:
     VLLM_ADAPTIVE_VERIFICATION_PROFILE_CONTEXT_LEN: int = 8192
     VLLM_XPU_PP_MICROBATCH: bool = True
     VLLM_DISTRIBUTED_USE_SPLIT_GROUP: bool = False
+    VLLM_DISTRIBUTED_BACKEND: Literal["nccl", "ucx"] = "nccl"
     VLLM_WORKER_MULTIPROC_METHOD: Literal["fork", "spawn"] = "fork"
     VLLM_ASSETS_CACHE: str = os.path.join(VLLM_CACHE_ROOT, "assets")
     VLLM_ASSETS_CACHE_MODEL_CLEAN: bool = False
@@ -894,6 +895,10 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # mixed ``cpu:gloo,cuda:nccl`` backend + eager ``device_id`` binding.
     "VLLM_DISTRIBUTED_USE_SPLIT_GROUP": lambda: bool(
         int(os.getenv("VLLM_DISTRIBUTED_USE_SPLIT_GROUP", "0"))
+    ),
+    # Experimental GPU collectives over NIXL's UCX backend.
+    "VLLM_DISTRIBUTED_BACKEND": env_with_choices(
+        "VLLM_DISTRIBUTED_BACKEND", "nccl", ["nccl", "ucx"]
     ),
     # Use dedicated multiprocess context for workers.
     # Both spawn and fork work

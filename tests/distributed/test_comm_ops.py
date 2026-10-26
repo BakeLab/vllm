@@ -22,6 +22,7 @@ from vllm.distributed import (
 )
 from vllm.distributed.device_communicators import flashinfer_all_reduce
 from vllm.distributed.device_communicators.cuda_communicator import CudaCommunicator
+from vllm.distributed.nixl_utils import is_nixl_available
 from vllm.distributed.parallel_state import GroupCoordinator, TensorMetadata
 from vllm.v1.worker.gpu_worker import AsyncIntermediateTensors
 
@@ -729,6 +730,68 @@ def send_recv_test_worker(
         torch.testing.assert_close(test_tensor, recv_tensor)
 
 
+def ucx_tensor_parallel_test_worker(
+    monkeypatch: pytest.MonkeyPatch,
+    tp_size: int,
+    pp_size: int,
+    rank: int,
+    distributed_init_port: str,
+) -> None:
+    monkeypatch.setenv("VLLM_DISTRIBUTED_BACKEND", "ucx")
+    monkeypatch.delenv("CUDA_VISIBLE_DEVICES", raising=False)
+    device = torch.device(f"cuda:{rank}")
+    torch.accelerator.set_device_index(device)
+    init_test_distributed_environment(tp_size, pp_size, rank, distributed_init_port)
+
+    local = torch.full((8,), rank + 1, dtype=torch.float32, device="cuda")
+    expected_sum = torch.full_like(local, sum(range(1, tp_size + 1)))
+    torch.testing.assert_close(tensor_model_parallel_all_reduce(local), expected_sum)
+
+    gathered = tensor_model_parallel_all_gather(local, dim=0)
+    expected_gathered = torch.cat(
+        [torch.full_like(local, peer + 1) for peer in range(tp_size)]
+    )
+    torch.testing.assert_close(gathered, expected_gathered)
+
+    scatter_input = torch.arange(tp_size * 4, dtype=torch.float32, device="cuda")
+    scatter_input = scatter_input + rank * 100
+    reduced = sum(
+        torch.arange(tp_size * 4, dtype=torch.float32, device="cuda") + peer * 100
+        for peer in range(tp_size)
+    )
+    expected_scatter = reduced[rank * 4 : (rank + 1) * 4]
+    torch.testing.assert_close(
+        tensor_model_parallel_reduce_scatter(scatter_input, dim=0), expected_scatter
+    )
+
+    tensor = torch.full((4,), rank, dtype=torch.float32, device="cuda")
+    result = broadcast_tensor_dict({"tensor": tensor} if rank == 0 else None, src=0)
+    assert result is not None
+    torch.testing.assert_close(result["tensor"], torch.zeros_like(tensor))
+
+
+def ucx_pipeline_parallel_test_worker(
+    monkeypatch: pytest.MonkeyPatch,
+    tp_size: int,
+    pp_size: int,
+    rank: int,
+    distributed_init_port: str,
+) -> None:
+    monkeypatch.setenv("VLLM_DISTRIBUTED_BACKEND", "ucx")
+    monkeypatch.delenv("CUDA_VISIBLE_DEVICES", raising=False)
+    device = torch.device(f"cuda:{rank}")
+    torch.accelerator.set_device_index(device)
+    init_test_distributed_environment(tp_size, pp_size, rank, distributed_init_port)
+
+    group = get_pp_group()
+    tensor = torch.arange(64, dtype=torch.float32, device="cuda")
+    if not group.is_first_rank:
+        received = group.recv(tensor.numel(), dtype=tensor.dtype)
+        torch.testing.assert_close(received, tensor)
+    if not group.is_last_rank:
+        group.send(tensor)
+
+
 @multi_gpu_test(num_gpus=2)
 @pytest.mark.parametrize("tp_size", [2])
 @pytest.mark.parametrize(
@@ -754,6 +817,18 @@ def test_multi_process_pipeline_parallel(
     test_target: Callable[..., Any],
 ):
     multi_process_parallel(monkeypatch, 1, pp_size, test_target)
+
+
+@pytest.mark.skipif(not is_nixl_available(), reason="NIXL is not installed")
+@multi_gpu_test(num_gpus=2)
+def test_nixl_ucx_tensor_parallel(monkeypatch: pytest.MonkeyPatch) -> None:
+    multi_process_parallel(monkeypatch, 2, 1, ucx_tensor_parallel_test_worker)
+
+
+@pytest.mark.skipif(not is_nixl_available(), reason="NIXL is not installed")
+@multi_gpu_test(num_gpus=2)
+def test_nixl_ucx_pipeline_parallel(monkeypatch: pytest.MonkeyPatch) -> None:
+    multi_process_parallel(monkeypatch, 1, 2, ucx_pipeline_parallel_test_worker)
 
 
 @multi_gpu_test(num_gpus=4)

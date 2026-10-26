@@ -842,6 +842,10 @@ class GroupCoordinator:
         # Bypass the function if we are using only 1 GPU.
         if self.world_size == 1:
             return input_
+        if envs.VLLM_DISTRIBUTED_BACKEND == "ucx":
+            if self.device_communicator is None:
+                raise RuntimeError("UCX broadcast requires a device communicator")
+            return self.device_communicator.broadcast(input_, src)
         # Broadcast.
         torch.distributed.broadcast(
             input_, src=self.ranks[src], group=self.device_group
@@ -1018,6 +1022,10 @@ class GroupCoordinator:
                     handle = torch.distributed.broadcast(
                         tensor, src=self.ranks[src], group=metadata_group, async_op=True
                     )
+                elif envs.VLLM_DISTRIBUTED_BACKEND == "ucx":
+                    assert self.device_communicator is not None
+                    self.device_communicator.broadcast(tensor, src)
+                    continue
                 else:
                     # use group for GPU tensors
                     handle = torch.distributed.broadcast(
@@ -1048,6 +1056,11 @@ class GroupCoordinator:
                             group=metadata_group,
                             async_op=True,
                         )
+                    elif envs.VLLM_DISTRIBUTED_BACKEND == "ucx":
+                        assert self.device_communicator is not None
+                        self.device_communicator.broadcast(tensor, src)
+                        tensor_dict[key] = tensor
+                        continue
                     else:
                         # use group for GPU tensors
                         handle = torch.distributed.broadcast(
@@ -1837,6 +1850,13 @@ def init_distributed_environment(
     backend: str = "nccl",
     timeout: timedelta | None = None,
 ):
+    if envs.VLLM_DISTRIBUTED_BACKEND == "ucx":
+        if envs.VLLM_DISTRIBUTED_USE_SPLIT_GROUP:
+            raise RuntimeError(
+                "VLLM_DISTRIBUTED_USE_SPLIT_GROUP is not supported with the "
+                "experimental UCX backend."
+            )
+        backend = "gloo"
     logger.debug(
         "world_size=%d rank=%d local_rank=%d distributed_init_method=%s backend=%s",
         world_size,
@@ -1849,6 +1869,11 @@ def init_distributed_environment(
 
     config = get_current_vllm_config_or_none()
     enable_elastic_ep = config is not None and config.parallel_config.enable_elastic_ep
+    if envs.VLLM_DISTRIBUTED_BACKEND == "ucx" and enable_elastic_ep:
+        raise RuntimeError(
+            "Elastic expert parallelism is not supported by the experimental "
+            "UCX backend."
+        )
     world_pg_store: Store | None = None
     if (
         config is not None
@@ -1988,7 +2013,21 @@ def init_distributed_environment(
                     "Elastic EP is not yet supported with multi-node TP/PP"
                 )
 
-    if envs.VLLM_DISTRIBUTED_USE_SPLIT_GROUP and torch.accelerator.is_available():
+    if (
+        torch.distributed.is_initialized()
+        and envs.VLLM_DISTRIBUTED_BACKEND == "ucx"
+        and str(torch.distributed.get_backend()).lower() != "gloo"
+    ):
+        raise RuntimeError(
+            "VLLM_DISTRIBUTED_BACKEND=ucx requires an external launcher to "
+            "initialize a gloo default process group."
+        )
+
+    if (
+        envs.VLLM_DISTRIBUTED_USE_SPLIT_GROUP
+        and torch.accelerator.is_available()
+        and envs.VLLM_DISTRIBUTED_BACKEND != "ucx"
+    ):
         _validate_default_pg_for_split_group()
 
     # set the local rank
