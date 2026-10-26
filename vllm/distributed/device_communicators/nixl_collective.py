@@ -132,6 +132,31 @@ class NixlCollective:
             if remote_handle is not None:
                 self.nixl.release_dlist_handle(remote_handle)
 
+    def _sync_registrations(self) -> None:
+        """Re-exchange agent metadata after registering read targets.
+
+        NIXL resolves the rkey for a remote READ from the peer's agent
+        metadata, and ``get_agent_metadata`` only carries the regions
+        registered at the moment it is called. The one exchange in ``__init__``
+        happens before any collective registers its buffers, so peers would
+        read against stale metadata that lacks the current registration. Re-
+        publish and reload after registering the buffers peers read, the same
+        ordering the KV connector uses (register_memory then
+        get_agent_metadata). Call collectively: every rank participates in the
+        all-gather even if only some expose a freshly registered buffer.
+        """
+        local_md = self.nixl.get_agent_metadata()
+        agent_metadata: list[bytes | None] = [None] * self.world_size
+        dist.all_gather_object(agent_metadata, local_md, group=self.cpu_group)
+        for rank, md in enumerate(agent_metadata):
+            if rank == self.rank or md is None:
+                continue
+            old = self.remote_agents.get(rank)
+            if old is not None:
+                with contextlib.suppress(Exception):
+                    self.nixl.remove_remote_agent(old)
+            self.remote_agents[rank] = self.nixl.add_remote_agent(md)
+
     def all_gatherv(
         self, input_: torch.Tensor, dim: int = 0, sizes: list[int] | None = None
     ) -> torch.Tensor:
@@ -150,6 +175,8 @@ class NixlCollective:
             raise ValueError("all_gatherv sizes must match the local input")
 
         input_descs = self._register(local)
+        # Peers READ this rank's `local`; publish its registration before reads.
+        self._sync_registrations()
         output: torch.Tensor | None = None
         output_descs: Any = None
         try:
@@ -228,6 +255,9 @@ class NixlCollective:
         registered = self._register(tensor)
         try:
             torch.cuda.synchronize(self.device)
+            # The source rank's tensor is READ by the others; publish the
+            # registration so peers can resolve its rkey.
+            self._sync_registrations()
             metadata = (
                 tensor.data_ptr(),
                 tensor.numel() * tensor.element_size(),
@@ -273,6 +303,7 @@ class NixlCollective:
                 self._device_id(tensor),
                 tuple(tensor.shape),
                 str(tensor.dtype),
+                self.nixl.get_agent_metadata(),
             )
             dist.send_object_list([metadata], dst=global_dst, group=self.cpu_group)
             ack: list[Any] = [None]
@@ -302,6 +333,13 @@ class NixlCollective:
         registered = None
         try:
             registered = self._register(output)
+            # Load the sender's post-registration metadata so the READ can
+            # resolve the remote buffer's rkey.
+            old = self.remote_agents.get(src)
+            if old is not None:
+                with contextlib.suppress(Exception):
+                    self.nixl.remove_remote_agent(old)
+            self.remote_agents[src] = self.nixl.add_remote_agent(source[5])
             self._read(
                 src,
                 [
