@@ -53,8 +53,9 @@ class CudaCommunicator(DeviceCommunicatorBase):
             global_world_size,
             use_all2all=use_all2all,
         )
+        self.use_ucx = envs.VLLM_DISTRIBUTED_BACKEND == "ucx"
         # Match the group name exactly so ETP does not enable TP-only backends.
-        if unique_name.split(":")[0] != "tp":
+        if self.use_ucx or unique_name.split(":")[0] != "tp":
             # custom allreduce or torch symm mem can be used only by tp
             use_custom_allreduce = False
             use_torch_symm_mem = False
@@ -104,7 +105,24 @@ class CudaCommunicator(DeviceCommunicatorBase):
         from vllm.distributed.device_communicators.symm_mem import SymmMemCommunicator
 
         self.pynccl_comm: PyNcclCommunicator | None = None
-        if self.world_size > 1:
+        self.ucx_comm = None
+        if self.use_ucx and use_all2all and self.all2all_backend not in (
+            "naive",
+            "allgather_reducescatter",
+        ):
+            raise ValueError(
+                "The experimental UCX backend supports MoE all-to-all only "
+                "with --all2all-backend naive or allgather_reducescatter."
+            )
+        if self.world_size > 1 and self.use_ucx:
+            from vllm.distributed.device_communicators.nixl_collective import (
+                NixlCollective,
+            )
+
+            self.ucx_comm = NixlCollective(
+                cpu_group, self.device, unique_name.replace(":", "-")
+            )
+        elif self.world_size > 1:
             self.pynccl_comm = PyNcclCommunicator(
                 group=self.cpu_group if tcp_store_group is None else tcp_store_group,
                 device=self.device,
@@ -169,7 +187,8 @@ class CudaCommunicator(DeviceCommunicatorBase):
 
         # AITER custom all-gather/reduce-scatter DP-attention dispatch/combine
         if (
-            "dp" in unique_name
+            not self.use_ucx
+            and "dp" in unique_name
             and self.world_size in (2, 4, 8)
             and current_platform.is_rocm()
             and rocm_aiter_ops.is_custom_all_reduce_enabled()
@@ -342,6 +361,8 @@ class CudaCommunicator(DeviceCommunicatorBase):
             enabled_ar_backends.append("SYMM_MEM")
         if self.pynccl_comm is not None and not self.pynccl_comm.disabled:
             enabled_ar_backends.append("PYNCCL")
+        if self.ucx_comm is not None:
+            enabled_ar_backends.append("NIXL_UCX_EXPERIMENTAL")
 
         logger.info_once(
             "Using %s all-reduce backends (in dispatch order) for group "
@@ -353,6 +374,8 @@ class CudaCommunicator(DeviceCommunicatorBase):
         )
 
     def all_reduce(self, input_):
+        if self.ucx_comm is not None:
+            return self.ucx_comm.all_reduce(input_)
         fi_ar_comm = self.fi_ar_comm
         use_fi_ar = (
             fi_ar_comm is not None
@@ -451,6 +474,8 @@ class CudaCommunicator(DeviceCommunicatorBase):
         return ca_comm.custom_reduce_scatter(input_.contiguous())
 
     def all_gather(self, input_: torch.Tensor, dim: int = -1) -> torch.Tensor:
+        if self.ucx_comm is not None:
+            return self.ucx_comm.all_gather(input_, dim)
         # Route uniform dim-0 all-gathers through NVLS symmetric memory when
         # enabled (mirrors reduce_scatter); otherwise fall back to the
         # PyNccl/base-class all-gather. Sequence parallelism's
@@ -486,7 +511,17 @@ class CudaCommunicator(DeviceCommunicatorBase):
             + input_size[dim + 1 :]
         )
 
+    def gather(
+        self, input_: torch.Tensor, dst: int = 0, dim: int = -1
+    ) -> torch.Tensor | None:
+        if self.ucx_comm is None:
+            return super().gather(input_, dst, dim)
+        gathered = self.ucx_comm.all_gather(input_, dim)
+        return gathered if self.rank_in_group == dst else None
+
     def reduce_scatter(self, input_: torch.Tensor, dim: int = -1):
+        if self.ucx_comm is not None:
+            return self.ucx_comm.reduce_scatter(input_, dim)
         world_size = self.world_size
         pynccl_comm = self.pynccl_comm
         assert pynccl_comm is not None
@@ -544,6 +579,11 @@ class CudaCommunicator(DeviceCommunicatorBase):
         sizes: list[int] | None,
         output: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        if self.ucx_comm is not None:
+            result = self.ucx_comm.reduce_scatterv(input_, dim, sizes)
+            if output is not None:
+                return output.copy_(result)
+            return result
         world_size = self.world_size
         pynccl_comm = self.pynccl_comm
         assert pynccl_comm is not None
@@ -762,6 +802,10 @@ class CudaCommunicator(DeviceCommunicatorBase):
         if dst is None:
             dst = (self.rank_in_group + 1) % self.world_size
 
+        if self.ucx_comm is not None:
+            self.ucx_comm.send(tensor.contiguous(), dst)
+            return
+
         pynccl_comm = self.pynccl_comm
         if pynccl_comm is not None and not pynccl_comm.disabled:
             pynccl_comm.send(tensor, dst)
@@ -776,6 +820,9 @@ class CudaCommunicator(DeviceCommunicatorBase):
         if src is None:
             src = (self.rank_in_group - 1) % self.world_size
 
+        if self.ucx_comm is not None:
+            return self.ucx_comm.recv(size, dtype, src)
+
         tensor = torch.empty(size, dtype=dtype, device=self.device)
         pynccl_comm = self.pynccl_comm
         if pynccl_comm is not None and not pynccl_comm.disabled:
@@ -789,6 +836,13 @@ class CudaCommunicator(DeviceCommunicatorBase):
         if self.world_size == 1:
             return tensor
 
+        if self.ucx_comm is not None:
+            contiguous = tensor.contiguous()
+            self.ucx_comm.broadcast(contiguous, src)
+            if contiguous is not tensor:
+                tensor.copy_(contiguous)
+            return tensor
+
         pynccl_comm = self.pynccl_comm
         if pynccl_comm is not None and not pynccl_comm.disabled:
             pynccl_comm.broadcast(tensor, src)
@@ -797,6 +851,9 @@ class CudaCommunicator(DeviceCommunicatorBase):
             raise ValueError("No PyNCCL communicator found")
 
     def destroy(self):
+        if self.ucx_comm is not None:
+            self.ucx_comm.close()
+            self.ucx_comm = None
         if self.pynccl_comm is not None:
             self.pynccl_comm.destroy()
             self.pynccl_comm = None
@@ -880,6 +937,10 @@ class CudaCommunicator(DeviceCommunicatorBase):
         dim: int = 0,
         sizes: list[int] | None = None,
     ):
+        if self.ucx_comm is not None:
+            if isinstance(input_, torch.Tensor):
+                return self.ucx_comm.all_gatherv(input_, dim, sizes)
+            return [self.ucx_comm.all_gatherv(inp, dim, sizes) for inp in input_]
         if dim != 0:
             raise NotImplementedError("only dim 0 all-gatherv is supported")
         world_size = self.world_size
@@ -1074,6 +1135,11 @@ class CudaCommunicator(DeviceCommunicatorBase):
         )
 
     def batch_isend_irecv(self, p2p_ops: list):
+        if self.ucx_comm is not None:
+            raise NotImplementedError(
+                "batch_isend_irecv is not supported by the experimental UCX "
+                "backend yet; use the communicator send/recv methods."
+            )
         pynccl_comm = self.pynccl_comm
         if pynccl_comm is not None and not pynccl_comm.disabled:
             pynccl_comm.batch_isend_irecv(p2p_ops)
