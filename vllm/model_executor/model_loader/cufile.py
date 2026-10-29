@@ -45,4 +45,5 @@ def cufile_weights_iterator(
         max_inflight=max(1, async_reads),
         is_unused_weight=is_unused_weight,
         get_destination=get_destination,
+        defer_reads=True,
     )

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+import gc
 import json
 import os
 from contextlib import contextmanager
@@ -158,6 +159,8 @@ def test_large_cufile_tensor_bounds_compat_memory_and_reads_exact_tail(
     else:
         assert allocated == [size]
         assert reads == [(payload_offset, size)]
+    del loaded
+    gc.collect()
     assert closed == [True]
 
 
@@ -430,3 +433,108 @@ def test_async_chunks_drain_before_return_or_failure(monkeypatch, failure):
         assert target.tolist() == [1] * 4 + [5] * 4 + [9] * 4 + [13] * 4
     assert peak == 2
     assert not active
+
+
+@pytest.mark.parametrize("dim", [0, 1])
+@pytest.mark.parametrize("dtype", [torch.uint8, torch.float32])
+def test_direct_tensor_slices_before_parameter_copy(tmp_path, dim, dtype):
+    from vllm.model_executor.model_loader.direct_tensor import direct_tensor_iterator
+
+    value = torch.arange(8 * 16).to(dtype).reshape(8, 16)
+    path = tmp_path / "weight.safetensors"
+    save_file({"weight": value}, path)
+    reads = []
+
+    @contextmanager
+    def open_reader(filename):
+        with open(filename, "rb") as file:
+
+            def read(raw, offset, length):
+                file.seek(offset)
+                data = bytearray(file.read(length))
+                assert len(data) == length
+                reads.append((offset, length))
+                raw.copy_(torch.frombuffer(data, dtype=torch.uint8))
+
+            yield read
+
+    for rank in range(4):
+        reads.clear()
+        loaded = dict(direct_tensor_iterator([str(path)], open_reader, device="cpu"))
+        tensor = loaded["weight"]
+        size = value.shape[dim] // 4
+        shard = tensor.narrow(dim, rank * size, size)
+        assert reads == []
+        target = torch.nn.Parameter(
+            torch.empty(shard.shape, dtype=dtype), requires_grad=False
+        )
+        target.data.copy_(shard)
+        assert torch.equal(target, value.narrow(dim, rank * size, size))
+        assert (
+            sum(length for _, length in reads) * 4
+            == value.numel() * value.element_size()
+        )
+
+
+def test_direct_tensor_packed_views_keep_dtype_and_file_offsets(tmp_path):
+    from vllm.model_executor.model_loader.direct_tensor import direct_tensor_iterator
+
+    value = torch.arange(16 * 8, dtype=torch.float32).reshape(16, 8)
+    path = tmp_path / "packed.safetensors"
+    save_file({"weight": value}, path)
+    reads = []
+
+    @contextmanager
+    def open_reader(filename):
+        with open(filename, "rb") as file:
+
+            def read(raw, offset, length):
+                file.seek(offset)
+                reads.append(length)
+                raw.copy_(
+                    torch.frombuffer(bytearray(file.read(length)), dtype=torch.uint8)
+                )
+
+            yield read
+
+    tensor = dict(direct_tensor_iterator([str(path)], open_reader, device="cpu"))[
+        "weight"
+    ]
+    part = tensor.narrow(0, 8, 8).narrow(0, 2, 2).view(torch.uint8)
+    assert reads == []
+    result = torch.empty(part.shape, dtype=torch.uint8)
+    result.copy_(part)
+    assert torch.equal(result, value.narrow(0, 10, 2).view(torch.uint8))
+    assert sum(reads) == 2 * 8 * value.element_size()
+
+
+def test_direct_tensor_overlapping_views_share_mutations(tmp_path):
+    from vllm.model_executor.model_loader.direct_tensor import direct_tensor_iterator
+
+    value = torch.arange(8 * 16, dtype=torch.float32).reshape(8, 16)
+    path = tmp_path / "alias.safetensors"
+    save_file({"weight": value}, path)
+
+    @contextmanager
+    def open_reader(filename):
+        with open(filename, "rb") as file:
+
+            def read(raw, offset, length):
+                file.seek(offset)
+                raw.copy_(
+                    torch.frombuffer(bytearray(file.read(length)), dtype=torch.uint8)
+                )
+
+            yield read
+
+    tensor = dict(direct_tensor_iterator([str(path)], open_reader, device="cpu"))[
+        "weight"
+    ]
+    first = tensor.narrow(0, 0, 4)
+    overlap = tensor.narrow(0, 2, 4)
+    first.add_(3)
+    expected = value.clone()
+    expected.narrow(0, 0, 4).add_(3)
+    result = torch.empty(overlap.shape)
+    result.copy_(overlap)
+    assert torch.equal(result, expected.narrow(0, 2, 4))
