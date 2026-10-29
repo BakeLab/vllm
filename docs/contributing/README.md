@@ -382,6 +382,27 @@ by itself guarantee those tests ran; verify the pipeline's required and optional
 blocked steps before choosing statuses or changing blocked-build reporting.
 The CI command workflow does not configure these repository or pipeline settings.
 
+### BakeLab CUDA Actions
+
+`BakeLab/vllm` runs `.github/workflows/cuda-ci.yml` on pushes to `trim`, including
+Gitea pull-mirror updates, with no additional variables or Buildkite token.
+It uses the runner labels `[self-hosted, linux, x64, bb, cuda]` on either GitHub
+Actions or Gitea Actions. Manual dispatch is also supported once the workflow
+is available to that instance. Jobs wait until a matching runner is online.
+
+The runner needs Docker with Buildx and NVIDIA Container Toolkit inside its disposable BB
+sandbox, plus access to the Git service and public build dependencies. Each
+job builds the existing Dockerfile's `test` target from the checked-out commit,
+using its Python/CUDA toolchain and PyTorch nightly dependency path. This is a
+full source build; allow sufficient disk, memory, and time for that image.
+
+CUDA architectures are detected from the assigned GPUs. Build parallelism is
+fixed at four jobs with two nvcc threads each. The job runs the
+existing activation, layernorm, and rotary kernel suites and uploads their
+JUnit report, including on test failures. It does not cover the full Buildkite
+matrix, multi-GPU tests, or model evaluations. The controller must destroy the
+sandbox after the job, including cancellation, to reclaim build caches.
+
 ### Pull Request Limits and Escalation
 
 vLLM uses GitHub's [pull request limit](https://github.blog/open-source/maintainers/how-pull-request-limits-are-cutting-down-the-noise/)
