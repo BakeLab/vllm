@@ -18,7 +18,6 @@ def test_hipfile_reads_safetensors_payload_at_exact_offset(tmp_path, monkeypatch
         payload_offset = 8 + int.from_bytes(source.read(8), "little")
     reads = []
     registrations = []
-    allocated = []
 
     class FakeContext:
         def __enter__(self):
@@ -43,8 +42,7 @@ def test_hipfile_reads_safetensors_payload_at_exact_offset(tmp_path, monkeypatch
             return length
 
     def cpu_empty(length):
-        allocated.append(torch.empty(length, dtype=torch.uint8))
-        return allocated[-1]
+        return torch.empty(length, dtype=torch.uint8)
 
     monkeypatch.setattr(direct_io, "_empty", cpu_empty)
     monkeypatch.setattr(torch.accelerator, "synchronize", lambda: None)
@@ -62,7 +60,12 @@ def test_hipfile_reads_safetensors_payload_at_exact_offset(tmp_path, monkeypatch
 
     weights = list(hipfile.hipfile_weights_iterator([str(path)]))
     assert [(name, list(tensor.shape)) for name, tensor in weights] == [("weight", [4])]
-    assert registrations == [(allocated[0].data_ptr(), 4, 0)]
+    assert registrations == []
+    result = torch.empty(4, dtype=torch.uint8)
+    result.copy_(weights[0][1])
+    assert len(registrations) == 1
+    assert registrations[0][0] > 0
+    assert registrations[0][1:] == (4, 0)
     assert reads == [(4, payload_offset, 0)]
 
 

@@ -225,6 +225,7 @@ def direct_weights_iterator(
     open_reader: Callable[[str], Any],
     coalesce_bytes: int | None = None,
     max_inflight: int = 1,
+    defer_reads: bool = False,
     is_unused_weight: Callable[[str], bool] | None = None,
     get_destination: WeightDestination | None = None,
 ) -> Generator[tuple[str, torch.Tensor]]:
@@ -252,6 +253,16 @@ def direct_weights_iterator(
     if coalesce_bytes is None:
         coalesce_bytes = COMPAT_COALESCE_BYTES if mode == "compat" else 0
     compat_buffer_bytes = coalesce_bytes or COMPAT_COALESCE_BYTES
+
+    if defer_reads and mode == "compat" and get_destination is None:
+        from vllm.model_executor.model_loader.direct_tensor import (
+            direct_tensor_iterator,
+        )
+
+        yield from direct_tensor_iterator(
+            sorted(files, key=_natural_sort_key), open_reader, is_unused_weight
+        )
+        return
 
     logger.info("%s loading mode=%s", backend, mode)
     total = 0

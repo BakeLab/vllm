@@ -42,4 +42,5 @@ def cufile_weights_iterator(
         open_reader=partial(open_gds_reader, flags=flags, async_reads=async_reads),
         max_inflight=max(1, async_reads),
         is_unused_weight=is_unused_weight,
+        defer_reads=True,
     )

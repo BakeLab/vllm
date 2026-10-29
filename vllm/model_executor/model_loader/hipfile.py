@@ -44,7 +44,7 @@ def hipfile_weights_iterator(
             open_reader=partial(open_gds_reader, flags=flags, async_reads=async_reads),
             max_inflight=max(1, async_reads),
             is_unused_weight=is_unused_weight,
-            get_destination=get_destination,
+            defer_reads=True,
         )
         return
 
@@ -80,4 +80,5 @@ def hipfile_weights_iterator(
             # P2P mode, where direct-I/O alignment requirements still apply.
             coalesce_bytes=(_COMPAT_COALESCE_BYTES if mode == "compat" else 0),
             is_unused_weight=is_unused_weight,
+            defer_reads=True,
         )

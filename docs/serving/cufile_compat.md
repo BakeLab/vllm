@@ -24,9 +24,11 @@ Unknown modes and conflicting compatibility environment flags are rejected.
 Deployments using the earlier `BB_CUFILE_LOAD` flag must switch to
 `VLLM_CUFILE_LOAD`; the old flag no longer selects this loader.
 The loader rejects expert-parallel filtering. With `--load-format safetensors`,
-each tensor-parallel rank reads the full checkpoint, then vLLM applies its normal
-weight partitioning. With host direct I/O, these repeated reads cannot rely on
-host page-cache reuse.
+compatibility mode defers checkpoint reads until a weight loader consumes
+its tensor views. Standard row, column, QKV, and packed-weight slicing can
+therefore select a rank's payload before cuFile reads it. Replicated weights
+are still read by every rank that needs them. Operations that require the
+whole tensor materialize it through the same cuFile reader.
 
 For repeated starts, convert once using
 `examples/features/sharded_state/save_sharded_state_offline.py` with
@@ -36,14 +38,12 @@ same tensor-parallel size. Each rank reads only its saved files through cuFile;
 replicated parameters remain in each rank's checkpoint. This avoids rereading
 the entire original checkpoint per rank. Conversion requires extra disk space
 and an initial model load; it does not accelerate unconverted checkpoints.
-Compatibility mode coalesces adjacent tensor payloads into reads capped at
-64 MiB. Larger individual tensors are read in chunks through a reusable 64 MiB
-GPU buffer and assembled on CPU before normal TP slicing. This bounds the
-device read buffer, while temporarily using host memory for the large tensor
-and adding a GPU-to-CPU copy. Allow room for temporary staging in addition to
-the model's resident weights. P2P mode keeps per-tensor reads to preserve
-direct-I/O alignment requirements. This
-path overrides the normal safetensors load strategy when enabled.
+Compatibility mode reads the selected view in chunks capped at 64 MiB.
+When device staging cannot fit, it assembles the selected view on CPU using
+a bounded GPU staging buffer. Strided views can require multiple reads,
+so fewer bytes do not guarantee a proportional load-time speedup.
+Sharded-state loading retains its existing direct destination path.
+P2P mode retains its existing aligned reads. Neither mode uses mmap.
 
 ## Strict PCI P2PDMA mode
 
