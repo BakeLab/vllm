@@ -69,7 +69,7 @@ def _inline_kwargs(config: InlineConfig, *, with_spec: bool) -> dict[str, Any]:
         "enable_expert_parallel": config.enable_expert_parallel,
         "max_model_len": MAX_MODEL_LEN,
         "gpu_memory_utilization": GPU_MEM_UTIL,
-        "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
+        "compilation_config": {"mode": 1, "cudagraph_mode": "NONE"},
         "trust_remote_code": True,
         "disable_log_stats": False,
         # MLA + batch invariance currently disables prefix caching at runtime
@@ -212,7 +212,7 @@ async def test_deepseek_mtp_load_dp(monkeypatch: pytest.MonkeyPatch, dp_size: in
         data_parallel_backend="mp",
         max_model_len=MAX_MODEL_LEN,
         gpu_memory_utilization=GPU_MEM_UTIL,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         enable_prefix_caching=False,
     )

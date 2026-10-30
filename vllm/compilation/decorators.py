@@ -397,8 +397,7 @@ def _support_torch_compile(  # noqa: UP047
         # for CompilationMode.STOCK_TORCH_COMPILE , the upper level model runner
         # will handle the compilation, so we don't need to do anything here.
         self.do_not_compile = (
-            self.compilation_config.mode
-            in [CompilationMode.NONE, CompilationMode.STOCK_TORCH_COMPILE]
+            self.compilation_config.mode == CompilationMode.STOCK_TORCH_COMPILE
             or _should_ignore_torch_compile(self.__class__)
             or not enable_compile
         )

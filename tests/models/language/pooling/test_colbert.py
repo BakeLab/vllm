@@ -227,7 +227,7 @@ def colbert_model(
         runner="pooling",
         dtype=DTYPE,
         max_model_len=colbert_max_model_len,
-        enforce_eager=True,
+        stock_compile=True,
         **colbert_extra_kwargs,
     ) as vllm_model:
         yield vllm_model
@@ -350,7 +350,7 @@ def test_colbert_hf_comparison(vllm_runner, monkeypatch, backend, use_v2):
         runner="pooling",
         dtype="float32",
         max_model_len=spec["max_model_len"],
-        enforce_eager=True,
+        stock_compile=True,
         **extra_kwargs,
     ) as vllm_model:
         assert vllm_model.llm.llm_engine.vllm_config.use_v2_model_runner == use_v2

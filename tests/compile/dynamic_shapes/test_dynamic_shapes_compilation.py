@@ -102,7 +102,8 @@ def get_reference_outputs(vllm_runner):
             with vllm_runner(
                 model_name,
                 compilation_config=CompilationConfig(
-                    mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+                    mode=CompilationMode.STOCK_TORCH_COMPILE,
+                    cudagraph_mode=CUDAGraphMode.NONE,
                 ),
                 max_model_len=1024,
                 enable_chunked_prefill=None,

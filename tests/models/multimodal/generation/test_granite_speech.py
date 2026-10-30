@@ -94,7 +94,7 @@ def run_test(
         distributed_executor_backend=distributed_executor_backend,
         enable_lora=audio_lora_path is not None,
         max_lora_rank=64,
-        enforce_eager=True,
+        stock_compile=True,
         attention_config=attention_config,
     ) as vllm_model:
         lora_request = (

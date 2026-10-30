@@ -388,7 +388,7 @@ To this end, we allow registration of default multimodal LoRAs to handle this au
         # Will always pass a `LoRARequest` with the `model_id`
         # whenever audio is contained in the request data.
         default_mm_loras = {"audio": model_id},
-        compilation_config={"mode": "none", "cudagraph_mode": "none"},
+        compilation_config={"mode": "STOCK_TORCH_COMPILE", "cudagraph_mode": "none"},
     )
 
     question = "can you transcribe the speech into a written format?"

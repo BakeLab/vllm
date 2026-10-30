@@ -33,7 +33,7 @@ def test_qwen3_forced_aligner(
         model,
         runner="pooling",
         dtype=dtype,
-        enforce_eager=True,
+        stock_compile=True,
         max_model_len=512,
         hf_overrides={
             "architectures": [

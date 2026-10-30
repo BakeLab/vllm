@@ -31,7 +31,7 @@ def test_context_length_too_short(vllm_runner, image_assets, model):
             # failing the overall context length check, we need the
             # max_model_len to at least contain all image tokens
             max_model_len=579,
-            enforce_eager=True,
+            stock_compile=True,
             load_format="dummy",
         )
 

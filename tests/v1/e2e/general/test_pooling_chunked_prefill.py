@@ -85,7 +85,7 @@ def test_pooling_chunked_prefill(vllm_runner, monkeypatch):
             max_num_batched_tokens=chunk_size,
             max_num_seqs=1,
             tensor_parallel_size=1,
-            enforce_eager=True,
+            stock_compile=True,
             enable_chunked_prefill=True,
         ) as llm:
             llm.get_llm().llm_engine.collective_rpc(inject_pooler)
@@ -109,7 +109,7 @@ def test_pooling_chunked_prefill(vllm_runner, monkeypatch):
             model_id,
             runner="pooling",
             tensor_parallel_size=1,
-            enforce_eager=True,
+            stock_compile=True,
         ) as llm:
             llm.get_llm().llm_engine.collective_rpc(inject_pooler)
             llm.embed([prompt])
@@ -134,7 +134,7 @@ def test_pooling_prefix_cache(vllm_runner, monkeypatch):
             runner="pooling",
             enable_prefix_caching=True,
             tensor_parallel_size=1,
-            enforce_eager=True,
+            stock_compile=True,
         ) as llm:
             llm.get_llm().llm_engine.collective_rpc(inject_pooler)
             tokenizer = llm.get_llm().get_tokenizer()

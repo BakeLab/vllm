@@ -45,7 +45,7 @@ def test_max_tokens_none(model):
 def test_gc():
     llm = LLM(
         model="distilbert/distilgpt2",
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
     )
     del llm
 

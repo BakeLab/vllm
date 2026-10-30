@@ -66,7 +66,7 @@ def test_no_sync_with_spec_decode(
             "num_speculative_tokens": num_spec_tokens,
             "model": spec_model,
         },
-        enforce_eager=True,
+        stock_compile=True,
         async_scheduling=True,
         enable_chunked_prefill=None,
         compilation_config=CompilationConfig(),

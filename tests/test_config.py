@@ -3,7 +3,6 @@
 
 import json
 import logging
-import os
 from dataclasses import MISSING, Field, asdict, dataclass, field
 from datetime import timedelta
 from pathlib import Path
@@ -693,190 +692,6 @@ def test_no_hisparse_connector_keeps_attention_config_unset(monkeypatch):
     assert config.attention_config.hisparse_config is None
 
 
-def test_rocm_keeps_compiled_deepseek_defaults(monkeypatch):
-    """ROCm keeps the DSA models (DeepSeek V3.2/V4, GLM-5.2) on their compiled
-    paths and off breakable cudagraphs by default."""
-    from vllm.config.vllm import default_breakable_cudagraph_architectures
-    from vllm.platforms import current_platform
-
-    monkeypatch.setattr(current_platform, "is_rocm", lambda: True)
-    # The lookup is lru_cached against a fixed platform.
-    default_breakable_cudagraph_architectures.cache_clear()
-    try:
-        breakable_architectures = default_breakable_cudagraph_architectures()
-        assert "DeepseekV32ForCausalLM" not in breakable_architectures
-        assert "DeepseekV32MTPModel" not in breakable_architectures
-        assert "GlmMoeDsaForCausalLM" not in breakable_architectures
-        # V4.1 cannot torch.compile and the ROCm sparse SWA backend only
-        # supports uniform-batch CUDA graphs, so it must opt in or the
-        # default FULL_AND_PIECEWISE serve path cannot start.
-        assert "DeepseekV41ForCausalLM" in breakable_architectures
-    finally:
-        default_breakable_cudagraph_architectures.cache_clear()
-
-
-@pytest.mark.parametrize(
-    ("model", "architecture"),
-    [
-        ("nvidia/GLM-5.2-NVFP4", "GlmMoeDsaForCausalLM"),
-        ("zai-org/GLM-5.2-FP8", "GlmMoeDsaForCausalLM"),
-        ("nvidia/DeepSeek-V3.2-NVFP4", "DeepseekV32ForCausalLM"),
-    ],
-)
-@pytest.mark.parametrize("with_mtp", [False, True], ids=["no-mtp", "mtp"])
-def test_dsa_models_default_to_mrv2_and_breakable_cudagraph(
-    monkeypatch, model, architecture, with_mtp
-):
-    from vllm.compilation.breakable_cudagraph import (
-        is_breakable_cudagraph_enabled,
-    )
-    from vllm.config.vllm import default_breakable_cudagraph_architectures
-    from vllm.platforms import current_platform
-
-    monkeypatch.delenv("VLLM_USE_BREAKABLE_CUDAGRAPH", raising=False)
-    monkeypatch.delenv("VLLM_USE_V2_MODEL_RUNNER", raising=False)
-    monkeypatch.setattr(vllm_config_module, "HAS_TRITON", True)
-    monkeypatch.setattr(current_platform, "is_rocm", lambda: False)
-    default_breakable_cudagraph_architectures.cache_clear()
-
-    model_config = SimpleNamespace(
-        model=model,
-        architectures=[architecture],
-        runner_type="generate",
-        is_moe=True,
-        is_hybrid=False,
-        is_attention_free=False,
-        is_diffusion=False,
-    )
-    config = SimpleNamespace(
-        model_config=model_config,
-        attention_config=AttentionConfig(),
-        speculative_config=SimpleNamespace(method="mtp") if with_mtp else None,
-        parallel_config=SimpleNamespace(prefill_context_parallel_size=1),
-        compilation_config=CompilationConfig(
-            cudagraph_mode=CUDAGraphMode.FULL_AND_PIECEWISE
-        ),
-    )
-    config._dflash_needs_multi_kv_group = lambda: False
-    config._get_v2_model_runner_unsupported_features = lambda: []
-    config._uses_breakable_cudagraph_by_default = lambda: (
-        VllmConfig._uses_breakable_cudagraph_by_default(config)
-    )
-
-    try:
-        assert VllmConfig.use_v2_model_runner.fget(config)
-        assert VllmConfig._maybe_enable_breakable_cudagraph(config)
-        assert is_breakable_cudagraph_enabled()
-        assert config.compilation_config.mode == CompilationMode.NONE
-        assert config.compilation_config.cudagraph_mode.has_piecewise_cudagraphs()
-    finally:
-        os.environ.pop("VLLM_USE_BREAKABLE_CUDAGRAPH", None)
-        default_breakable_cudagraph_architectures.cache_clear()
-
-
-@pytest.mark.parametrize(
-    ("architecture", "is_rocm", "expected"),
-    [
-        ("DeepseekV32ForCausalLM", False, True),
-        ("DeepseekV32ForCausalLM", True, False),
-        ("DeepseekV32MTPModel", False, True),
-        ("DeepseekV32MTPModel", True, False),
-        ("GlmMoeDsaForCausalLM", False, True),
-        ("GlmMoeDsaForCausalLM", True, False),
-        ("Qwen4ExpForCausalLM", False, True),
-        ("Qwen4ExpForCausalLM", True, False),
-        ("Qwen4ExpForConditionalGeneration", False, True),
-        ("Qwen4ExpForConditionalGeneration", True, False),
-        ("Qwen4ExpMTP", False, True),
-        ("Qwen4ExpMTP", True, False),
-    ],
-)
-def test_breakable_cudagraph_platform_default(
-    monkeypatch, architecture, is_rocm, expected
-):
-    from vllm.config.vllm import default_breakable_cudagraph_architectures
-    from vllm.platforms import current_platform
-
-    monkeypatch.delenv("VLLM_USE_BREAKABLE_CUDAGRAPH", raising=False)
-    monkeypatch.setattr(current_platform, "is_rocm", lambda: is_rocm)
-    default_breakable_cudagraph_architectures.cache_clear()
-    config = SimpleNamespace(
-        model_config=SimpleNamespace(architectures=[architecture]),
-        compilation_config=CompilationConfig(),
-    )
-    config._uses_breakable_cudagraph_by_default = lambda: (
-        VllmConfig._uses_breakable_cudagraph_by_default(config)
-    )
-
-    try:
-        assert VllmConfig._maybe_enable_breakable_cudagraph(config) is expected
-        if expected:
-            assert config.compilation_config.mode == CompilationMode.NONE
-    finally:
-        os.environ.pop("VLLM_USE_BREAKABLE_CUDAGRAPH", None)
-        default_breakable_cudagraph_architectures.cache_clear()
-
-
-@pytest.mark.parametrize(
-    "case,hidden,heads,intermediate,tp,expected",
-    [
-        ("bf16", 2048, (16, 8), 6144, 1, True),
-        ("bi-off", 2048, (16, 8), 6144, 1, False),
-        ("opt-out", 2048, (16, 8), 6144, 1, False),
-        ("no-graphs", 2048, (16, 8), 6144, 1, False),
-        ("fp16", 2048, (16, 8), 6144, 1, False),
-        ("quantized", 2048, (16, 8), 6144, 1, False),
-        ("untuned", 4096, (32, 32), 11008, 1, False),
-        ("tp4-tuned", 4096, (8, 2), 12288, 4, True),
-        ("list-intermediate", 2048, (16, 8), [2048, 4096], 1, False),
-        ("no-table", 2048, None, 6144, 1, False),
-    ],
-)
-def test_batch_invariant_breakable_cudagraph(
-    monkeypatch, case, hidden, heads, intermediate, tp, expected
-):
-    from vllm.config.vllm import default_breakable_cudagraph_architectures
-    from vllm.model_executor.determinism import batch_invariant_configs as bi_configs
-
-    monkeypatch.setenv("VLLM_BATCH_INVARIANT", "0" if case == "bi-off" else "1")
-    monkeypatch.delenv("VLLM_USE_BREAKABLE_CUDAGRAPH", raising=False)
-    if case == "opt-out":
-        monkeypatch.setenv("VLLM_USE_BREAKABLE_CUDAGRAPH", "0")
-    monkeypatch.setattr(current_platform, "is_cuda", lambda: True)
-    monkeypatch.setattr(current_platform, "is_rocm", lambda: False)
-    table = None if case == "no-table" else {(12288, 2048): None, (6144, 4096): None}
-    monkeypatch.setattr(current_platform, "get_device_capability", lambda: None)
-    monkeypatch.setattr(bi_configs, "_get_tuned_matmul_arch_family", lambda cap: "test")
-    monkeypatch.setattr(
-        bi_configs,
-        "_BATCH_INVARIANT_MATMUL_TUNED_CONFIGS",
-        {"test": table} if table else {},
-    )
-    default_breakable_cudagraph_architectures.cache_clear()
-    config = object.__new__(VllmConfig)
-    config.model_config = SimpleNamespace(
-        architectures=["Qwen3ForCausalLM"],
-        dtype=torch.float16 if case == "fp16" else torch.bfloat16,
-        quantization="fp8" if case == "quantized" else None,
-        hf_text_config=SimpleNamespace(intermediate_size=intermediate),
-        get_hidden_size=lambda: hidden,
-        get_head_size=lambda: 128,
-        get_num_attention_heads=lambda pc: heads[0],
-        get_num_kv_heads=lambda pc: heads[1],
-    )
-    config.parallel_config = SimpleNamespace(tensor_parallel_size=tp)
-    config.compilation_config = CompilationConfig(
-        cudagraph_mode=CUDAGraphMode.NONE if case == "no-graphs" else None
-    )
-    try:
-        assert config._maybe_enable_breakable_cudagraph() is expected
-        if expected:
-            assert config.compilation_config.mode == CompilationMode.NONE
-    finally:
-        os.environ.pop("VLLM_USE_BREAKABLE_CUDAGRAPH", None)
-        default_breakable_cudagraph_architectures.cache_clear()
-
-
 @pytest.mark.parametrize(
     ("model_type", "expected_architecture"),
     [
@@ -1060,7 +875,7 @@ def test_late_piecewise_restrictions_without_compilation(monkeypatch, engine_kwa
     monkeypatch.setenv("VLLM_USE_V2_MODEL_RUNNER", "1")
     config = EngineArgs(
         model="facebook/opt-125m",
-        compilation_config=CompilationConfig(mode=CompilationMode.NONE),
+        compilation_config=CompilationConfig(mode=CompilationMode.STOCK_TORCH_COMPILE),
         **engine_kwargs,
     ).create_engine_config()
 
@@ -3073,10 +2888,12 @@ def test_validate_mamba_align_subblock_prefill():
     [
         (
             None,
-            CompilationConfig(mode=CompilationMode.NONE, custom_ops=["+quant_fp8"]),
-            OptimizationLevel.O0,
+            CompilationConfig(
+                mode=CompilationMode.STOCK_TORCH_COMPILE, custom_ops=["+quant_fp8"]
+            ),
+            OptimizationLevel.O1,
         ),
-        (None, CompilationConfig(), OptimizationLevel.O0),
+        (None, CompilationConfig(), OptimizationLevel.O1),
         (None, CompilationConfig(), OptimizationLevel.O1),
         (None, CompilationConfig(), OptimizationLevel.O2),
         (None, CompilationConfig(), OptimizationLevel.O3),
@@ -3088,7 +2905,7 @@ def test_validate_mamba_align_subblock_prefill():
         (
             "RedHatAI/Qwen3-8B-speculator.eagle3",
             CompilationConfig(),
-            OptimizationLevel.O0,
+            OptimizationLevel.O1,
         ),
         (
             "RedHatAI/Qwen3-8B-speculator.eagle3",
@@ -3105,7 +2922,7 @@ def test_validate_mamba_align_subblock_prefill():
             CompilationConfig(),
             OptimizationLevel.O3,
         ),
-        ("RedHatAI/DeepSeek-V2.5-1210-FP8", CompilationConfig(), OptimizationLevel.O0),
+        ("RedHatAI/DeepSeek-V2.5-1210-FP8", CompilationConfig(), OptimizationLevel.O1),
         ("RedHatAI/DeepSeek-V2.5-1210-FP8", CompilationConfig(), OptimizationLevel.O1),
         ("RedHatAI/DeepSeek-V2.5-1210-FP8", CompilationConfig(), OptimizationLevel.O2),
         ("RedHatAI/DeepSeek-V2.5-1210-FP8", CompilationConfig(), OptimizationLevel.O3),
@@ -3204,10 +3021,10 @@ def test_vllm_config_explicit_overrides():
     moe_model = ModelConfig("deepseek-ai/DeepSeek-V2-Lite")
     regular_model = ModelConfig("Qwen/Qwen1.5-7B")
 
-    # Explicit compilation mode override on O0 (where default is NONE)
+    # Explicit compilation mode override on O1
     compilation_config = CompilationConfig(mode=CompilationMode.VLLM_COMPILE)
     config = VllmConfig(
-        optimization_level=OptimizationLevel.O0,
+        optimization_level=OptimizationLevel.O1,
         compilation_config=compilation_config,
     )
     assert config.compilation_config.mode == CompilationMode.VLLM_COMPILE
@@ -3217,7 +3034,7 @@ def test_vllm_config_explicit_overrides():
     pass_config = PassConfig(eliminate_noops=True, fuse_attn_quant=True)
     compilation_config = CompilationConfig(pass_config=pass_config)
     config = VllmConfig(
-        optimization_level=OptimizationLevel.O0,
+        optimization_level=OptimizationLevel.O1,
         compilation_config=compilation_config,
     )
     assert config.compilation_config.pass_config.eliminate_noops is True
@@ -3240,16 +3057,16 @@ def test_vllm_config_explicit_overrides():
     # Mode should still use default for O2
     assert config.compilation_config.mode == CompilationMode.VLLM_COMPILE
 
-    # Different optimization levels with same model
-    config_o0 = VllmConfig(
-        model_config=regular_model, optimization_level=OptimizationLevel.O0
+    # Different supported optimization levels with same model
+    config_o1 = VllmConfig(
+        model_config=regular_model, optimization_level=OptimizationLevel.O1
     )
     config_o2 = VllmConfig(
         model_config=regular_model, optimization_level=OptimizationLevel.O2
     )
-    assert config_o0.compilation_config.mode == CompilationMode.NONE
+    assert config_o1.compilation_config.mode == CompilationMode.VLLM_COMPILE
     assert config_o2.compilation_config.mode == CompilationMode.VLLM_COMPILE
-    assert config_o0.compilation_config.cudagraph_mode == CUDAGraphMode.NONE
+    assert config_o1.compilation_config.cudagraph_mode == CUDAGraphMode.PIECEWISE
     assert (
         config_o2.compilation_config.cudagraph_mode == CUDAGraphMode.FULL_AND_PIECEWISE
     )
@@ -3945,7 +3762,9 @@ def test_ir_op_priority_default():
     assert priority_config.fused_add_rms_norm == ["native"]
 
 
-@pytest.mark.parametrize("mode", [CompilationMode.NONE, CompilationMode.VLLM_COMPILE])
+@pytest.mark.parametrize(
+    "mode", [CompilationMode.STOCK_TORCH_COMPILE, CompilationMode.VLLM_COMPILE]
+)
 def test_ir_op_platform_defaults_support_sparse_gelu(mode):
     """Worker initialization must not select an unregistered sparse GELU provider."""
     from vllm import ir

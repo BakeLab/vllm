@@ -21,7 +21,7 @@ def log_stats_enabled_engine_args():
         model="distilbert/distilgpt2",
         dtype="half",
         disable_log_stats=False,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
     )
 
 

@@ -29,7 +29,7 @@ def test_synthetic_acceptance_rate(vllm_runner):
             "synthetic_acceptance_length": expected_acceptance_len,
         },
         max_model_len=2048,
-        enforce_eager=True,
+        stock_compile=True,
         enable_chunked_prefill=None,
         disable_log_stats=False,
         compilation_config=CompilationConfig(),

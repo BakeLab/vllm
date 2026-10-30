@@ -36,7 +36,7 @@ ENGINE_CONFIG = {
     "config_format": "mistral",
     "load_format": "mistral",
     "tokenizer_mode": "mistral",
-    "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
+    "compilation_config": {"mode": 1, "cudagraph_mode": "NONE"},
     "gpu_memory_utilization": 0.9,
     **ROCM_ENGINE_KWARGS,
 }
@@ -204,7 +204,7 @@ def test_voxtral_realtime_cudagraph(
 
     vllm_kwargs = {**ENGINE_CONFIG}
     vllm_kwargs["model_name"] = vllm_kwargs.pop("model")
-    vllm_kwargs["enforce_eager"] = False
+    vllm_kwargs["stock_compile"] = False
     vllm_kwargs["compilation_config"] = {
         "cudagraph_mode": cudagraph_mode,
         # max_num_seqs is 4, so this is the only decode size worth capturing.

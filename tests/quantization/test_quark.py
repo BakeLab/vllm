@@ -1596,7 +1596,7 @@ def test_quark_int8_w8a8_moe(vllm_runner, tp):
     model_path = "amd/tiny-qwen3-moe-w8a8-int8"
     with vllm_runner(
         model_path,
-        enforce_eager=True,
+        stock_compile=True,
         tensor_parallel_size=tp,
         gpu_memory_utilization=0.1,
     ) as llm:
@@ -1624,7 +1624,7 @@ def test_quark_fp8_w8a8_per_block_moe(vllm_runner, tp):
     model_path = "Adamji/tiny-qwen3-moe-fp8-per-block"
     with vllm_runner(
         model_path,
-        enforce_eager=True,
+        stock_compile=True,
         tensor_parallel_size=tp,
         gpu_memory_utilization=0.1,
     ) as llm:

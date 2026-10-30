@@ -68,7 +68,7 @@ def _run_tiny_model(
         distributed_executor_backend="mp",
         dtype="bfloat16",
         seed=0,
-        enforce_eager=True,
+        stock_compile=True,
         max_model_len=512,
         max_num_seqs=8,
         max_num_batched_tokens=1024,

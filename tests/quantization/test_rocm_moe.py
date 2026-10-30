@@ -73,7 +73,7 @@ CASES = [
 ]
 
 
-@pytest.mark.parametrize("enforce_eager", [True, False], ids=["eager", "compiled"])
+@pytest.mark.parametrize("stock_compile", [True, False], ids=["eager", "compiled"])
 @pytest.mark.parametrize(
     "model,revision,moe_backend,attention_backend,overrides,extra_args", CASES
 )
@@ -84,7 +84,7 @@ def test_rocm_quantized_moe_generation(
     attention_backend,
     overrides,
     extra_args,
-    enforce_eager,
+    stock_compile,
 ):
     """Quantized MoE models warm up and return finite logits through serving."""
     args = [
@@ -111,7 +111,7 @@ def test_rocm_quantized_moe_generation(
         attention_backend,
         *extra_args,
     ]
-    if enforce_eager:
+    if stock_compile:
         args.extend(
             ["--compilation-config.mode=0", "--compilation-config.cudagraph_mode=NONE"]
         )

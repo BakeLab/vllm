@@ -45,7 +45,7 @@ def run_maverick_serving(model: str):
         llm = LLM(
             model=model,
             max_model_len=2048,
-            compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+            compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
             tensor_parallel_size=8,
             enable_expert_parallel=True,
             trust_remote_code=True,
@@ -588,7 +588,7 @@ def run_reduced_model(llm: LLM, should_profile: bool = False) -> None:
     "original_model_name,text_layers,num_experts,vision_layers,",
     [("meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8", 4, 4, 2)],
 )
-@pytest.mark.parametrize("enforce_eager", [True, False])
+@pytest.mark.parametrize("stock_compile", [True, False])
 @pytest.mark.parametrize("tp,ep", [(2, True)])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
 def test_dummy_maverick(
@@ -597,7 +597,7 @@ def test_dummy_maverick(
     text_layers: int,
     num_experts: int,
     vision_layers: int,
-    enforce_eager: bool,
+    stock_compile: bool,
     tp: int,
     ep: bool,
     output_dir: str = "/tmp/reduced_maverick",
@@ -628,7 +628,7 @@ def test_dummy_maverick(
         max_model_len=512,  # Small context for testing
         gpu_memory_utilization=0.3,  # Conservative memory usage
         compilation_config=(
-            {"mode": 0, "cudagraph_mode": "NONE"} if (enforce_eager) else {}
+            {"mode": 1, "cudagraph_mode": "NONE"} if (stock_compile) else {}
         ),
         tensor_parallel_size=tp,
         enable_expert_parallel=ep,
@@ -704,7 +704,7 @@ def main():
             force_recreate=args.force_recreate,
             tp=2,
             ep=True,
-            enforce_eager=True,
+            stock_compile=True,
             profile=args.profile,
         )
 

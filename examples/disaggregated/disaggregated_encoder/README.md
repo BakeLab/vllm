@@ -37,7 +37,7 @@ DEVICE_PLATFORM=xpu GPU_E=0 GPU_PD=1 bash disagg_1e1pd_example.sh
 
 Encoder engines should be launched with the following flags:
 
-- `-cc.mode=none -cc.cudagraph_mode=none` **(required)** – The current EPD implementation is only compatible with encoder instances running in this mode.
+- `-cc.mode=1 -cc.cudagraph_mode=none` **(required)** – The current EPD implementation is only compatible with encoder instances running in this mode.
 
 - `--disable-prefix-caching` **(required)** – Encoder instances do not consume KV cache; prefix caching is disabled to avoid conflicts with other features.
 

@@ -184,7 +184,7 @@ class Config:
         """Make env data for vllm launch."""
         vllm_config = VllmConfig()
         vllm_config.model_config = SimpleNamespace(
-            enforce_eager=True,
+            stock_compile=True,
             is_moe=True,
             enable_sleep_mode=False,
             sleep_mode_backend="cumem",
@@ -234,7 +234,7 @@ class Config:
         return self.quant_dtype is None and self.weight_dtype == "mxfp4"
 
     @property
-    def mxfp4_backend(self) -> "Mxfp4MoeBackend":
+    def mxfp4_backend(self) -> Mxfp4MoeBackend:
         """The AITER mxfp4 kernel backend this config's (weight, activation)
         dtype pair maps to."""
         from vllm.model_executor.layers.fused_moe.oracle.mxfp4 import Mxfp4MoeBackend
@@ -471,7 +471,7 @@ class WeightTensors:
         if self.w2_gs is not None:
             self.w2_gs = self.w2_gs.to(device=device)
 
-    def slice_weights(self, rank: int, num_local_experts: int) -> "WeightTensors":
+    def slice_weights(self, rank: int, num_local_experts: int) -> WeightTensors:
         s = rank * num_local_experts
         e = s + num_local_experts
         w1 = self.w1[s:e, :, :]
@@ -484,7 +484,7 @@ class WeightTensors:
         return WeightTensors(w1, w2, w1_scale, w2_scale, w1_gs, w2_gs)
 
     @staticmethod
-    def make(config: Config) -> "WeightTensors":
+    def make(config: Config) -> WeightTensors:
         (_, w1, w1_scale, w1_gs), (_, w2, w2_scale, w2_gs) = make_test_weights(
             e=config.E,
             n=config.N,

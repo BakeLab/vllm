@@ -90,11 +90,11 @@ class TestCudagraphDispatcher:
         "cudagraph_mode_str,compilation_mode,lora_config",
         [
             # Test case 0: Full CG for mixed batches, no separate routine
-            ("FULL", CompilationMode.NONE, False),
+            ("FULL", CompilationMode.STOCK_TORCH_COMPILE, False),
             # Test case 1: Full CG for uniform batches, piecewise for mixed
-            ("FULL_AND_PIECEWISE", CompilationMode.NONE, False),
+            ("FULL_AND_PIECEWISE", CompilationMode.STOCK_TORCH_COMPILE, False),
             # Test case 2: Full CG for uniform batches, no CG for mixed
-            ("FULL_DECODE_ONLY", CompilationMode.NONE, False),
+            ("FULL_DECODE_ONLY", CompilationMode.STOCK_TORCH_COMPILE, False),
             # Test case 3: PIECEWISE for all
             ("PIECEWISE", CompilationMode.VLLM_COMPILE, False),
             # Test case 4: PIECEWISE for all, specialize LoRA cases
@@ -114,7 +114,7 @@ class TestCudagraphDispatcher:
         )
         if (
             cudagraph_mode_str == "FULL_AND_PIECEWISE"
-            and compilation_mode == CompilationMode.NONE
+            and compilation_mode == CompilationMode.STOCK_TORCH_COMPILE
         ):
             with pytest.raises(AssertionError):
                 dispatcher = CudagraphDispatcher(config)
@@ -217,13 +217,17 @@ class TestCudagraphDispatcher:
         "cudagraph_mode_str,compilation_mode,expected_modes",
         [
             # FULL mode: only FULL keys, no PIECEWISE
-            ("FULL", CompilationMode.NONE, [CUDAGraphMode.FULL]),
+            ("FULL", CompilationMode.STOCK_TORCH_COMPILE, [CUDAGraphMode.FULL]),
             # PIECEWISE mode: only PIECEWISE keys
             ("PIECEWISE", CompilationMode.VLLM_COMPILE, [CUDAGraphMode.PIECEWISE]),
             # FULL_DECODE_ONLY: only FULL keys for uniform decode
-            ("FULL_DECODE_ONLY", CompilationMode.NONE, [CUDAGraphMode.FULL]),
+            (
+                "FULL_DECODE_ONLY",
+                CompilationMode.STOCK_TORCH_COMPILE,
+                [CUDAGraphMode.FULL],
+            ),
             # NONE mode: no keys
-            ("NONE", CompilationMode.NONE, []),
+            ("NONE", CompilationMode.STOCK_TORCH_COMPILE, []),
         ],
     )
     def test_get_capture_descs(
@@ -266,7 +270,7 @@ class TestCudagraphDispatcher:
         """Test that get_capture_descs returns empty list when keys not initialized."""
         comp_config = CompilationConfig(
             cudagraph_mode=CUDAGraphMode.FULL,
-            mode=CompilationMode.NONE,
+            mode=CompilationMode.STOCK_TORCH_COMPILE,
             cudagraph_capture_sizes=[1, 8],
         )
         config = _create_vllm_config(comp_config, max_num_seqs=8)

@@ -63,7 +63,7 @@ def run_awq_test(
         dtype=dtype,
         tensor_parallel_size=tensor_parallel_size,
         distributed_executor_backend=distributed_executor_backend,
-        enforce_eager=True,
+        stock_compile=True,
         default_torch_num_threads=1,
     ) as vllm_model:
         source_outputs_per_image = [
@@ -80,7 +80,7 @@ def run_awq_test(
         dtype=dtype,
         tensor_parallel_size=tensor_parallel_size,
         distributed_executor_backend=distributed_executor_backend,
-        enforce_eager=True,
+        stock_compile=True,
         default_torch_num_threads=1,
     ) as vllm_model:
         quant_outputs_per_image = [
@@ -128,7 +128,7 @@ def test_awq_load(
         quantization=quantization,
         dtype=dtype,
         max_model_len=128,
-        enforce_eager=True,
+        stock_compile=True,
     ) as vllm_model:
         outputs = vllm_model.generate_greedy(example_prompts[:2], max_tokens=32)
     assert len(outputs) == 2

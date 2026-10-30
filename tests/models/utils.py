@@ -442,14 +442,14 @@ def get_vllm_extra_kwargs(model_info: ModelInfo, vllm_extra_kwargs):
     if ci_envs.VLLM_CI_REFERENCE_EXECUTION:
         compilation_config = deepcopy(vllm_extra_kwargs.get("compilation_config"))
         if isinstance(compilation_config, CompilationConfig):
-            compilation_config.mode = CompilationMode.NONE
+            compilation_config.mode = CompilationMode.STOCK_TORCH_COMPILE
             compilation_config.cudagraph_mode = CUDAGraphMode.NONE
             compilation_config.cudagraph_mm_encoder = False
         else:
             if not isinstance(compilation_config, dict):
                 compilation_config = {}
             compilation_config.update(
-                mode=CompilationMode.NONE,
+                mode=CompilationMode.STOCK_TORCH_COMPILE,
                 cudagraph_mode=CUDAGraphMode.NONE,
                 cudagraph_mm_encoder=False,
             )

@@ -337,7 +337,7 @@ def run_test(
         enable_chunked_prefill=test_prefill_chunking,
         # Force prefill chunking
         max_num_batched_tokens=48 if test_prefill_chunking else None,
-        enforce_eager=ENFORCE_EAGER,
+        stock_compile=ENFORCE_EAGER,
         async_scheduling=async_scheduling,
         distributed_executor_backend=executor,
         speculative_config=spec_config,

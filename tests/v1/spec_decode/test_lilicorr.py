@@ -124,7 +124,9 @@ def test_lilicorr_matches_exported_head(head_width, slots, dtype):
         set_current_vllm_config(
             VllmConfig(
                 device_config=DeviceConfig("cuda"),
-                compilation_config=CompilationConfig(mode=CompilationMode.NONE),
+                compilation_config=CompilationConfig(
+                    mode=CompilationMode.STOCK_TORCH_COMPILE
+                ),
             )
         ),
     ):
@@ -185,7 +187,9 @@ def test_runtime_length_keeps_trained_checkpoint_geometry(monkeypatch):
     with set_current_vllm_config(
         VllmConfig(
             device_config=DeviceConfig("cpu"),
-            compilation_config=CompilationConfig(mode=CompilationMode.NONE),
+            compilation_config=CompilationConfig(
+                mode=CompilationMode.STOCK_TORCH_COMPILE
+            ),
         )
     ):
         for slots in (1, 3):
@@ -584,7 +588,9 @@ def test_checkpoint_coverage_rejects_incomplete_or_wrong_heads(
     with set_current_vllm_config(
         VllmConfig(
             device_config=DeviceConfig("cpu"),
-            compilation_config=CompilationConfig(mode=CompilationMode.NONE),
+            compilation_config=CompilationConfig(
+                mode=CompilationMode.STOCK_TORCH_COMPILE
+            ),
         )
     ):
         wrapper.model.lilicorr = LiLiCorrHead(
@@ -719,7 +725,9 @@ def owned_head_model(monkeypatch):
         with set_current_vllm_config(
             VllmConfig(
                 device_config=DeviceConfig("cpu"),
-                compilation_config=CompilationConfig(mode=CompilationMode.NONE),
+                compilation_config=CompilationConfig(
+                    mode=CompilationMode.STOCK_TORCH_COMPILE
+                ),
             )
         ):
             model = LiLiCorrForCausalLM(vllm_config=vllm_config)
@@ -824,7 +832,9 @@ def test_quantized_head_calls_methods_without_reading_packed_weights(monkeypatch
     with set_current_vllm_config(
         VllmConfig(
             device_config=DeviceConfig("cpu"),
-            compilation_config=CompilationConfig(mode=CompilationMode.NONE),
+            compilation_config=CompilationConfig(
+                mode=CompilationMode.STOCK_TORCH_COMPILE
+            ),
         )
     ):
         head = LiLiCorrHead(

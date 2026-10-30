@@ -394,7 +394,6 @@ class XPUPlatform(Platform):
             )
 
         # Disable fusion passes not yet supported on XPU.
-        from vllm.config.compilation import CompilationMode
 
         pass_config = compilation_config.pass_config
         fusion_passes_to_disable = {
@@ -404,14 +403,13 @@ class XPUPlatform(Platform):
             "fuse_rope_kvcache": "RoPE + KV cache fusion",
             "fuse_rope_kvcache_cat_mla": "RoPE + KV cache + MLA fusion",
         }
-        if compilation_config.mode != CompilationMode.NONE:
-            for flag, feature_name in fusion_passes_to_disable.items():
-                if getattr(pass_config, flag):
-                    logger.warning_once(
-                        "Feature %r is not yet supported on XPU and will be disabled.",
-                        feature_name,
-                    )
-                    setattr(pass_config, flag, False)
+        for flag, feature_name in fusion_passes_to_disable.items():
+            if getattr(pass_config, flag):
+                logger.warning_once(
+                    "Feature %r is not yet supported on XPU and will be disabled.",
+                    feature_name,
+                )
+                setattr(pass_config, flag, False)
 
         # UVA-offloaded weights are host USM allocations, which Inductor's
         # static Triton launcher rejects ("Pointer argument doesn't reference
@@ -424,11 +422,7 @@ class XPUPlatform(Platform):
             and offload_config.prefetch.offload_group_size == 0
             and offload_config.uva.cpu_offload_gb > 0
         )
-        if (
-            uva_offloading
-            and not envs.VLLM_WEIGHT_OFFLOADING_DISABLE_UVA
-            and compilation_config.mode != CompilationMode.NONE
-        ):
+        if uva_offloading and not envs.VLLM_WEIGHT_OFFLOADING_DISABLE_UVA:
             compilation_config.inductor_compile_config.setdefault(
                 "use_static_cuda_launcher", False
             )
@@ -569,13 +563,12 @@ class XPUPlatform(Platform):
 
     @classmethod
     def get_default_ir_op_priority(cls, vllm_config: VllmConfig) -> IrOpPriorityConfig:
-        from vllm.config.compilation import CompilationMode
         from vllm.config.kernel import IrOpPriorityConfig
 
         # Native used by default when compiling,
         # use fused kernels where available when no codegen
         cc = vllm_config.compilation_config
-        using_inductor = cc.backend == "inductor" and cc.mode != CompilationMode.NONE
+        using_inductor = cc.backend == "inductor"
         default = ["native"] if using_inductor else ["vllm_c", "native"]
 
         return IrOpPriorityConfig.with_default(default, gelu_and_mul_sparse=["native"])

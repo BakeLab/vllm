@@ -73,7 +73,7 @@ def _serve(vllm_runner, model_path, prompts):
         model_path,
         model_impl="transformers",
         max_model_len=64,
-        enforce_eager=True,
+        stock_compile=True,
         gpu_memory_utilization=0.3,
     ) as runner:
         assert runner.llm.llm_engine.model_config.using_transformers_backend()

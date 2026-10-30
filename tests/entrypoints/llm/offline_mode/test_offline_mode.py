@@ -12,7 +12,7 @@ import urllib3
 MODEL_CONFIGS = [
     {
         "model": "facebook/opt-125m",
-        "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
+        "compilation_config": {"mode": 1, "cudagraph_mode": "NONE"},
         "gpu_memory_utilization": 0.20,
         "max_model_len": 64,
         "max_num_batched_tokens": 64,
@@ -21,7 +21,7 @@ MODEL_CONFIGS = [
     },
     {
         "model": "Qwen/Qwen3-0.6B",
-        "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
+        "compilation_config": {"mode": 1, "cudagraph_mode": "NONE"},
         "gpu_memory_utilization": 0.50,
         "max_model_len": 64,
         "max_num_batched_tokens": 64,
@@ -31,7 +31,7 @@ MODEL_CONFIGS = [
     },
     {
         "model": "mistralai/Mistral-7B-Instruct-v0.1",
-        "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
+        "compilation_config": {"mode": 1, "cudagraph_mode": "NONE"},
         "gpu_memory_utilization": 0.95,
         "max_model_len": 64,
         "max_num_batched_tokens": 64,
@@ -42,7 +42,7 @@ MODEL_CONFIGS = [
     # TODO: re-enable once these tests are run with V1
     # {
     #     "model": "sentence-transformers/all-MiniLM-L12-v2",
-    #     "enforce_eager": True,
+    #     "stock_compile": True,
     #     "gpu_memory_utilization": 0.20,
     #     "max_model_len": 64,
     #     "max_num_batched_tokens": 64,

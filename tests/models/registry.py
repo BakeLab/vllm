@@ -66,7 +66,7 @@ class _HfExamplesInfo:
     The data type for the model weights and activations.
     """
 
-    enforce_eager: bool = False
+    stock_compile: bool = False
     """
     Whether to enforce eager execution. If True, we will
     disable CUDA graph and always execute the model in eager mode.
@@ -651,7 +651,7 @@ _EMBEDDING_EXAMPLE_MODELS = {
     "Terratorch": _HfExamplesInfo(
         "ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11",
         dtype="float16",
-        enforce_eager=True,
+        stock_compile=True,
         require_embed_inputs=True,
         # This is to avoid the model going OOM in CI
         max_num_seqs=32,
@@ -1081,10 +1081,10 @@ _MULTIMODAL_EXAMPLE_MODELS = {
         # Keep the init/schema harness eager (these tests never run forward).
         # NOTE: a separate H200-only hang exists in the core FA3 attention
         # construction (after `FlashAttentionImpl.__init__` logs the FA3
-        # version, while building the Qwen3 backbone). enforce_eager does NOT
+        # version, while building the Qwen3 backbone). stock_compile does NOT
         # gate that path, so this flag is hygiene, not the fix -- tracked with
         # the maintainer.
-        enforce_eager=True,
+        stock_compile=True,
     ),
     "LlavaOnevisionForConditionalGeneration": _HfExamplesInfo(
         "llava-hf/llava-onevision-qwen2-0.5b-ov-hf"
@@ -1244,7 +1244,7 @@ _MULTIMODAL_EXAMPLE_MODELS = {
         "FreedomIntelligence/openPangu-VL-7B",
         trust_remote_code=True,
         max_model_len=4096,
-        enforce_eager=True,
+        stock_compile=True,
         max_transformers_version="4.57",
         transformers_version_reason={
             "vllm": (
@@ -1447,7 +1447,7 @@ _MULTIMODAL_EXAMPLE_MODELS = {
     ),
     "VoxtralRealtimeGeneration": _HfExamplesInfo(
         "mistralai/Voxtral-Mini-4B-Realtime-2602",
-        enforce_eager=True,
+        stock_compile=True,
         tokenizer_mode="mistral",
     ),
     # [Encoder-decoder]

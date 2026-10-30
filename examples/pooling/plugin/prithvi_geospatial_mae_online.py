@@ -15,7 +15,7 @@ import requests
 #   pip install terratorch>=v1.1
 # - start vllm in serving mode with the below args
 #   --model='ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11'
-#   --skip-tokenizer-init -cc.mode=none -cc.cudagraph_mode=none
+#   --skip-tokenizer-init -cc.mode=1 -cc.cudagraph_mode=none
 #   --io-processor-plugin terratorch_segmentation
 #   --enable-mm-embeds
 

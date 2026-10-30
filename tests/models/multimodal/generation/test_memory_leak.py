@@ -104,7 +104,7 @@ def llm(monkeypatch):
     # enable garbage collection
     llm_kwargs = dict(
         model=MODEL_NAME,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         max_model_len=MAX_MODEL_LEN,
         max_num_seqs=REQUESTS_PER_ROUND,
         limit_mm_per_prompt={"image": 1},

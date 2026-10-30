@@ -99,17 +99,17 @@ def test_vlm_batch_invariance_bs1_vs_bsN(
     monkeypatch: pytest.MonkeyPatch,
 ):
     monkeypatch.setenv("VLLM_USE_FLASHINFER_SAMPLER", "0")
-    _run_vlm_batch_invariance(input_type, mm_encoder_attn_backend, enforce_eager=True)
+    _run_vlm_batch_invariance(input_type, mm_encoder_attn_backend, stock_compile=True)
 
 
 @skip_if_not_cuda_alike
 def test_vlm_batch_invariance_default_execution(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("VLLM_USE_FLASHINFER_SAMPLER", "0")
-    _run_vlm_batch_invariance("image", "FLASH_ATTN", enforce_eager=False)
+    _run_vlm_batch_invariance("image", "FLASH_ATTN", stock_compile=False)
 
 
 def _run_vlm_batch_invariance(
-    input_type: str, mm_encoder_attn_backend: str, enforce_eager: bool
+    input_type: str, mm_encoder_attn_backend: str, stock_compile: bool
 ) -> None:
     inputs = _make_inputs(input_type, num_reqs=4)
     sampling = SamplingParams(
@@ -124,7 +124,7 @@ def _run_vlm_batch_invariance(
         model=VLM_TEST_MODEL,
         dtype="bfloat16",
         compilation_config=(
-            {"mode": 0, "cudagraph_mode": "NONE"} if (enforce_eager) else {}
+            {"mode": 1, "cudagraph_mode": "NONE"} if (stock_compile) else {}
         ),
         max_num_seqs=16,
         max_model_len=4096,

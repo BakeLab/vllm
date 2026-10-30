@@ -353,7 +353,7 @@ def test_toy_llama(
     )
 
     compile_config_no_compile = CompilationConfig(
-        mode=CompilationMode.NONE,
+        mode=CompilationMode.STOCK_TORCH_COMPILE,
         cudagraph_mode=CUDAGraphMode.NONE,
     )
 

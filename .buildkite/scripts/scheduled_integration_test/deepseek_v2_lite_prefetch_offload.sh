@@ -37,8 +37,8 @@ fi
 # See https://github.com/ROCm/clr/issues/279
 # TODO(aarushjain29): Revert after TheRock 7.14
 if command -v rocm-smi &> /dev/null || command -v amd-smi &> /dev/null || [[ -d /opt/rocm ]] || [[ -n "${ROCM_PATH:-}" ]]; then
-  echo "ROCm platform detected: adding -cc.mode=none -cc.cudagraph_mode=none to avoid HIP-graph decode corruption"
-  EXTRA_ARGS+=(-cc.mode=none -cc.cudagraph_mode=none)
+  echo "ROCm platform detected: adding -cc.mode=1 -cc.cudagraph_mode=none to avoid HIP-graph decode corruption"
+  EXTRA_ARGS+=(-cc.mode=1 -cc.cudagraph_mode=none)
 fi
 
 cleanup() {

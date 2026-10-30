@@ -371,7 +371,7 @@ def load_idefics3(question: str, image_urls: list[str]) -> ModelRequestData:
         model=model_name,
         max_model_len=8192,
         max_num_seqs=16,
-        compilation_config={"mode": "none", "cudagraph_mode": "none"},
+        compilation_config={"mode": "STOCK_TORCH_COMPILE", "cudagraph_mode": "none"},
         limit_mm_per_prompt={"image": len(image_urls)},
         # if you are running out of memory, you can reduce the "longest_edge".
         # see: https://huggingface.co/HuggingFaceM4/Idefics3-8B-Llama3#model-optimizations
@@ -759,7 +759,7 @@ def load_openpangu_vl(question: str, image_urls: list[str]) -> ModelRequestData:
         trust_remote_code=True,
         max_model_len=8192,
         max_num_seqs=2,
-        compilation_config={"mode": "none", "cudagraph_mode": "none"},
+        compilation_config={"mode": "STOCK_TORCH_COMPILE", "cudagraph_mode": "none"},
         limit_mm_per_prompt={"image": len(image_urls)},
     )
 
@@ -1118,7 +1118,7 @@ def load_smolvlm(question: str, image_urls: list[str]) -> ModelRequestData:
         model=model_name,
         max_model_len=8192,
         max_num_seqs=16,
-        compilation_config={"mode": "none", "cudagraph_mode": "none"},
+        compilation_config={"mode": "STOCK_TORCH_COMPILE", "cudagraph_mode": "none"},
         limit_mm_per_prompt={"image": len(image_urls)},
         mm_processor_kwargs={
             "max_image_size": {"longest_edge": 384},
@@ -1201,7 +1201,7 @@ def load_glm4_1v(question: str, image_urls: list[str]) -> ModelRequestData:
         max_model_len=45082,
         max_num_seqs=2,
         limit_mm_per_prompt={"image": len(image_urls)},
-        compilation_config={"mode": "none", "cudagraph_mode": "none"},
+        compilation_config={"mode": "STOCK_TORCH_COMPILE", "cudagraph_mode": "none"},
     )
 
     placeholders = [{"type": "image", "image": url} for url in image_urls]
@@ -1237,7 +1237,7 @@ def load_glm4_5v(question: str, image_urls: list[str]) -> ModelRequestData:
         max_model_len=32768,
         max_num_seqs=2,
         limit_mm_per_prompt={"image": len(image_urls)},
-        compilation_config={"mode": "none", "cudagraph_mode": "none"},
+        compilation_config={"mode": "STOCK_TORCH_COMPILE", "cudagraph_mode": "none"},
         tensor_parallel_size=4,
     )
     placeholders = [{"type": "image", "image": url} for url in image_urls]
@@ -1272,7 +1272,7 @@ def load_glm4_5v_fp8(question: str, image_urls: list[str]) -> ModelRequestData:
         max_model_len=32768,
         max_num_seqs=2,
         limit_mm_per_prompt={"image": len(image_urls)},
-        compilation_config={"mode": "none", "cudagraph_mode": "none"},
+        compilation_config={"mode": "STOCK_TORCH_COMPILE", "cudagraph_mode": "none"},
         tensor_parallel_size=4,
     )
     placeholders = [{"type": "image", "image": url} for url in image_urls]

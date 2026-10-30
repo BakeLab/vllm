@@ -76,7 +76,7 @@ UCX_NET_DEVICES=all \
 VLLM_NIXL_SIDE_CHANNEL_PORT=5600 \
 vllm serve Qwen/Qwen3-0.6B \
   --port 8100 \
-  -cc.mode=none -cc.cudagraph_mode=none \
+  -cc.mode=1 -cc.cudagraph_mode=none \
   --kv-transfer-config '{"kv_connector":"NixlConnector","kv_role":"kv_producer","kv_load_failure_policy":"fail"}'
 ```
 
@@ -91,7 +91,7 @@ UCX_NET_DEVICES=all \
 VLLM_NIXL_SIDE_CHANNEL_PORT=5601 \
 vllm serve Qwen/Qwen3-0.6B \
   --port 8200 \
-  -cc.mode=none -cc.cudagraph_mode=none \
+  -cc.mode=1 -cc.cudagraph_mode=none \
   --kv-transfer-config '{"kv_connector":"NixlConnector","kv_role":"kv_consumer","kv_load_failure_policy":"fail"}'
 ```
 

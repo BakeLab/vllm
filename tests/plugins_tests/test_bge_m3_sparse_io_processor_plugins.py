@@ -161,7 +161,7 @@ def test_bge_m3_sparse_plugin_offline(vllm_runner, return_tokens: bool):
     with vllm_runner(
         model_config["model_name"],
         runner="pooling",
-        enforce_eager=True,
+        stock_compile=True,
         max_num_seqs=32,
         io_processor_plugin=model_config["plugin"],
         hf_overrides=json.loads(model_config["hf_overrides"]),
@@ -208,7 +208,7 @@ def test_bge_m3_sparse_plugin_offline_multiple_inputs(vllm_runner):
     with vllm_runner(
         model_config["model_name"],
         runner="pooling",
-        enforce_eager=True,
+        stock_compile=True,
         max_num_seqs=32,
         io_processor_plugin=model_config["plugin"],
         hf_overrides=json.loads(model_config["hf_overrides"]),

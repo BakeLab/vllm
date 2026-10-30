@@ -23,7 +23,7 @@ def watermarked_llm(vllm_runner) -> Generator[LLM]:
     with vllm_runner(
         MODEL,
         dtype="half",
-        enforce_eager=True,
+        stock_compile=True,
         enable_prefix_caching=True,
         enable_chunked_prefill=True,
         max_num_batched_tokens=MAX_NUM_BATCHED_TOKENS,

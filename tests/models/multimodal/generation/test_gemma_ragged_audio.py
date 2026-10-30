@@ -80,7 +80,7 @@ def test_variable_length_audio_batching(
     with vllm_runner(
         model_name,
         dtype="bfloat16",
-        enforce_eager=True,
+        stock_compile=True,
         limit_mm_per_prompt={"audio": 1},
     ) as vllm_model:
         # One call so the clips are scheduled into the same forward pass;

@@ -160,7 +160,7 @@ def test_colbert_query_plugin_offline(vllm_runner, input_type: str):
     with vllm_runner(
         model_config["model_name"],
         runner="pooling",
-        enforce_eager=True,
+        stock_compile=True,
         max_num_seqs=32,
         trust_remote_code=True,
         io_processor_plugin=model_config["plugin"],
@@ -200,7 +200,7 @@ def test_colbert_query_plugin_offline_multiple_inputs(vllm_runner):
     with vllm_runner(
         model_config["model_name"],
         runner="pooling",
-        enforce_eager=True,
+        stock_compile=True,
         max_num_seqs=32,
         trust_remote_code=True,
         io_processor_plugin=model_config["plugin"],

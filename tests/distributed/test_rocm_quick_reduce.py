@@ -496,7 +496,7 @@ def _run_generation(
                 tensor_parallel_size=2,
                 distributed_executor_backend=backend,
                 dtype="half",
-                compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+                compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
                 max_model_len=E2E_MAX_MODEL_LEN,
                 max_num_seqs=len(E2E_PROMPTS),
                 gpu_memory_utilization=E2E_GPU_MEMORY_UTILIZATION,

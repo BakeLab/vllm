@@ -224,8 +224,8 @@ def can_initialize(
             tokenizer_mode=model_info.tokenizer_mode,
             revision=model_info.revision,
             compilation_config=(
-                {"mode": 0, "cudagraph_mode": "NONE"}
-                if (model_info.enforce_eager)
+                {"mode": 1, "cudagraph_mode": "NONE"}
+                if (model_info.stock_compile)
                 else {}
             ),
             skip_tokenizer_init=model_info.require_embed_inputs,

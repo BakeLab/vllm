@@ -16,7 +16,6 @@ from vllm.compilation.passes.utility.fix_functionalization import (
 from vllm.config import (
     CompilationConfig,
     CUDAGraphMode,
-    KernelConfig,
     ModelConfig,
     ParallelConfig,
     SchedulerConfig,
@@ -200,69 +199,9 @@ def test_stock_torch_compile(vllm_runner, monkeypatch, use_v2_model_runner):
 
 
 # forked needed to workaround https://github.com/vllm-project/vllm/issues/21073
-@pytest.mark.forked
-def test_no_compilation(vllm_runner, monkeypatch):
-    # Disable multiprocessing so that the counter is in the same process
-    monkeypatch.setenv("VLLM_ENABLE_V1_MULTIPROCESSING", "0")
-    with (
-        compilation_counter.expect(num_graphs_seen=0, stock_torch_compile_count=0),
-        # loading the model causes compilation (if enabled) to happen
-        vllm_runner(
-            "facebook/opt-125m",
-            compilation_config={"mode": CompilationMode.NONE},
-            gpu_memory_utilization=0.4,
-        ) as _,
-    ):
-        pass
 
 
 # forked needed to workaround https://github.com/vllm-project/vllm/issues/21073
-@pytest.mark.forked
-def test_no_compile_reference(vllm_runner, monkeypatch):
-    # Disable multiprocessing so that the counter is in the same process
-    monkeypatch.setenv("VLLM_ENABLE_V1_MULTIPROCESSING", "0")
-
-    with (
-        compilation_counter.expect(num_graphs_seen=0, stock_torch_compile_count=0),
-        # loading the model causes compilation (if enabled) to happen
-        vllm_runner(
-            "facebook/opt-125m",
-            compilation_config=CompilationConfig(
-                mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
-            ),
-            gpu_memory_utilization=0.4,
-        ) as _,
-    ):
-        pass
-
-
-@pytest.mark.parametrize("enable_jit_warmup", [False, True])
-def test_no_compilation_preserves_requested_jit_warmup(enable_jit_warmup):
-    """Disabling compile and graphs must not override an explicit warmup policy."""
-    config = VllmConfig(
-        compilation_config=CompilationConfig(
-            mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
-        ),
-        kernel_config=KernelConfig(enable_jit_warmup=enable_jit_warmup),
-    )
-    assert config.compilation_config.mode == CompilationMode.NONE
-    assert config.kernel_config.enable_jit_warmup == enable_jit_warmup
-
-
-@pytest.mark.forked
-def test_torch_compile_disable(vllm_runner, monkeypatch):
-    monkeypatch.setenv("VLLM_ENABLE_V1_MULTIPROCESSING", "0")
-    monkeypatch.setenv("TORCH_COMPILE_DISABLE", "1")
-    monkeypatch.setenv("VLLM_DISABLE_COMPILE_CACHE", "1")
-
-    with (
-        compilation_counter.expect(num_graphs_seen=0, stock_torch_compile_count=0),
-        vllm_runner(
-            "facebook/opt-125m",
-            gpu_memory_utilization=0.4,
-        ) as _,
-    ):
-        pass
 
 
 def test_splitting_ops_dynamic():
@@ -1201,3 +1140,53 @@ def test_combo_kernel_defaults_without_inductor_deterministic_setting():
 
     assert config.inductor_compile_config["combo_kernels"] is True
     assert config.inductor_compile_config["benchmark_combo_kernel"] is True
+
+
+@pytest.mark.parametrize("mode", [0, "0", "none", "NONE"])
+def test_uncompiled_mode_is_rejected(mode):
+    with pytest.raises(ValidationError):
+        CompilationConfig(mode=mode)
+
+
+def test_unoptimized_level_is_rejected():
+    from vllm.config.vllm import OptimizationLevel
+
+    with pytest.raises(ValueError):
+        OptimizationLevel(0)
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["TORCH_COMPILE_DISABLE", "TORCHDYNAMO_DISABLE", "VLLM_USE_BREAKABLE_CUDAGRAPH"],
+)
+def test_compiler_bypass_is_rejected(monkeypatch, name):
+    from vllm.config import DeviceConfig
+
+    monkeypatch.setenv(name, "1")
+    with pytest.raises(ValueError, match="unsupported"):
+        VllmConfig(device_config=DeviceConfig(device="cpu"))
+
+
+def test_compiler_errors_cannot_be_suppressed():
+    from vllm.config import DeviceConfig
+
+    with (
+        torch._dynamo.config.patch(suppress_errors=True),
+        pytest.raises(ValueError, match="suppress_errors"),
+    ):
+        VllmConfig(device_config=DeviceConfig(device="cpu"))
+
+
+def test_recompile_limit_does_not_fall_back_to_uncompiled_execution():
+    from torch._dynamo.exc import FailOnRecompileLimitHit
+
+    CompilationConfig()
+
+    def forward(value):
+        return value + 1
+
+    compiled = torch.compile(forward, backend="inductor", dynamic=False)
+    with torch._dynamo.config.patch(recompile_limit=1):
+        assert torch.equal(compiled(torch.ones(2)), torch.full((2,), 2.0))
+        with pytest.raises(FailOnRecompileLimitHit):
+            compiled(torch.ones(3))

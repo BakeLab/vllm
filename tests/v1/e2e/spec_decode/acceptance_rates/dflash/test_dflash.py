@@ -24,7 +24,7 @@ class DFlashCorrectnessConfig:
     max_num_seqs: int = 128
     num_questions: int = 1319
     use_chat_completions: bool = False
-    enforce_eager: bool = False
+    stock_compile: bool = False
     disable_flashinfer_sampler: bool = False
     language_model_only: bool = False
     chat_template_kwargs: dict[str, object] | None = None
@@ -59,7 +59,7 @@ LAGUNA_DFLASH_NVFP4 = DFlashCorrectnessConfig(
     max_num_seqs=32,
     num_questions=200,
     use_chat_completions=True,
-    enforce_eager=True,
+    stock_compile=True,
     disable_flashinfer_sampler=True,
 )
 
@@ -148,7 +148,7 @@ def test_dflash_correctness(
         max_model_len=config.max_model_len,
         max_num_seqs=config.max_num_seqs,
         gpu_memory_utilization=0.85,
-        enforce_eager=config.enforce_eager,
+        stock_compile=config.stock_compile,
         disable_log_stats=False,
         enable_chunked_prefill=None,
         compilation_config=CompilationConfig(),

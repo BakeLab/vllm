@@ -1050,7 +1050,7 @@ class Worker(WorkerBase):
         # Eagerly trigger inductor's once-per-process lazy inits during
         # warmup (rather than on a later compile cache-miss at runtime).
         c_config = self.compilation_config
-        if c_config.mode != CompilationMode.NONE and c_config.backend == "inductor":
+        if c_config.backend == "inductor":
             from vllm.compilation.compiler_interface import (
                 trigger_inductor_lazy_init,
             )

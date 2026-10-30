@@ -71,68 +71,10 @@ else:
 
 logger = init_logger(__name__)
 
-DEFAULT_BREAKABLE_CUDAGRAPH_ARCHITECTURES = frozenset(
-    {
-        "AliceAIForCausalLM",
-        "BeamForCausalLM",
-        "DeepseekV32MTPModel",
-        "DeepseekV32ForCausalLM",
-        "DeepseekV4ForCausalLM",
-        "DeepseekV4ForConditionalGeneration",
-        "DeepSeekV4MTPModel",
-        "DeepseekV41ForCausalLM",
-        "Dots3NoteForCausalLM",
-        "Dots3NoteMTPModel",
-        "Glm5NextForCausalLM",
-        "Glm5NextForConditionalGeneration",
-        "Glm5NextMTPModel",
-        "GlmMoeDsaForCausalLM",
-        "HYV4ForCausalLM",
-        "HYV4MTPModel",
-        "InklingForCausalLM",
-        "InklingForConditionalGeneration",
-        "KimiK3ForConditionalGeneration",
-        "KimiK3MTPModel",
-        "KimiLinearForCausalLM",
-        "MiniMaxM3SparseForCausalLM",
-        "MiniMaxM3SparseForConditionalGeneration",
-        "MuseSpark1xForCausalLM",
-        "MuseSparkForConditionalGeneration",
-        "Qwen4ExpForCausalLM",
-        "Qwen4ExpForConditionalGeneration",
-        "Qwen4ExpMTP",
-        "Step5ForCausalLM",
-        "Step5ForConditionalGeneration",
-    }
-)
-
-
-@lru_cache
-def default_breakable_cudagraph_architectures() -> frozenset[str]:
-    """Architectures defaulting to breakable CUDA graphs on this platform."""
-    from vllm.platforms import current_platform
-
-    if current_platform.is_rocm():
-        # Breakable CUDA graphs currently regress performance on ROCm for
-        # models that can use torch.compile piecewise graphs instead. Do not
-        # opt those in by default. Users can still force them with
-        # VLLM_USE_BREAKABLE_CUDAGRAPH=1.
-        #
-        # DeepseekV41ForCausalLM cannot torch.compile, and the ROCm sparse
-        # SWA backend only reports AttentionCGSupport.UNIFORM_BATCH. Default
-        # FULL_AND_PIECEWISE then dies at capture unless breakable CUDA
-        # graphs are on. Enable this architecture so the published AMD
-        # recipe can start.
-        return frozenset({"DeepseekV41ForCausalLM"})
-    return DEFAULT_BREAKABLE_CUDAGRAPH_ARCHITECTURES
-
 
 class OptimizationLevel(IntEnum):
     """Optimization level enum."""
 
-    O0 = 0
-    """O0 : No optimization. no compilation, no cudagraphs, no other
-    optimization, just starting up immediately"""
     O1 = 1
     """O1: Quick optimizations. Dynamo+Inductor compilation and Piecewise
     cudagraphs"""
@@ -250,27 +192,6 @@ def enable_qk_norm_rope_kvcache(cfg: VllmConfig) -> bool:
     return cfg.compilation_config.is_custom_op_enabled("rotary_embedding")
 
 
-OPTIMIZATION_LEVEL_00 = {
-    "compilation_config": {
-        "pass_config": {
-            "fuse_norm_quant": False,
-            "fuse_act_quant": False,
-            "fuse_allreduce_rms": False,
-            "fuse_attn_quant": False,
-            "fuse_act_padding": False,
-            "fuse_mla_dual_rms_norm": False,
-            "fuse_rope_kvcache": False,
-            "fuse_qk_norm_rope_kvcache": False,
-            "enable_qk_norm_rope_fusion": False,
-            "fuse_rope_kvcache_cat_mla": False,
-        },
-        "cudagraph_mode": CUDAGraphMode.NONE,
-        "use_inductor_graph_partition": False,
-    },
-    "kernel_config": {
-        "enable_flashinfer_autotune": False,
-    },
-}
 OPTIMIZATION_LEVEL_01 = {
     "compilation_config": {
         "pass_config": {
@@ -336,7 +257,6 @@ OPTIMIZATION_LEVEL_03 = {
 }
 
 OPTIMIZATION_LEVEL_TO_CONFIG = {
-    OptimizationLevel.O0: OPTIMIZATION_LEVEL_00,
     OptimizationLevel.O1: OPTIMIZATION_LEVEL_01,
     OptimizationLevel.O2: OPTIMIZATION_LEVEL_02,
     OptimizationLevel.O3: OPTIMIZATION_LEVEL_03,
@@ -734,80 +654,6 @@ class VllmConfig:
         num_sliding = sum(lt == "sliding_attention" for lt in layer_types)
         return 0 < num_sliding < len(layer_types)
 
-    def _uses_breakable_cudagraph_by_default(self) -> bool:
-        model_config = self.model_config
-        if model_config is None:
-            return False
-
-        architectures = set(model_config.architectures)
-        return bool(architectures & default_breakable_cudagraph_architectures())
-
-    def _uses_breakable_cudagraph_for_batch_invariance(self) -> bool:
-        """Avoid freezing runtime-M tile lookup in compiled forward (#54243).
-        Breakable graphs look up tuned bf16, unquantized qkv/o/gate_up/down tiles
-        at capture; lm_head runs outside compiled forward and does not benefit."""
-        from vllm.model_executor.determinism import batch_invariant_configs as bi
-        from vllm.platforms import current_platform
-
-        model = self.model_config
-        if (
-            not envs.VLLM_BATCH_INVARIANT
-            or model is None
-            or self.compilation_config.cudagraph_mode == CUDAGraphMode.NONE
-            or model.dtype != torch.bfloat16
-            or model.quantization is not None
-            or not current_platform.is_cuda()
-        ):
-            return False
-        family = bi._get_tuned_matmul_arch_family(
-            current_platform.get_device_capability()
-        )
-        if family is None or family not in bi._BATCH_INVARIANT_MATMUL_TUNED_CONFIGS:
-            return False
-        table = bi._BATCH_INVARIANT_MATMUL_TUNED_CONFIGS[family]
-        parallel = self.parallel_config
-        tp = parallel.tensor_parallel_size
-        hidden = model.get_hidden_size()
-        head = model.get_head_size()
-        heads = model.get_num_attention_heads(parallel)
-        kv_heads = model.get_num_kv_heads(parallel)
-        shapes = [((heads + 2 * kv_heads) * head, hidden), (hidden, heads * head)]
-        intermediate = getattr(model.hf_text_config, "intermediate_size", None)
-        # Per-layer sizes (e.g. Gemma3n) are not modeled.
-        if isinstance(intermediate, int):
-            shapes += [(2 * intermediate // tp, hidden), (hidden, intermediate // tp)]
-        return any(shape in table for shape in shapes)
-
-    def _maybe_enable_breakable_cudagraph(self) -> bool:
-        if (
-            "VLLM_USE_BREAKABLE_CUDAGRAPH" not in os.environ
-            and self._uses_breakable_cudagraph_by_default()
-        ):
-            os.environ["VLLM_USE_BREAKABLE_CUDAGRAPH"] = "1"
-            logger.info_once(
-                "Auto-enabling VLLM_USE_BREAKABLE_CUDAGRAPH=1. "
-                "Set VLLM_USE_BREAKABLE_CUDAGRAPH=0 to opt out."
-            )
-        elif (
-            "VLLM_USE_BREAKABLE_CUDAGRAPH" not in os.environ
-            and envs.VLLM_BATCH_INVARIANT
-            and self._uses_breakable_cudagraph_for_batch_invariance()
-        ):
-            os.environ["VLLM_USE_BREAKABLE_CUDAGRAPH"] = "1"
-            logger.info_once(
-                "VLLM_BATCH_INVARIANT=1: auto-enabling VLLM_USE_BREAKABLE_CUDAGRAPH=1. "
-                "Set VLLM_USE_BREAKABLE_CUDAGRAPH=0 to opt out."
-            )
-
-        from vllm.compilation.breakable_cudagraph import (
-            is_breakable_cudagraph_enabled,
-        )
-
-        enabled = is_breakable_cudagraph_enabled()
-        if enabled:
-            self.compilation_config.mode = CompilationMode.NONE
-        return enabled
-
     @property
     def needs_dp_coordinator(self) -> bool:
         """Determine if the DPCoordinator process is needed.
@@ -1024,14 +870,11 @@ class VllmConfig:
         )
         speculative_config.num_speculative_tokens_per_batch_size = None
 
-    def _normalize_piecewise_cudagraph_mode(
-        self, *, breakable_cudagraph_enabled: bool
-    ) -> None:
+    def _normalize_piecewise_cudagraph_mode(self) -> None:
         compilation_config = self.compilation_config
         if (
             compilation_config.cudagraph_mode.requires_piecewise_compilation()
             and compilation_config.mode != CompilationMode.VLLM_COMPILE
-            and not breakable_cudagraph_enabled
         ):
             fallback_mode = compilation_config.cudagraph_mode.without_piecewise()
             logger.info_once(
@@ -1618,23 +1461,18 @@ class VllmConfig:
                 "precision for chunked prefill triton kernels."
             )
 
-        if os.environ.get("TORCH_COMPILE_DISABLE") == "1":
-            logger.warning_once(
-                "TORCH_COMPILE_DISABLE is set, disabling torch.compile. "
-                "This is equivalent to setting -cc.mode=none"
+        for name in ("TORCH_COMPILE_DISABLE", "TORCHDYNAMO_DISABLE"):
+            if os.environ.get(name) == "1":
+                raise ValueError(f"{name} is unsupported: trim requires compilation.")
+        if envs.VLLM_USE_BREAKABLE_CUDAGRAPH:
+            raise ValueError(
+                "Breakable CUDA graphs bypass torch.compile and are unsupported "
+                "in trim."
             )
-            self.compilation_config.mode = CompilationMode.NONE
-
-        breakable_cudagraph_enabled = self._maybe_enable_breakable_cudagraph()
-
-        if not breakable_cudagraph_enabled and (
-            self.compilation_config.mode is not None
-            and self.compilation_config.mode != CompilationMode.VLLM_COMPILE
-        ):
-            logger.warning_once(
-                "Inductor compilation was disabled by user settings, "
-                "optimizations settings that are only active during "
-                "inductor compilation will be ignored."
+        if torch._dynamo.config.suppress_errors:
+            raise ValueError(
+                "Dynamo suppress_errors is unsupported: compilation failures "
+                "must propagate."
             )
 
         def has_blocked_weights():
@@ -1657,10 +1495,7 @@ class VllmConfig:
         current_platform.apply_config_platform_defaults(self)
 
         if self.compilation_config.mode is None:
-            if self.optimization_level > OptimizationLevel.O0:
-                self.compilation_config.mode = CompilationMode.VLLM_COMPILE
-            else:
-                self.compilation_config.mode = CompilationMode.NONE
+            self.compilation_config.mode = CompilationMode.VLLM_COMPILE
 
         # By default, enable torch wrapping only when using custom Inductor lowering
         if self.compilation_config.ir_enable_torch_wrap is None:
@@ -1670,10 +1505,7 @@ class VllmConfig:
             )
 
         if all(s not in self.compilation_config.custom_ops for s in ("all", "none")):
-            if (
-                self.compilation_config.backend == "inductor"
-                and self.compilation_config.mode != CompilationMode.NONE
-            ):
+            if self.compilation_config.backend == "inductor":
                 self.compilation_config.custom_ops.append("none")
             else:
                 self.compilation_config.custom_ops.append("all")
@@ -1757,9 +1589,7 @@ class VllmConfig:
                     self.kv_transfer_config.kv_connector,
                 )
 
-        self._normalize_piecewise_cudagraph_mode(
-            breakable_cudagraph_enabled=breakable_cudagraph_enabled
-        )
+        self._normalize_piecewise_cudagraph_mode()
 
         # OpaqueObject parameters replace the fast-MoE cold-start path.
         self.compilation_config.fast_moe_cold_start = False
@@ -1905,9 +1735,7 @@ class VllmConfig:
                 f"vllm.v1.core.sched.diffusion_scheduler.{scheduler_name}"
             )
 
-        self._normalize_piecewise_cudagraph_mode(
-            breakable_cudagraph_enabled=breakable_cudagraph_enabled
-        )
+        self._normalize_piecewise_cudagraph_mode()
 
         self._resolve_mm_embedding_inputs()
         self._resolve_mm_processor_device()
@@ -1989,10 +1817,7 @@ class VllmConfig:
             current_platform.is_cuda_alike()
             and self.compilation_config.cudagraph_mode.requires_piecewise_compilation()
         ):
-            assert (
-                self.compilation_config.mode == CompilationMode.VLLM_COMPILE
-                or envs.VLLM_USE_BREAKABLE_CUDAGRAPH
-            ), (
+            assert self.compilation_config.mode == CompilationMode.VLLM_COMPILE, (
                 "Compilation mode should be CompilationMode.VLLM_COMPILE "
                 "when cudagraph_mode piecewise cudagraphs is used, "
                 f"cudagraph_mode={self.compilation_config.cudagraph_mode}"
@@ -2787,7 +2612,7 @@ class VllmConfig:
 
         try:
             check_torchcodec_available()
-        except (ImportError, RuntimeError):
+        except ImportError, RuntimeError:
             # torchcodec is not installed, or is installed without a usable
             # FFmpeg runtime (it raises rather than returning False).
             logger.info_once(

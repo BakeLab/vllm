@@ -78,7 +78,7 @@ def test_transformers_video_generation(
         model_impl="transformers",
         dtype="bfloat16",
         max_model_len=8192,
-        enforce_eager=True,
+        stock_compile=True,
         limit_mm_per_prompt={"video": 1},
     ) as vllm_model:
         vllm_outputs = vllm_model.generate_greedy_logprobs(

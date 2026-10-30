@@ -67,7 +67,7 @@ def test_mm_cache_stats(
         "llava-hf/llava-1.5-7b-hf",
         max_model_len=4096,
         max_num_seqs=5,
-        enforce_eager=True,
+        stock_compile=True,
         mm_processor_cache_type=mm_processor_cache_type,
         disable_log_stats=False,
         limit_mm_per_prompt={"image": 2},

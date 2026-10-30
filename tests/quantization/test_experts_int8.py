@@ -36,7 +36,7 @@ def test_model_experts_int8_startup(
     with vllm_runner(
         model,
         dtype=dtype,
-        enforce_eager=True,
+        stock_compile=True,
         quantization="experts_int8",
         enable_chunked_prefill=True,
     ) as vllm_model:

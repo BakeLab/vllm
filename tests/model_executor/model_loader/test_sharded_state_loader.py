@@ -459,7 +459,7 @@ def test_sharded_state_loader(
             kwargs=dict(
                 tensor_parallel_size=tp_size,
                 gpu_memory_utilization=gpu_memory_utilization,
-                compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+                compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
                 **platform_args,
             ),
         )
@@ -555,7 +555,7 @@ def _run_sharded_state_round_trip(
             kwargs=dict(
                 **parallel_args,
                 gpu_memory_utilization=gpu_memory_utilization,
-                compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+                compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
                 **platform_args,
             ),
         )

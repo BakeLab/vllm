@@ -54,7 +54,7 @@
             "scaleDistribution": { "type": "linear" },
             "showPoints": "auto",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
+            "stacking": { "group": "A", "mode": "STOCK_TORCH_COMPILE" },
             "thresholdsStyle": { "mode": "off" }
           },
           "mappings": [],
@@ -271,7 +271,7 @@
             "gradientMode": "none",
             "hideFrom": { "legend": false, "tooltip": false, "viz": false },
             "lineWidth": 1,
-            "stacking": { "group": "A", "mode": "none" }
+            "stacking": { "group": "A", "mode": "STOCK_TORCH_COMPILE" }
           },
           "mappings": [],
           "thresholds": {
@@ -501,7 +501,7 @@
             "scaleDistribution": { "type": "linear" },
             "showPoints": "auto",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
+            "stacking": { "group": "A", "mode": "STOCK_TORCH_COMPILE" },
             "thresholdsStyle": { "mode": "off" }
           },
           "mappings": [],
@@ -606,7 +606,7 @@
             "scaleDistribution": { "type": "linear" },
             "showPoints": "auto",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "none" },
+            "stacking": { "group": "A", "mode": "STOCK_TORCH_COMPILE" },
             "thresholdsStyle": { "mode": "off" }
           },
           "mappings": [],

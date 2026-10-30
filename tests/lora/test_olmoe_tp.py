@@ -114,14 +114,14 @@ def generate_and_test(
     current_platform.is_cuda_alike(), reason="Skipping to avoid redundant model tests"
 )
 def test_olmoe_lora(olmoe_lora_files, maybe_enable_lora_dual_stream):
-    # We enable enforce_eager=True here to reduce VRAM usage for lora-test CI,
+    # We enable stock_compile=True here to reduce VRAM usage for lora-test CI,
     # Otherwise, the lora-test will fail due to CUDA OOM.
     llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
         max_loras=4,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         enable_chunked_prefill=True,
     )
@@ -136,7 +136,7 @@ def test_olmoe_lora_mixed(olmoe_lora_files):
         max_model_len=1024,
         enable_lora=True,
         max_loras=4,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         hf_overrides={"head_dtype": "float32"},
         enable_chunked_prefill=True,
@@ -162,7 +162,7 @@ def test_olmoe_lora_mixed_random(
         max_model_len=1024,
         enable_lora=True,
         max_loras=4,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         enable_chunked_prefill=True,
     )
@@ -193,7 +193,7 @@ def test_olmoe_lora_tp2(olmoe_lora_files, fully_sharded_loras):
         max_model_len=1024,
         enable_lora=True,
         max_loras=4,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         enable_chunked_prefill=True,
         tensor_parallel_size=2,
@@ -212,7 +212,7 @@ def test_olmoe_lora_tp4(olmoe_lora_files, fully_sharded_loras):
         max_model_len=1024,
         enable_lora=True,
         max_loras=4,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         enable_chunked_prefill=True,
         tensor_parallel_size=4,

@@ -46,7 +46,7 @@ def test_gdn_sleep_wake_no_stale_state():
     llm = LLM(
         model=MODEL,
         enable_sleep_mode=True,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         max_model_len=1024,
         gpu_memory_utilization=0.4,
         trust_remote_code=True,

@@ -86,7 +86,7 @@ def test_online_serving(vllm_runner, audio_assets: AudioTestAssets):
     with vllm_runner(
         MODEL_NAME,
         dtype="half",
-        enforce_eager=True,
+        stock_compile=True,
         tokenizer_mode="mistral",
         config_format="mistral",
         load_format="mistral",
@@ -164,7 +164,7 @@ def test_hf_reference(hf_runner, vllm_runner, audio_assets: AudioTestAssets):
     with vllm_runner(
         MODEL_NAME,
         dtype="half",
-        enforce_eager=True,
+        stock_compile=True,
         tokenizer_mode="mistral",
         config_format="mistral",
         load_format="mistral",

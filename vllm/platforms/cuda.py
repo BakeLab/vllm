@@ -194,7 +194,7 @@ class _BackendCandidate(NamedTuple):
     priority: int
 
 
-def with_nvml_context(fn: Callable[_P, _R]) -> Callable[_P, _R]:
+def with_nvml_context[**P, R](fn: Callable[_P, _R]) -> Callable[_P, _R]:
     @wraps(fn)
     def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
         pynvml.nvmlInit()
@@ -650,13 +650,12 @@ class CudaPlatformBase(Platform):
 
     @classmethod
     def get_default_ir_op_priority(cls, vllm_config: VllmConfig) -> IrOpPriorityConfig:
-        from vllm.config.compilation import CompilationMode
         from vllm.config.kernel import IrOpPriorityConfig
 
         # Native used by default when compiling,
         # use vllm_c kernels where available when no codegen
         cc = vllm_config.compilation_config
-        using_inductor = cc.backend == "inductor" and cc.mode != CompilationMode.NONE
+        using_inductor = cc.backend == "inductor"
         default = ["native"] if using_inductor else ["vllm_c", "native"]
 
         # Use oink if enabled for rms_norm
@@ -829,7 +828,7 @@ class NvmlCudaPlatform(CudaPlatformBase):
         cpulist_file = Path(f"/sys/devices/system/node/node{node_id}/cpulist")
         try:
             return cpulist_file.read_text().strip() != ""
-        except (OSError, ValueError):
+        except OSError, ValueError:
             return False
 
     @classmethod
@@ -871,7 +870,7 @@ class NvmlCudaPlatform(CudaPlatformBase):
                     cpulist = cpulist_file.read_text().strip()
                     if cls._cpu_in_cpulist(cpu_id, cpulist):
                         return node_id
-            except (ValueError, OSError):
+            except ValueError, OSError:
                 continue
         return None
 

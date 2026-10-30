@@ -5,11 +5,6 @@ TL;DR:
 - use tlparse to acquire torch.compile logs. Include these logs in bug reports and/or support asks.
 - The vLLM-torch.compile integration is multiple pieces. vLLM exposes flags to turn off each piece:
 
-- Turn off torch.compile and CUDAGraphs: `-cc.mode=none
-  -cc.cudagraph_mode=none` online, or
-  `compilation_config={"mode": "none", "cudagraph_mode": "none"}` offline.
-- Turn off torch.compile only: `-cc.mode=0` online, or
-  `CompilationConfig(mode=CompilationMode.NONE)` offline.
 - Turn off vLLM's modifications to torch.compile: `-cc.mode=1` online, or
   `CompilationConfig(mode=CompilationMode.STOCK_TORCH_COMPILE)` offline.
 - Turn off CUDAGraphs only: `-cc.cudagraph_mode=NONE` online, or
@@ -81,34 +76,23 @@ Open it to see the logs. It'll look something like the following:
 
 ![tlparse example](../assets/design/debug_vllm_compile/tlparse_inductor.png)
 
-## Turn off vLLM-torch.compile integration
+## Select compilation and CUDA graph policies
 
-Pass `-cc.mode=none -cc.cudagraph_mode=none` to turn off the vLLM-torch.compile integration and run entirely
-in eager mode. This includes turning off CUDAGraphs.
+BakeLab trim requires compilation. Modes 1 (stock torch.compile), 2 (Dynamo
+trace once), and 3 (vLLM compilation) remain supported; mode 0/NONE and
+optimization level O0 have been removed. Configuration failures and compiler
+errors propagate instead of selecting eager execution. Dynamo also raises when
+its recompilation limit is reached, rather than skipping compilation.
 
-```sh
-# Online
-vllm serve -cc.mode=none -cc.cudagraph_mode=none
-```
+Unset TORCH_COMPILE_DISABLE and TORCHDYNAMO_DISABLE, and leave Dynamo's
+suppress_errors disabled. Breakable CUDA graphs bypass torch.compile and are
+not supported. CPU LoRA and LongCat-Flash-Lite require uncompiled execution
+and are rejected. A model without an active vLLM compilation entry point must
+use STOCK_TORCH_COMPILE explicitly or gain compilation support.
 
-```py
-# Offline
-LLM(model, compilation_config={"mode": "none", "cudagraph_mode": "none"})
-```
-
-To turn off just torch.compile, pass `mode = NONE` to the compilation config.
-(`-cc` is short for `--compilation_config`):
-
-```sh
-# Online
-vllm serve -cc.mode=0
-```
-
-```py
-# Offline
-from vllm.config.compilation import CompilationConfig, CompilationMode
-LLM(model, compilation_config=CompilationConfig(mode=CompilationMode.NONE))
-```
+CUDA graph capture is independent of compilation. Disabling capture still
+executes compiled kernels. Kernel JIT warmup and vendor kernel compilation
+are also independent of model compilation.
 
 To turn off just CUDAGraphs, pass `cudagraph_mode = NONE`:
 
@@ -291,14 +275,14 @@ same model and workload:
 
 ```sh
 # online
-vllm serve -cc.mode=none -cc.cudagraph_mode=none
+vllm serve -cc.mode=1 -cc.cudagraph_mode=NONE
 ```
 
 ```py
 # offline
 from vllm.config import CompilationConfig, CompilationMode, CUDAGraphMode
 
-LLM(compilation_config=CompilationConfig(mode=CompilationMode.NONE,
+LLM(compilation_config=CompilationConfig(mode=CompilationMode.STOCK_TORCH_COMPILE,
                                          cudagraph_mode=CUDAGraphMode.NONE))
 ```
 

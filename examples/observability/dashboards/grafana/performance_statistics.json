@@ -72,7 +72,7 @@
             "spanNulls": true,
             "stacking": {
               "group": "A",
-              "mode": "none"
+              "mode": "STOCK_TORCH_COMPILE"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -457,7 +457,7 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "none"
+              "mode": "STOCK_TORCH_COMPILE"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -836,7 +836,7 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "none"
+              "mode": "STOCK_TORCH_COMPILE"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -1251,7 +1251,7 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "none"
+              "mode": "STOCK_TORCH_COMPILE"
             },
             "thresholdsStyle": {
               "mode": "off"

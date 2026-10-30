@@ -291,7 +291,7 @@ def _decode(
         language_model_only=True,
         tokenizer_mode="deepseek_v41",
         **indexer,
-        enforce_eager=True,
+        stock_compile=True,
         max_model_len=4096,
         max_num_seqs=len(prompts),
         # All prompts prefill in one step, so that no decode token shares a

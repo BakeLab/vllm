@@ -327,7 +327,7 @@ def test_capture_model_locks_workspace_after_capture(monkeypatch):
 
 
 def test_capture_model_skips_lock_when_nothing_captured(monkeypatch):
-    """With no graphs to capture (e.g. enforce_eager) there is nothing baked
+    """With no graphs to capture (e.g. stock_compile) there is nothing baked
     into the workspace, so the early return must not lock it."""
     runner = _make_capture_runner(monkeypatch, captured=False)
     lock_calls = []

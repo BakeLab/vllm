@@ -151,7 +151,7 @@ def test_ec_cpu_offloading() -> None:
         model=MODEL,
         max_model_len=2048,
         gpu_memory_utilization=0.5,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         ec_transfer_config=ec_transfer_config,
     )
 

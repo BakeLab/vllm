@@ -71,7 +71,7 @@ def vllm_model(vllm_runner, request) -> Generator[VllmRunner]:
         max_num_seqs=16,
         max_model_len=128,
         enable_chunked_prefill=True,
-        enforce_eager=True,
+        stock_compile=True,
         # TODO: enable this once we support it for
         # prompt logprobs.
         enable_prefix_caching=request.param,

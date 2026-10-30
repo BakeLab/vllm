@@ -29,7 +29,7 @@ def test_watermarked_generation_with_model_parallelism(vllm_runner, parallel_kwa
     with vllm_runner(
         MODEL,
         dtype="half",
-        enforce_eager=True,
+        stock_compile=True,
         max_model_len=128,
         max_num_seqs=4,
         watermark_config={"algorithm": "gumbel", "key": 42},
@@ -69,7 +69,7 @@ def test_watermarked_generation_with_data_parallelism():
                 model=MODEL,
                 dtype="half",
                 data_parallel_size=2,
-                compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+                compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
                 max_model_len=128,
                 max_num_seqs=4,
                 watermark_config={"algorithm": "gumbel", "key": 42},

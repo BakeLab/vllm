@@ -23,7 +23,7 @@ def colmodernvbert_model(vllm_runner):
         MODEL_NAME,
         runner="pooling",
         dtype=DTYPE,
-        enforce_eager=True,
+        stock_compile=True,
     ) as vllm_model:
         yield vllm_model
 

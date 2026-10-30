@@ -42,7 +42,7 @@ def test_transformers_backend_quantization(
     with vllm_runner(
         model,
         model_impl="auto",
-        enforce_eager=True,
+        stock_compile=True,
         **quantization_kwargs,
     ) as vllm_model:
         vllm_outputs = vllm_model.generate_greedy_logprobs(
@@ -52,7 +52,7 @@ def test_transformers_backend_quantization(
     with vllm_runner(
         model,
         model_impl="transformers",
-        enforce_eager=True,
+        stock_compile=True,
         **quantization_kwargs,
     ) as vllm_model:
         model_config = vllm_model.llm.llm_engine.model_config

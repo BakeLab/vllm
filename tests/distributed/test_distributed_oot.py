@@ -14,12 +14,12 @@ def test_distributed_oot(dummy_opt_path: str):
     run_and_test_dummy_opt_api_server(dummy_opt_path, tp=2)
 
 
-@pytest.mark.parametrize("enforce_eager", [True, False])
-def test_distributed_oot_pp_raw_input_tokens(dummy_opt_path: str, enforce_eager: bool):
+@pytest.mark.parametrize("stock_compile", [True, False])
+def test_distributed_oot_pp_raw_input_tokens(dummy_opt_path: str, stock_compile: bool):
     # The model asserts that input_ids reaches every pipeline stage.
     overrides = {"architectures": ["MyOPTRawInputTokensForCausalLM"]}
     extra_args = ["-pp", "2", "--hf-overrides", json.dumps(overrides)]
-    if enforce_eager:
+    if stock_compile:
         extra_args.extend(
             ["--compilation-config.mode=0", "--compilation-config.cudagraph_mode=NONE"]
         )

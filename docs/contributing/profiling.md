@@ -177,9 +177,9 @@ session active, then deactivates that same session until profiling starts. This
 lets later profiles attribute replayed kernels without retaining model-startup
 activity. Backend-specific modes can be selected with `proton_mode`;
 `pcsampling` synchronizes the CUDA context and therefore requires
-`-cc.mode=none -cc.cudagraph_mode=none`. When CUDA graphs are enabled (including encoder graphs),
+`-cc.mode=1 -cc.cudagraph_mode=none`. When CUDA graphs are enabled (including encoder graphs),
 Proton requires `proton_graph_attribution: true` to collect replayed kernels.
-For Chrome traces, disable CUDA graphs with `-cc.mode=none -cc.cudagraph_mode=none`.
+For Chrome traces, disable CUDA graphs with `-cc.mode=1 -cc.cudagraph_mode=none`.
 
 CUDA graph-attributed profiles support repeated `start_profile`/`stop_profile`
 runs. Each stop flushes and writes one tree-data phase while preserving the

@@ -257,7 +257,7 @@ def test_failed_model_execution(vllm_runner, monkeypatch) -> None:
     with vllm_runner(
         "facebook/opt-125m",
         compilation_config=CompilationConfig(
-            mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+            mode=CompilationMode.STOCK_TORCH_COMPILE, cudagraph_mode=CUDAGraphMode.NONE
         ),
     ) as vllm_model:
         if isinstance(vllm_model.llm.llm_engine, LLMEngine):
@@ -277,7 +277,8 @@ def test_raise_on_logit_nans(
         with vllm_runner(
             "facebook/opt-125m",
             compilation_config=CompilationConfig(
-                mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+                mode=CompilationMode.STOCK_TORCH_COMPILE,
+                cudagraph_mode=CUDAGraphMode.NONE,
             ),
         ) as vllm_model:
             engine_core = vllm_model.llm.llm_engine.engine_core.engine_core

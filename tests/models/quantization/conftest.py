@@ -31,7 +31,7 @@ def quant_baseline_logprobs(vllm_runner):
             with vllm_runner(
                 model,
                 max_model_len=max_model_len,
-                enforce_eager=True,
+                stock_compile=True,
             ) as vllm_model:
                 cache[key] = vllm_model.generate_greedy_logprobs(
                     prompts, max_tokens, num_logprobs

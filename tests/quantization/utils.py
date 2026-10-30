@@ -87,7 +87,8 @@ def load_model_without_vllm_runner(
     )
     vllm_config_args = dict(vllm_config_kwargs or {})
     vllm_config_args.setdefault(
-        "compilation_config", CompilationConfig(mode=CompilationMode.NONE)
+        "compilation_config",
+        CompilationConfig(mode=CompilationMode.STOCK_TORCH_COMPILE),
     )
     vllm_config = VllmConfig(model_config=model_config, **vllm_config_args)
     hf_overrides = (model_config_kwargs or {}).get("hf_overrides") or {}
@@ -154,7 +155,7 @@ def _test_online_quant_peak_mem_impl(
         vllm_runner(
             model_name,
             quantization=quantization_arg_value,
-            enforce_eager=True,
+            stock_compile=True,
         ) as llm,
     ):
         outputs = llm.generate_greedy(["The future of AI is"], max_tokens=4)

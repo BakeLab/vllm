@@ -43,7 +43,7 @@ mkdir -p "$EC_SHARED_STORAGE_PATH"
 CUDA_VISIBLE_DEVICES="$GPU" \
 vllm serve "$MODEL" \
     --port "$PORT" \
-    -cc.mode=none -cc.cudagraph_mode=none \
+    -cc.mode=1 -cc.cudagraph_mode=none \
     --ec-transfer-config '{
         "ec_connector": "ECExampleConnector",
         "ec_role": "ec_both",

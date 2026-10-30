@@ -303,7 +303,7 @@ def test_hisparse_host_exhaustion_defers_requests(
         num_gpu_blocks_override=128,
         enable_prefix_caching=False,
         enable_chunked_prefill=True,
-        enforce_eager=True,
+        stock_compile=True,
     ) as runner:
         expected = [runner.generate_greedy([p], max_tokens=16)[0] for p in prompts]
         engine = runner.llm.llm_engine.engine_core.engine_core
@@ -381,7 +381,7 @@ def test_hisparse_terminal_prefix_reuse(
         num_gpu_blocks_override=128,
         enable_prefix_caching=True,
         enable_chunked_prefill=True,
-        enforce_eager=True,
+        stock_compile=True,
     ) as runner:
         engine = runner.llm.llm_engine.engine_core.engine_core
         coordinator = get_hisparse_coordinator(engine.scheduler.kv_cache_manager)

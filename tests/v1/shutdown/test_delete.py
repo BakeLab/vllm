@@ -43,7 +43,7 @@ async def test_async_llm_delete(
 
     engine_args = AsyncEngineArgs(
         model=model,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         tensor_parallel_size=tensor_parallel_size,
         kernel_config=KernelConfig(enable_jit_warmup=False),
     )
@@ -102,7 +102,7 @@ def test_llm_delete(
         # initialization; then delete instance
         llm = LLM(
             model=model,
-            compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+            compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
             tensor_parallel_size=tensor_parallel_size,
             kernel_config=KernelConfig(enable_jit_warmup=False),
         )

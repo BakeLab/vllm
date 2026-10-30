@@ -108,7 +108,7 @@ def test_get_world_size_tp1(vllm_runner):
 
     with vllm_runner(
         MODEL_NAME,
-        enforce_eager=True,
+        stock_compile=True,
         load_format="dummy",
         tensor_parallel_size=1,
         weight_transfer_config=WeightTransferConfig(backend="nccl"),
@@ -136,7 +136,7 @@ def test_init_weight_transfer_engine_calls_engine(vllm_runner):
         ),
         vllm_runner(
             MODEL_NAME,
-            enforce_eager=True,
+            stock_compile=True,
             load_format="dummy",
             tensor_parallel_size=1,
             weight_transfer_config=WeightTransferConfig(backend="nccl"),
@@ -195,7 +195,7 @@ def test_update_weights_calls_engine(vllm_runner):
         ),
         vllm_runner(
             MODEL_NAME,
-            enforce_eager=True,
+            stock_compile=True,
             load_format="dummy",
             tensor_parallel_size=1,
             weight_transfer_config=WeightTransferConfig(backend="nccl"),
@@ -261,7 +261,7 @@ def test_full_weight_transfer_flow(vllm_runner):
         ),
         vllm_runner(
             MODEL_NAME,
-            enforce_eager=True,
+            stock_compile=True,
             load_format="dummy",
             tensor_parallel_size=1,
             weight_transfer_config=WeightTransferConfig(backend="nccl"),
@@ -331,7 +331,7 @@ def test_weight_transfer_config_backend(vllm_runner):
     # Test with nccl backend
     with vllm_runner(
         MODEL_NAME,
-        enforce_eager=True,
+        stock_compile=True,
         load_format="dummy",
         tensor_parallel_size=1,
         weight_transfer_config=WeightTransferConfig(backend="nccl"),

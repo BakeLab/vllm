@@ -470,7 +470,7 @@ def test_modelopt_fp8_checkpoint_setup(default_vllm_config, vllm_runner):
 
     # Set model config as model_config.dtype is required in ModelOptLinearMethod.
     default_vllm_config.model_config = ModelConfig()
-    with vllm_runner(model_path, quantization="modelopt", enforce_eager=True) as llm:
+    with vllm_runner(model_path, quantization="modelopt", stock_compile=True) as llm:
 
         def check_model(model):
             layer = model.model.layers[0]

@@ -745,7 +745,7 @@ def test_composite_shared_cache_across_image_and_causal_steps(
         max_num_batched_tokens=512,
         block_size=block_size,
         kv_cache_dtype=cache_dtype,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         attention_config=attention_config,
     ).create_engine_config()
     cfg.cache_config.kv_cache_layout = "LBHNC"

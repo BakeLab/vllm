@@ -2298,7 +2298,7 @@ def test_abort_timeout_on_prefiller(monkeypatch, distributed_executor_backend):
     )
     llm_kwargs = {
         "model": model_name,
-        "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
+        "compilation_config": {"mode": 1, "cudagraph_mode": "NONE"},
         "gpu_memory_utilization": 0.5,
         "kv_transfer_config": kv_transfer_config,
         "distributed_executor_backend": distributed_executor_backend,

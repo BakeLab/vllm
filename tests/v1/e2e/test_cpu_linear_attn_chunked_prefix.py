@@ -44,7 +44,7 @@ def _make_llm(**overrides) -> LLM:
         model=MODEL,
         dtype="bfloat16",
         max_model_len=2048,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
     )
     base.update(overrides)

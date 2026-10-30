@@ -92,7 +92,7 @@ if __name__ == "__main__":
             "num_speculative_tokens": NUM_SPEC_TOKENS,
         },
         gpu_memory_utilization=0.4,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
     )
 
     prompts = [

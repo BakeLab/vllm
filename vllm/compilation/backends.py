@@ -1071,7 +1071,7 @@ class VllmBackend:
             try:
                 with open(filepath) as f:
                     hash_content.append(f.read())
-            except (OSError, UnicodeDecodeError):
+            except OSError, UnicodeDecodeError:
                 logger.warning("Failed to read file %s", filepath)
                 continue
         code_hash = hashlib.sha256("\n".join(hash_content).encode()).hexdigest()
@@ -1100,7 +1100,7 @@ class VllmBackend:
         os.makedirs(local_cache_dir, exist_ok=True)
         self.compilation_config.local_cache_dir = local_cache_dir
 
-        # Honors opt-outs such as CompilationMode.NONE or VLLM_DISABLE_COMPILE_CACHE.
+        # Honors VLLM_DISABLE_COMPILE_CACHE.
         disable_cache = not is_compile_cache_enabled(self.inductor_config)
 
         # TODO(patchy): the V1 torch.compile ngram-gpu kernel causes vllm

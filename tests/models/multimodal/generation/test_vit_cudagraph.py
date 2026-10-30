@@ -348,7 +348,7 @@ MODEL_CONFIGS: dict[str, VitCudagraphTestConfig] = {
         marks=[pytest.mark.core_model],
         compilation_config_overrides={
             "encoder_cudagraph_token_budgets": [272],
-            "mode": 0,
+            "mode": 1,
             "cudagraph_mode": 2,
         },
         vllm_runner_kwargs={

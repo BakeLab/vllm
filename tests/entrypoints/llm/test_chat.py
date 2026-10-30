@@ -11,7 +11,7 @@ from vllm.sampling_params import SamplingParams
 @pytest.fixture(scope="function")
 def text_llm(vllm_runner):
     with vllm_runner(
-        "meta-llama/Llama-3.2-1B-Instruct", enforce_eager=True, seed=0
+        "meta-llama/Llama-3.2-1B-Instruct", stock_compile=True, seed=0
     ) as runner:
         # pytest caches yielded fixtures until after teardown, so use a proxy to
         # avoid retaining the LLM while VllmRunner.__exit__ releases ROCm memory.
@@ -25,7 +25,7 @@ def llm_for_failure_test(vllm_runner):
     """
     with vllm_runner(
         "meta-llama/Llama-3.2-1B-Instruct",
-        enforce_eager=True,
+        stock_compile=True,
         seed=0,
         max_model_len=128,
         disable_log_stats=True,
@@ -110,7 +110,7 @@ def thinking_llm(vllm_runner):
     with vllm_runner(
         "Qwen/Qwen3-0.6B",
         max_model_len=4096,
-        enforce_eager=True,
+        stock_compile=True,
         seed=0,
     ) as runner:
         # pytest caches yielded fixtures until after teardown, so use a proxy to

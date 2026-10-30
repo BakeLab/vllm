@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from vllm import envs
 from vllm.logger import init_logger
 from vllm.utils.cpu_resource_utils import (
     DEVICE_CONTROL_ENV_VAR,
@@ -52,7 +51,7 @@ def _cpu_mamba_backend(vllm_config: VllmConfig) -> str:
 
     try:
         has_inner_state = bool(model_config.has_inner_state)
-    except (AttributeError, RuntimeError):
+    except AttributeError, RuntimeError:
         has_inner_state = False
 
     if not (has_inner_state or has_linear_attention):
@@ -362,17 +361,9 @@ class CpuPlatform(Platform):
 
         compilation_config = vllm_config.compilation_config
         if vllm_config.compilation_config.mode == CompilationMode.VLLM_COMPILE:
-            # Note: vLLM V1 is using PIECEWISE level compilation, which will
-            # take time to compile kernels just-in-time with the inductor
-            # backend. For CPU CI tests, most of them are executed fast and
-            # compilations consume too much time, even with torch compile
-            # cache. So use VLLM_CPU_CI_ENV to indicate the CI environment,
-            # and just execute model with dynamo + eager mode to save time.
-            # VLLM_CPU_CI_ENV is only used as an internal variable.
-            backend = "eager" if envs.VLLM_CPU_CI_ENV else "inductor"
-
+            # Compile the CPU model with a single Dynamo trace.
             compilation_config.mode = CompilationMode.DYNAMO_TRACE_ONCE
-            compilation_config.backend = backend
+            compilation_config.backend = "inductor"
             compilation_config.inductor_compile_config.update(
                 {
                     "dce": True,
@@ -385,7 +376,9 @@ class CpuPlatform(Platform):
             compilation_config.ir_enable_torch_wrap = False
 
         if vllm_config.lora_config is not None:
-            compilation_config.mode = CompilationMode.NONE
+            raise ValueError(
+                "CPU LoRA requires uncompiled execution and is unsupported in trim."
+            )
 
         if (
             cls.get_cpu_architecture() == CpuArchEnum.ARM
@@ -593,7 +586,7 @@ class CpuPlatform(Platform):
                             else:
                                 cpus.append(int(part))
                         siblings = cpus if cpus else [cpu_id]
-                    except (OSError, ValueError):
+                    except OSError, ValueError:
                         siblings = [cpu_id]
                 else:
                     siblings = [cpu_id]

@@ -61,7 +61,7 @@ def main():
 
     llm = LLM(
         model="meta-llama/Llama-3.2-1B-Instruct",
-        compilation_config={"mode": "none", "cudagraph_mode": "none"},
+        compilation_config={"mode": "STOCK_TORCH_COMPILE", "cudagraph_mode": "none"},
         gpu_memory_utilization=0.8,
         max_num_batched_tokens=64,
         max_num_seqs=16,

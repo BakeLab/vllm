@@ -85,7 +85,7 @@ def create_vllm_config(
         max_model_len=max_model_len,
         gpu_memory_utilization=gpu_memory_utilization,
         distributed_executor_backend=distributed_executor_backend,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
     )
     vllm_config = engine_args.create_engine_config()
 

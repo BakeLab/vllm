@@ -25,7 +25,7 @@ def run_test(
     dtype: str,
     max_tokens: int,
     num_logprobs: int,
-    enforce_eager: bool,
+    stock_compile: bool,
     max_model_len: int,
     max_num_seqs: int,
     hf_output_post_proc: Callable[[RunnerOutput, str], Any] | None,
@@ -94,7 +94,7 @@ def run_test(
         limit_mm_per_prompt=limit_mm_per_prompt,
         tensor_parallel_size=tensor_parallel_size,
         distributed_executor_backend=distributed_executor_backend,
-        enforce_eager=enforce_eager,
+        stock_compile=stock_compile,
         runner=runner,
         **vllm_runner_kwargs_,
     ) as vllm_model:

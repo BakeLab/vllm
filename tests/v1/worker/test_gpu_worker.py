@@ -443,7 +443,7 @@ def test_jit_monitor_activation_follows_enable_jit_warmup(
     monkeypatch: pytest.MonkeyPatch,
 ):
     """The post-warmup JIT monitor must stay off when JIT warmup is disabled
-    (e.g. by enforce_eager): runtime compilation is then expected, and
+    (e.g. by stock_compile): runtime compilation is then expected, and
     warning/erroring on it would be noise."""
     from vllm.utils import jit_monitor
 

@@ -367,7 +367,7 @@ def flash_attn_triton_available() -> bool:
         def _has_spec(name: str) -> bool:
             try:
                 return find_spec(name) is not None
-            except (ImportError, ValueError):
+            except ImportError, ValueError:
                 return False
 
         if not (
@@ -1208,14 +1208,14 @@ class RocmPlatform(Platform):
 
     @classmethod
     def get_default_ir_op_priority(cls, vllm_config: VllmConfig) -> IrOpPriorityConfig:
-        from vllm.config.compilation import CompilationMode, CUDAGraphMode
+        from vllm.config.compilation import CUDAGraphMode
         from vllm.config.kernel import IrOpPriorityConfig
 
         # Native used by default when compiling,
         # use vllm_c kernels where available when no codegen
         # TODO(luka/TJ) use aiter, vllm_c, native by default on ROCm
         cc = vllm_config.compilation_config
-        using_inductor = cc.backend == "inductor" and cc.mode != CompilationMode.NONE
+        using_inductor = cc.backend == "inductor"
         default = ["native"] if using_inductor else ["vllm_c", "native"]
 
         #  Aiter rms norm perform best when CUDA Graph capture is enabled.

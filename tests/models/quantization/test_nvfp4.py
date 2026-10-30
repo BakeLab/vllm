@@ -56,7 +56,7 @@ def test_models(example_prompts, model_name) -> None:
         model=model_name,
         max_model_len=MAX_MODEL_LEN,
         trust_remote_code=True,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         quantization="modelopt_fp4",
     )
 
@@ -126,7 +126,7 @@ def test_nvfp4(vllm_runner, model, eager, backend):
             f"The backend {backend} is not supported with current_platform.has_device_capability(100) == False"
         )
 
-    with vllm_runner(model, enforce_eager=eager, linear_backend=backend) as llm:
+    with vllm_runner(model, stock_compile=eager, linear_backend=backend) as llm:
         output = llm.generate_greedy(["1 2 3 4 5"], max_tokens=2)
     assert output[0][1] == "1 2 3 4 5 6"
 

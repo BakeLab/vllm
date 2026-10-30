@@ -30,7 +30,7 @@ def llm(vllm_runner):
         max_num_batched_tokens=32768,
         tensor_parallel_size=1,
         gpu_memory_utilization=0.75,
-        enforce_eager=True,
+        stock_compile=True,
         seed=0,
         enable_chunked_prefill=None,
     ) as runner:
@@ -83,7 +83,7 @@ def test_bge_m3_late_chunking_keeps_special_tokens(vllm_runner):
         # Keep encoder batch size fixed for the numerical reference.
         max_num_seqs=1,
         gpu_memory_utilization=0.5,
-        enforce_eager=True,
+        stock_compile=True,
     ) as runner:
         llm = runner.llm
         text = "A document about Berlin and its museums."
@@ -132,7 +132,7 @@ def test_nomic_late_chunking_without_special_tokens(vllm_runner):
         max_model_len=128,
         max_num_seqs=2,
         gpu_memory_utilization=0.3,
-        enforce_eager=True,
+        stock_compile=True,
         enable_prefix_caching=False,
         enable_chunked_prefill=False,
     ) as runner:
@@ -262,7 +262,7 @@ def test_late_chunking_recomputes_cached_prefix_with_chunked_prefill(
         max_num_seqs=2,
         enable_prefix_caching=True,
         enable_chunked_prefill=True,
-        enforce_eager=True,
+        stock_compile=True,
         gpu_memory_utilization=0.3,
         seed=0,
     ) as runner:

@@ -103,7 +103,7 @@ def llm():
         return LLM(
             model=MODEL_NAME,
             dtype="bfloat16",
-            compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+            compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
             limit_mm_per_prompt={"audio": 1},
         )
     except Exception as e:

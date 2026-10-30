@@ -56,7 +56,7 @@ async def test_run_eagle_dp(monkeypatch: pytest.MonkeyPatch, attn_backend: str):
         model=target_model,
         tokenizer_mode="auto",
         compilation_config=(
-            {"mode": 0, "cudagraph_mode": "NONE"}
+            {"mode": 1, "cudagraph_mode": "NONE"}
             if (IS_DEVICE_CAPABILITY_BELOW_90)
             else {}
         ),

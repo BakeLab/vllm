@@ -113,7 +113,7 @@ def run_test(
         enable_lora=True,
         max_lora_rank=320,
         gpu_memory_utilization=0.8,  # set to 0.8 to avoid OOM in CI
-        enforce_eager=True,
+        stock_compile=True,
     ) as vllm_model:
         lora_request = LoRARequest("vision", 1, vision_lora_path)
         vllm_outputs_per_case = [

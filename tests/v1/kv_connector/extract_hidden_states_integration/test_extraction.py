@@ -123,7 +123,7 @@ def test_extract_hidden_states_with_predictable_dummy_model(
         },
         max_model_len=1024,
         max_num_batched_tokens=max_num_batched_tokens,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         load_format="dummy",
     )
@@ -278,7 +278,7 @@ def test_extract_hidden_states_qwen35_hybrid_smoke(tmp_path):
             "kv_connector_extra_config": {"shared_storage_path": str(tmp_path)},
         },
         max_model_len=256,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         gpu_memory_utilization=0.4,
         load_format="dummy",
     )
@@ -333,7 +333,7 @@ def test_extract_hidden_states_tp2():
             "kv_connector_extra_config": {"shared_storage_path": tmp_dir},
         },
         max_model_len=256,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         gpu_memory_utilization=0.4,
         load_format="dummy",
     )

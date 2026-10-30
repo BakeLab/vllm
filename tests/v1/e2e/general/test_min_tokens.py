@@ -167,7 +167,7 @@ def llm_v1():
         tensor_parallel_size=1,
         max_model_len=1024,  # Small context for fast testing
         compilation_config={
-            "mode": 0,
+            "mode": 1,
             "cudagraph_mode": "NONE",
         },  # Avoid graph compilation overhead
     )

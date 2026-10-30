@@ -14,7 +14,8 @@ def test_empty_prompt(vllm_runner):
         vllm_runner(
             "openai-community/gpt2",
             compilation_config=CompilationConfig(
-                mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+                mode=CompilationMode.STOCK_TORCH_COMPILE,
+                cudagraph_mode=CUDAGraphMode.NONE,
             ),
         ) as runner,
         pytest.raises(VLLMValidationError, match="decoder prompt cannot be empty"),
@@ -27,7 +28,8 @@ def test_out_of_vocab_token(vllm_runner):
         vllm_runner(
             "openai-community/gpt2",
             compilation_config=CompilationConfig(
-                mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+                mode=CompilationMode.STOCK_TORCH_COMPILE,
+                cudagraph_mode=CUDAGraphMode.NONE,
             ),
         ) as runner,
         pytest.raises(VLLMValidationError, match="out of vocabulary"),
@@ -42,7 +44,8 @@ def test_out_of_vocab_token_skip_tokenizer_init(vllm_runner):
         vllm_runner(
             "openai-community/gpt2",
             compilation_config=CompilationConfig(
-                mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+                mode=CompilationMode.STOCK_TORCH_COMPILE,
+                cudagraph_mode=CUDAGraphMode.NONE,
             ),
             skip_tokenizer_init=True,
         ) as runner,
@@ -56,7 +59,8 @@ def test_require_mm_embeds(vllm_runner):
         vllm_runner(
             "llava-hf/llava-1.5-7b-hf",
             compilation_config=CompilationConfig(
-                mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+                mode=CompilationMode.STOCK_TORCH_COMPILE,
+                cudagraph_mode=CUDAGraphMode.NONE,
             ),
             enable_mm_embeds=False,
         ) as runner,

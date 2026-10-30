@@ -21,7 +21,7 @@ def test_llm_generated_sequence_is_watermarked(vllm_runner):
         "facebook/opt-125m",
         watermark_config=watermark_config,
         seed=0,
-        enforce_eager=True,
+        stock_compile=True,
         max_model_len=512,
         gpu_memory_utilization=0.2,
         disable_log_stats=False,

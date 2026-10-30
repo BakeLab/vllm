@@ -145,7 +145,7 @@ VLM_TEST_SETTINGS = {
         prompt_formatter=lambda img_prompt: f"<|im_start|>User\n{img_prompt}<|im_end|>\n<|im_start|>assistant\n",  # noqa: E501
         img_idx_to_prompt=lambda idx: "<|vision_start|><|image_pad|><|vision_end|>",
         video_idx_to_prompt=lambda idx: "<|vision_start|><|video_pad|><|vision_end|>",
-        enforce_eager=False,
+        stock_compile=False,
         needs_video_metadata=True,
         max_model_len=4096,
         max_num_seqs=2,
@@ -177,7 +177,7 @@ VLM_TEST_SETTINGS = {
             VLMTestType.MULTI_IMAGE,
             VLMTestType.VIDEO,
         ),
-        enforce_eager=False,
+        stock_compile=False,
         needs_video_metadata=True,
         prompt_formatter=lambda img_prompt: f"<|im_start|>User\n{img_prompt}<|im_end|>\n<|im_start|>assistant\n",  # noqa: E501
         img_idx_to_prompt=lambda idx: "<|vision_start|><|image_pad|><|vision_end|>",  # noqa: E501
@@ -322,7 +322,7 @@ VLM_TEST_SETTINGS = {
             VLMTestType.MULTI_IMAGE,
             VLMTestType.VIDEO,
         ),
-        enforce_eager=False,
+        stock_compile=False,
         needs_video_metadata=True,
         prompt_formatter=lambda img_prompt: f"<|im_start|>User\n{img_prompt}<|im_end|>\n<|im_start|>assistant\n",  # noqa: E501
         img_idx_to_prompt=lambda idx: "<|vision_start|><|image_pad|><|vision_end|>",  # noqa: E501
@@ -605,7 +605,7 @@ VLM_TEST_SETTINGS = {
             "Picture 2: <vlm_image>\n"
             "Describe these two images with one paragraph respectively."
         ),
-        enforce_eager=False,
+        stock_compile=False,
         max_model_len=4096,
         max_num_seqs=2,
         hf_model_kwargs={"device_map": "auto"},

@@ -177,15 +177,8 @@ class CustomOp(nn.Module):
         NOTE: this does not enable fusion across ops, so opaque custom ops
         should still be unwrapped wherever possible.
         """
-        from vllm.config.compilation import CompilationMode
-
         # Do not compile if compilation disabled
         if not enable:
-            return fn
-
-        # Do not compile if global compilation disabled
-        compilation_config = get_cached_compilation_config()
-        if compilation_config.mode == CompilationMode.NONE:
             return fn
 
         compile_options = maybe_disable_graph_partition(

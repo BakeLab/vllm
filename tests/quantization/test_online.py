@@ -2044,7 +2044,7 @@ def test_online_quantization_loads_real_weights(
         runner_kwargs = {
             "quantization": "fp8_per_tensor",
             "dtype": "bfloat16",
-            "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
+            "compilation_config": {"mode": 1, "cudagraph_mode": "NONE"},
             "hf_overrides": {"num_hidden_layers": 3},
             "max_model_len": 16,
             "max_num_seqs": 1,
@@ -2054,7 +2054,7 @@ def test_online_quantization_loads_real_weights(
             "quantization_config": {
                 "targets": {"model.layers.1.self_attn.o_proj": "mxfp8"}
             },
-            "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
+            "compilation_config": {"mode": 1, "cudagraph_mode": "NONE"},
         }
 
     with vllm_runner(model_name, **runner_kwargs) as llm:
@@ -2257,7 +2257,7 @@ def test_online_nvfp4_per_token_moe(vllm_runner, monkeypatch) -> None:
     with vllm_runner(
         "ibm-granite/granite-3.0-1b-a400m-base",
         quantization="nvfp4_per_token",
-        enforce_eager=True,
+        stock_compile=True,
     ) as llm:
 
         def check_model(model):
@@ -2641,7 +2641,7 @@ def test_online_quant_load_format_dummy(
     with vllm_runner(
         "ibm-granite/granite-3.0-1b-a400m-base",
         quantization="fp8_per_tensor",
-        enforce_eager=True,
+        stock_compile=True,
         load_format="dummy",
     ) as llm:
         outputs = llm.generate_greedy(["The future of AI is"], max_tokens=4)

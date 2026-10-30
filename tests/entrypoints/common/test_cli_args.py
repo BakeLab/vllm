@@ -45,12 +45,12 @@ def serve_parser():
     return _build_vllm_parsers()["vllm serve"]
 
 
-def test_explicit_no_compile_graph_policy_is_parsed(serve_parser):
+def test_explicit_stock_compile_graph_policy_is_parsed(serve_parser):
     args = serve_parser.parse_args(
-        ["--compilation-config.mode=0", "--compilation-config.cudagraph_mode=NONE"]
+        ["--compilation-config.mode=1", "--compilation-config.cudagraph_mode=NONE"]
     )
     engine_args = AsyncEngineArgs.from_cli_args(args)
-    assert engine_args.compilation_config.mode == CompilationMode.NONE
+    assert engine_args.compilation_config.mode == CompilationMode.STOCK_TORCH_COMPILE
     assert engine_args.compilation_config.cudagraph_mode == CUDAGraphMode.NONE
 
 
