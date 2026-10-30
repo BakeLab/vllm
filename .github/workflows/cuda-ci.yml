@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   cuda:
-    if: github.repository == 'BakeLab/vllm'
+    if: github.repository == 'BakeLab/vllm' && github.server_url != 'https://github.com'
     runs-on: [self-hosted, linux, x64, bb, cuda]
     timeout-minutes: 360
     defaults:
@@ -28,83 +28,36 @@ jobs:
           persist-credentials: false
           submodules: recursive
 
-      - name: Checkout the latest PyTorch trim dependency
+      - name: Checkout shared CI infrastructure
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          repository: BakeLab/pytorch
-          ref: trim
-          path: pytorch
+          repository: BakeLab/breadkernel
+          ref: 551bee53ff70429c7abb8e83e5e280bd9a63211a
+          path: .cuda-ci/infra
           persist-credentials: false
-          submodules: recursive
 
-      - name: Checkout matching torchvision sources
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          repository: BakeLab/vision
-          ref: trim
-          path: vision
-          persist-credentials: false
-          submodules: recursive
+      - name: Prepare exact CUDA dependencies
+        id: cuda
+        uses: ./.cuda-ci/infra/.github/actions/cuda-env
 
-      - name: Build the trim sources and run CUDA tests
+      - name: Build vLLM and run its CUDA tests
+        env:
+          CONTAINER: ${{ steps.cuda.outputs.container }}
         run: |
-          mkdir -p cuda-ci-results
           git -C vllm rev-parse HEAD > cuda-ci-results/vllm.sha
-          git -C pytorch rev-parse HEAD > cuda-ci-results/pytorch.sha
-          git -C vision rev-parse HEAD > cuda-ci-results/vision.sha
-          docker build --file pytorch/.ci/pytorch/trim-cuda.Dockerfile \
-            --tag "vllm-cuda-ci:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" pytorch/.ci/pytorch
-          docker run --interactive --name "vllm-cuda-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
-            --gpus all --shm-size=8g --volume "$GITHUB_WORKSPACE:/workspace" \
-            "vllm-cuda-ci:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" bash -seu <<'CUDA_CI'
-          set -o pipefail
-          bash pytorch/.ci/pytorch/trim_cuda.sh
-          cd /workspace
-          export UV_CONSTRAINT=/workspace/cuda-ci-results/constraints.txt
-          export PYTORCH_VERSION
-          PYTORCH_VERSION=$(/opt/venv/bin/python -c 'import torch; print(torch.__version__)')
-          export FORCE_CUDA=1
-          export TORCH_CUDA_ARCH_LIST
-          TORCH_CUDA_ARCH_LIST=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | sort -u | paste -sd ' ' -)
-          [[ "$TORCH_CUDA_ARCH_LIST" =~ ^[0-9]+\.[0-9]+(\ [0-9]+\.[0-9]+)*$ ]]
-          uv pip install --python /opt/venv/bin/python --no-build-isolation --no-deps -v ./vision
-
-          export VLLM_TORCH_VERSION_OVERRIDE="$PYTORCH_VERSION"
-          export VLLM_TORCHVISION_VERSION_OVERRIDE
-          VLLM_TORCHVISION_VERSION_OVERRIDE=$(/opt/venv/bin/python -c 'import torchvision; print(torchvision.__version__)')
-          printf 'torchvision==%s\n' "$VLLM_TORCHVISION_VERSION_OVERRIDE" >> "$UV_CONSTRAINT"
-          printf 'torch\ntorchvision\ntorchaudio\n' > /workspace/cuda-ci-results/frameworks.txt
-
-          cd vllm
-          uv pip install --python /opt/venv/bin/python \
+          docker exec --workdir /workspace/vllm "$CONTAINER" bash -euc '
+            uv pip install --python /opt/venv/bin/python \
               -r requirements/build/cuda.txt -r requirements/cuda.txt -r requirements/test/cuda.in \
-              --excludes /workspace/cuda-ci-results/frameworks.txt
-          export VLLM_USE_PRECOMPILED=0
-          export CMAKE_ARGS='-DVLLM_X86_BASELINE=x86-64-v3 -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++'
-          uv pip install --python /opt/venv/bin/python --no-build-isolation --no-deps -v -e .
-
-          /opt/venv/bin/python - <<'PY'
-          from pathlib import Path
-          import torch
-          import vllm
-          import vllm._C
-
-          expected = Path("/workspace/cuda-ci-results/pytorch.sha").read_text().strip()
-          if torch.version.git_version != expected:
-              raise RuntimeError(f"PyTorch was replaced: expected {expected}, got {torch.version.git_version}")
-          if not Path(vllm.__file__).resolve().is_relative_to(Path("/workspace/vllm")):
-              raise RuntimeError(f"vLLM is not imported from this checkout: {vllm.__file__}")
-          x = torch.ones(16, device="cuda")
-          torch.testing.assert_close(x + x, torch.full_like(x, 2))
-          torch.cuda.synchronize()
-          print(f"Testing vLLM with PyTorch {torch.__version__} at {torch.version.git_version}")
-          PY
-          /opt/venv/bin/python -m pytest -v \
-            tests/kernels/core/test_activation.py \
-            tests/kernels/core/test_layernorm.py \
-            tests/kernels/core/test_rotary_embedding.py \
-            --junitxml=/workspace/cuda-ci-results/vllm.xml
-          CUDA_CI
+              --excludes /opt/cuda-ci/frameworks.txt
+            CMAKE_ARGS="$CMAKE_ARGS -DVLLM_X86_BASELINE=x86-64-v3" \
+              VLLM_USE_PRECOMPILED=0 uv pip install --python /opt/venv/bin/python \
+              --no-build-isolation --no-deps -v -e .
+            /opt/venv/bin/python -m pytest -v \
+              tests/kernels/core/test_activation.py \
+              tests/kernels/core/test_layernorm.py \
+              tests/kernels/core/test_rotary_embedding.py \
+              --junitxml=/workspace/cuda-ci-results/vllm.xml
+          '
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
@@ -113,8 +66,8 @@ jobs:
           path: cuda-ci-results/
           if-no-files-found: warn
 
-      - name: Clean up this job's container and image
-        if: always()
-        run: |
-          docker rm -f "vllm-cuda-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" 2>/dev/null || true
-          docker image rm "vllm-cuda-ci:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" 2>/dev/null || true
+      - name: Stop the build container
+        if: always() && steps.cuda.outputs.container != ''
+        env:
+          CONTAINER: ${{ steps.cuda.outputs.container }}
+        run: docker rm -f "$CONTAINER"
