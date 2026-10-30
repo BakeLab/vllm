@@ -336,7 +336,7 @@ def _engine(vllm_runner, model_dir, mono, graphs=False, **extra):
             "moe_backend": "aiter",
             "monokernel": mono,
         },
-        enforce_eager=not graphs,
+        stock_compile=not graphs,
         compilation_config={"cudagraph_mode": "FULL_DECODE_ONLY" if graphs else "NONE"},
         enable_prefix_caching=False,
         enable_trace_replay=True,

@@ -87,7 +87,7 @@ def test_rocm_aiter_custom_ar_e2e(
     max_tokens: int,
 ):
     compilation_mode = (
-        CompilationMode.NONE
+        CompilationMode.STOCK_TORCH_COMPILE
         if cudagraph_mode == CUDAGraphMode.NONE
         else CompilationMode.VLLM_COMPILE
     )

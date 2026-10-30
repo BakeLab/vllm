@@ -30,7 +30,7 @@ class DSparkCorrectnessConfig:
     chat_template_kwargs: dict[str, object] | None = None
     attention_backend: str | None = None
     gpu_memory_utilization: float = 0.92
-    enforce_eager: bool = False
+    stock_compile: bool = False
     disable_flashinfer_sampler: bool = False
     language_model_only: bool = False
 
@@ -58,7 +58,7 @@ GEMMA4_DSPARK_DEEPSPEC = DSparkCorrectnessConfig(
     num_questions=200,
     use_chat_completions=True,
     gpu_memory_utilization=0.85,
-    enforce_eager=True,
+    stock_compile=True,
     disable_flashinfer_sampler=True,
     language_model_only=True,
 )
@@ -112,7 +112,7 @@ def test_dspark_correctness_and_acceptance_rate(
         "speculative_config": speculative_config,
         "max_model_len": config.max_model_len,
         "gpu_memory_utilization": config.gpu_memory_utilization,
-        "enforce_eager": config.enforce_eager,
+        "stock_compile": config.stock_compile,
         "enable_chunked_prefill": None,
         "enable_prefix_caching": False,
         "disable_log_stats": False,

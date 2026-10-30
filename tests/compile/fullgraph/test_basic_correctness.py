@@ -86,7 +86,7 @@ def test_compile_correctness(
 
     # Test all compilation modes with inductor backend
     for mode in [
-        CompilationMode.NONE,
+        CompilationMode.STOCK_TORCH_COMPILE,
         CompilationMode.STOCK_TORCH_COMPILE,
         CompilationMode.DYNAMO_TRACE_ONCE,
         CompilationMode.VLLM_COMPILE,

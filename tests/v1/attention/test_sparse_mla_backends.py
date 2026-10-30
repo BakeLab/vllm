@@ -4921,7 +4921,7 @@ def test_rocm_fused_v32_dense_prefill_matches_mqa(
             block_size=64,
             enable_chunked_prefill=True,
             enable_prefix_caching=False,
-            enforce_eager=True,
+            stock_compile=True,
             gpu_memory_utilization=0.25,
             attention_config={
                 "backend": "ROCM_AITER_MLA_SPARSE",

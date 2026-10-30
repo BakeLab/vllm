@@ -53,7 +53,7 @@ def test_models(example_prompts, model_name) -> None:
         model=model_name,
         max_model_len=MAX_MODEL_LEN,
         trust_remote_code=True,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         quantization="modelopt",
     )
 

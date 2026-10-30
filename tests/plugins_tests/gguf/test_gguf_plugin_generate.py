@@ -59,7 +59,7 @@ def check_model_outputs(
     # Run gguf model.
     with vllm_runner(
         model_name=model.gguf_model_path,
-        enforce_eager=True,
+        stock_compile=True,
         tokenizer_name=model.original_model,
         dtype=dtype,
         max_model_len=MAX_MODEL_LEN,
@@ -74,7 +74,7 @@ def check_model_outputs(
     # nccl initialization.
     with vllm_runner(
         model_name=model.original_model,
-        enforce_eager=True,  # faster tests
+        stock_compile=True,  # faster tests
         dtype=dtype,
         max_model_len=MAX_MODEL_LEN,
         tensor_parallel_size=1,

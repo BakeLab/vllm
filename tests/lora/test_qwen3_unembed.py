@@ -72,7 +72,7 @@ def test_qwen3_unembed_lora():
             max_lora_rank=8,
             max_model_len=128,
             gpu_memory_utilization=0.8,
-            compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+            compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         )
 
         # Create LoRA weights after engine init

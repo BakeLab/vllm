@@ -118,7 +118,7 @@ class VLMTestInfo(NamedTuple):
     # Exposed options for vLLM runner; we change these in a several tests,
     # but the defaults are derived from VllmRunner & the engine defaults
     # These settings are chosen to avoid OOMs when running in the CI
-    enforce_eager: bool = True
+    stock_compile: bool = True
     max_model_len: int = 1024
     max_num_seqs: int = 256
     runner: RunnerOption = "auto"
@@ -182,7 +182,7 @@ class VLMTestInfo(NamedTuple):
         test cases.
         """
         return {
-            "enforce_eager": self.enforce_eager,
+            "stock_compile": self.stock_compile,
             "max_model_len": self.max_model_len,
             "max_num_seqs": self.max_num_seqs,
             "runner": self.runner,

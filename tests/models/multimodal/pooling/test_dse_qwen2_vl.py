@@ -93,7 +93,11 @@ def _run_test(
     # if we run HF first, the cuda initialization will be done and it
     # will hurt multiprocessing backend with fork method (the default method).
     with vllm_runner(
-        model, runner="pooling", dtype=dtype, enforce_eager=True, max_model_len=8192
+        model,
+        runner="pooling",
+        dtype=dtype,
+        stock_compile=True,
+        max_model_len=8192,
     ) as vllm_model:
         tokenizer = vllm_model.llm.get_tokenizer()
         texts = [

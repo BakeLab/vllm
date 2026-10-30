@@ -23,7 +23,7 @@ def parse_args():
     parser.set_defaults(
         model="Skywork/Skywork-Reward-V2-Qwen3-0.6B",
         runner="pooling",
-        compilation_config={"mode": "none", "cudagraph_mode": "none"},
+        compilation_config={"mode": "STOCK_TORCH_COMPILE", "cudagraph_mode": "none"},
         max_model_len=1024,
         trust_remote_code=True,
     )

@@ -42,7 +42,7 @@ def _run_test(
         model,
         runner="pooling",
         dtype=dtype,
-        enforce_eager=True,
+        stock_compile=True,
         max_model_len=64,
         gpu_memory_utilization=0.7,
     ) as vllm_model:

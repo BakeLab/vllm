@@ -56,7 +56,7 @@ def colultravbert_model(vllm_runner):
         runner="pooling",
         dtype=DTYPE,
         max_model_len=2048,
-        enforce_eager=True,
+        stock_compile=True,
     ) as vllm_model:
         yield vllm_model
 

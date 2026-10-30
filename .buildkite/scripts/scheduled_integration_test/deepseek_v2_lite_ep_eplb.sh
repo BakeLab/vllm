@@ -44,7 +44,7 @@ trap cleanup EXIT
 for BACK in "${BACKENDS[@]}"; do
   VLLM_DEEP_GEMM_WARMUP=skip \
   vllm serve "$MODEL" \
-    -cc.mode=none -cc.cudagraph_mode=none \
+    -cc.mode=1 -cc.cudagraph_mode=none \
     --tensor-parallel-size 2 \
     --data-parallel-size 2 \
     --enable-expert-parallel \

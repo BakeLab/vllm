@@ -13,7 +13,7 @@ PROMPT = "Hello my name is Robert and I"
 def llm() -> LLM:
     return LLM(
         MODEL,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         enable_prefix_caching=True,
         long_prefill_token_threshold=2,
         max_num_batched_tokens=6,

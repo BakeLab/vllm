@@ -19,17 +19,17 @@ def test_gpu_memory_utilization(vllm_runner):
         vllm_runner(
             "facebook/opt-125m",
             gpu_memory_utilization=0.3,
-            enforce_eager=True,
+            stock_compile=True,
         ) as runner_0,
         vllm_runner(
             "facebook/opt-125m",
             gpu_memory_utilization=0.3,
-            enforce_eager=True,
+            stock_compile=True,
         ) as runner_1,
         vllm_runner(
             "facebook/opt-125m",
             gpu_memory_utilization=0.3,
-            enforce_eager=True,
+            stock_compile=True,
         ) as runner_2,
     ):
         for runner in (runner_0, runner_1, runner_2):

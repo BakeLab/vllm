@@ -65,7 +65,7 @@ def _get_vllm_prefill_hidden(
         MODEL,
         max_model_len=4096,
         max_num_seqs=2,
-        enforce_eager=True,
+        stock_compile=True,
         limit_mm_per_prompt={"image": 1},
         **vllm_runner_kwargs,
     ) as vllm_model:

@@ -118,7 +118,7 @@ def test_online_quant_config_dict_json(vllm_runner, enable_pickle):
         pt_load_map_location=f"{DEVICE_TYPE}:0",
         quantization="torchao",
         hf_overrides=hf_overrides,
-        enforce_eager=True,
+        stock_compile=True,
     ) as llm:
         output = llm.generate_greedy(["The capital of France is"], max_tokens=4)
 
@@ -169,7 +169,7 @@ def test_online_quant_config_file(vllm_runner):
             pt_load_map_location=f"{DEVICE_TYPE}:0",
             quantization="torchao",
             hf_overrides=hf_overrides,
-            enforce_eager=True,
+            stock_compile=True,
         ) as llm:
             output = llm.generate_greedy(["The capital of France is"], max_tokens=4)
 
@@ -204,7 +204,7 @@ def test_reload_weights():
         model="Qwen/Qwen3-0.6B",
         dtype="bfloat16",
         load_format="dummy",
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         quantization="torchao",
         hf_overrides=hf_overrides,
     )
@@ -285,14 +285,14 @@ def test_opt_125m_int4wo_model_running_preshuffled_kernel(vllm_runner, monkeypat
     torch._dynamo.reset()
     monkeypatch.setenv("VLLM_ALLOW_INSECURE_SERIALIZATION", "1")
     model_name = "torchao-testing/opt-125m-Int4WeightOnlyConfig-v2-0.14.0.dev"
-    # Note: using enforce_eager=True because the `bf16i4bf16_shuffled` doesn't
+    # Note: using stock_compile=True because the `bf16i4bf16_shuffled` doesn't
     # have meta kernel implemented yet, can remove this flag after that is implemented
     with vllm_runner(
         model_name=model_name,
         quantization="torchao",
         dtype="bfloat16",
         pt_load_map_location=f"{DEVICE_TYPE}:0",
-        enforce_eager=True,
+        stock_compile=True,
     ) as llm:
 
         def has_int4_preshuffled_tensor_weight(model):
@@ -364,7 +364,7 @@ def test_opt_125m_int4wo_model_running_preshuffled_kernel_online_quant(
         )
     }
 
-    # Note: using enforce_eager=True because the `bf16i4bf16_shuffled` doesn't
+    # Note: using stock_compile=True because the `bf16i4bf16_shuffled` doesn't
     # have meta kernel implemented yet, can remove this flag after that is implemented
     with vllm_runner(
         model_name=model_name,
@@ -372,7 +372,7 @@ def test_opt_125m_int4wo_model_running_preshuffled_kernel_online_quant(
         dtype="bfloat16",
         pt_load_map_location=f"{DEVICE_TYPE}:0",
         hf_overrides=hf_overrides,
-        enforce_eager=True,
+        stock_compile=True,
     ) as llm:
 
         def has_int4_preshuffled_tensor_weight(model):

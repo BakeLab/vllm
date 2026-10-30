@@ -24,7 +24,7 @@ def test_collective_rpc(tp_size, backend, monkeypatch, vllm_runner):
     monkeypatch.setenv("VLLM_ALLOW_INSECURE_SERIALIZATION", "1")
     with vllm_runner(
         "hmellor/tiny-random-LlamaForCausalLM",
-        enforce_eager=True,
+        stock_compile=True,
         load_format="dummy",
         tensor_parallel_size=tp_size,
         distributed_executor_backend=backend,

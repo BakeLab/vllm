@@ -138,7 +138,7 @@ def test_hybrid_attention(vllm_runner: type[VllmRunner]) -> None:
     prompts, _, _ = prep_prompts(4, (800, 801))
     kwargs_ref = {
         "max_model_len": 8192,
-        "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
+        "compilation_config": {"mode": 1, "cudagraph_mode": "NONE"},
     }
     kwargs_test = {"model_impl": "transformers", **kwargs_ref}
     check_implementation(
@@ -173,7 +173,10 @@ def test_sinks(hf_runner: type[HfRunner], vllm_runner: type[VllmRunner]) -> None
 
     model = "tiny-random/gpt-oss-bf16"
     with vllm_runner(
-        model, model_impl="transformers", max_model_len=1024, enforce_eager=True
+        model,
+        model_impl="transformers",
+        max_model_len=1024,
+        stock_compile=True,
     ) as model_test:
         assert model_test.llm.llm_engine.model_config.using_transformers_backend()
         sinks = model_test.apply_model(get_sinks)[0]
@@ -192,7 +195,7 @@ def test_mla(vllm_runner: type[VllmRunner], example_prompts: list[str]) -> None:
     args = (example_prompts, 32, 5)
     kwargs: dict[str, Any] = {
         "max_model_len": 2048,
-        "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
+        "compilation_config": {"mode": 1, "cudagraph_mode": "NONE"},
     }
 
     with vllm_runner(
@@ -254,7 +257,7 @@ def test_quantization(
     with vllm_runner(
         model,
         model_impl="auto",
-        enforce_eager=True,
+        stock_compile=True,
         **quantization_kwargs,
     ) as vllm_model:
         vllm_outputs = vllm_model.generate_greedy_logprobs(
@@ -264,7 +267,7 @@ def test_quantization(
     with vllm_runner(
         model,
         model_impl="transformers",
-        enforce_eager=True,
+        stock_compile=True,
         **quantization_kwargs,
     ) as vllm_model:
         model_config = vllm_model.llm.llm_engine.model_config
@@ -295,7 +298,7 @@ def test_embed_loading(vllm_runner, model):
     with vllm_runner(
         model,
         max_model_len=1024,
-        enforce_eager=True,
+        stock_compile=True,
         runner="pooling",
         model_impl="transformers",
     ) as model_test:

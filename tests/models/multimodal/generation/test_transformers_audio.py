@@ -103,7 +103,7 @@ def test_transformers_audio_generation(
         model_impl="transformers",
         dtype="bfloat16",
         max_model_len=2048,
-        enforce_eager=True,
+        stock_compile=True,
         limit_mm_per_prompt={"audio": 1},
         enable_lora=audio_lora_path is not None,
         max_lora_rank=64,

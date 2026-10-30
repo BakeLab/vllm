@@ -817,7 +817,7 @@ def test_engine_core_client(
         m.setattr(EngineCore, "echo", echo, raising=False)
 
         engine_args = EngineArgs(
-            model=MODEL_NAME, compilation_config={"mode": 0, "cudagraph_mode": "NONE"}
+            model=MODEL_NAME, compilation_config={"mode": 1, "cudagraph_mode": "NONE"}
         )
         vllm_config = engine_args.create_engine_config(UsageContext.UNKNOWN_CONTEXT)
         executor_class = Executor.get_class(vllm_config)
@@ -908,7 +908,7 @@ async def test_engine_core_client_asyncio(
         m.setattr(EngineCore, "echo", echo, raising=False)
 
         engine_args = EngineArgs(
-            model=MODEL_NAME, compilation_config={"mode": 0, "cudagraph_mode": "NONE"}
+            model=MODEL_NAME, compilation_config={"mode": 1, "cudagraph_mode": "NONE"}
         )
         vllm_config = engine_args.create_engine_config(
             usage_context=UsageContext.UNKNOWN_CONTEXT
@@ -1010,7 +1010,7 @@ async def test_engine_core_client_util_method_custom_return(
         m.setattr(EngineCore, "echo_dc", echo_dc, raising=False)
 
         engine_args = EngineArgs(
-            model=MODEL_NAME, compilation_config={"mode": 0, "cudagraph_mode": "NONE"}
+            model=MODEL_NAME, compilation_config={"mode": 1, "cudagraph_mode": "NONE"}
         )
         vllm_config = engine_args.create_engine_config(
             usage_context=UsageContext.UNKNOWN_CONTEXT
@@ -1060,7 +1060,7 @@ async def test_engine_core_client_util_method_custom_dict_return(
         m.setattr(EngineCore, "echo_dc_dict", echo_dc_dict, raising=False)
 
         engine_args = EngineArgs(
-            model=MODEL_NAME, compilation_config={"mode": 0, "cudagraph_mode": "NONE"}
+            model=MODEL_NAME, compilation_config={"mode": 1, "cudagraph_mode": "NONE"}
         )
         vllm_config = engine_args.create_engine_config(
             usage_context=UsageContext.UNKNOWN_CONTEXT
@@ -1119,7 +1119,7 @@ async def test_engine_core_client_util_method_nested_structures(
         m.setattr(EngineCore, "echo_dc_nested", echo_dc_nested, raising=False)
 
         engine_args = EngineArgs(
-            model=MODEL_NAME, compilation_config={"mode": 0, "cudagraph_mode": "NONE"}
+            model=MODEL_NAME, compilation_config={"mode": 1, "cudagraph_mode": "NONE"}
         )
         vllm_config = engine_args.create_engine_config(
             usage_context=UsageContext.UNKNOWN_CONTEXT
@@ -1230,7 +1230,7 @@ async def test_engine_core_client_future_utility_async(
         m.setattr(EngineCore, "future_echo", future_echo, raising=False)
 
         engine_args = EngineArgs(
-            model=MODEL_NAME, compilation_config={"mode": 0, "cudagraph_mode": "NONE"}
+            model=MODEL_NAME, compilation_config={"mode": 1, "cudagraph_mode": "NONE"}
         )
         vllm_config = engine_args.create_engine_config(
             usage_context=UsageContext.UNKNOWN_CONTEXT
@@ -1285,7 +1285,7 @@ def test_kv_cache_events(
 
     engine_args = EngineArgs(
         model=model_name,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         enable_prefix_caching=True,
         prefix_cache_retention_interval=None,
         block_size=block_size,
@@ -1367,7 +1367,7 @@ async def test_kv_cache_events_dp(
 
     engine_args = EngineArgs(
         model=MODEL_NAME,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         enable_prefix_caching=True,
         data_parallel_size=dp_size,
         tensor_parallel_size=tp_size,

@@ -56,7 +56,7 @@ def test_qwen3_5_mtp_lm_head_receives_quant_config():
     mock_vllm_config = Mock()
     mock_vllm_config.model_config.hf_text_config = mock_hf_config
     mock_vllm_config.cache_config.mamba_cache_mode = "align"
-    mock_vllm_config.compilation_config.mode = CompilationMode.NONE
+    mock_vllm_config.compilation_config.mode = CompilationMode.STOCK_TORCH_COMPILE
     mock_vllm_config.quant_config = mock_quant_config
 
     mock_pp_group = Mock()

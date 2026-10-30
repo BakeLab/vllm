@@ -44,7 +44,7 @@ def test_sliding_window_retrieval(
     # NOTE: For ROCm, we have to enforce eager mode to use custom kernel
     # implementation of GELU with tanh approximation, as PyTorch's native
     # implementation is currently unstable with torch.compile and produces garbage.
-    enforce_eager = current_platform.is_rocm()
+    stock_compile = current_platform.is_rocm()
 
     test_config = model_config[model]
 
@@ -53,7 +53,7 @@ def test_sliding_window_retrieval(
         max_model_len=None,
         enable_chunked_prefill=None,
         disable_hybrid_kv_cache_manager=disable_hybrid_kv_cache_manager,
-        enforce_eager=enforce_eager,
+        stock_compile=stock_compile,
     ) as runner:
         llm = runner.get_llm()
         sampling_params = SamplingParams(temperature=0.0, max_tokens=100)
@@ -94,7 +94,7 @@ def test_hybrid_kv_cache_manager_output_equivalence(model, vllm_runner):
     """
     prompts, _, _ = prep_prompts(2, ln_range=model_config[model].ln_range)
     sampling_params = SamplingParams(temperature=0.0, max_tokens=32)
-    enforce_eager = current_platform.is_rocm()
+    stock_compile = current_platform.is_rocm()
 
     outputs = []
     for disable_hybrid in (False, True):
@@ -103,7 +103,7 @@ def test_hybrid_kv_cache_manager_output_equivalence(model, vllm_runner):
             max_model_len=None,
             enable_chunked_prefill=None,
             disable_hybrid_kv_cache_manager=disable_hybrid,
-            enforce_eager=enforce_eager,
+            stock_compile=stock_compile,
         ) as runner:
             responses = runner.get_llm().generate(prompts, sampling_params)
             outputs.append([response.outputs[0].text for response in responses])

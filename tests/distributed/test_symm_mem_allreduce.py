@@ -478,7 +478,7 @@ def test_dp_with_symm_mem_allreduce(monkeypatch: pytest.MonkeyPatch):
     # Verify that the DataParallel runs without error
     engine_args = EngineArgs(
         model="distilbert/distilgpt2",
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         enable_prefix_caching=True,
         data_parallel_size=2,
         tensor_parallel_size=2,

@@ -19,7 +19,7 @@ def llm(vllm_runner):
         max_num_seqs=2,  # small to trigger tiling
         tensor_parallel_size=1,
         gpu_memory_utilization=0.75,
-        enforce_eager=True,
+        stock_compile=True,
         seed=0,
         enable_chunked_prefill=None,
     ) as runner:

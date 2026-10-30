@@ -76,7 +76,7 @@ async def test_add_lora(chatglm3_lora_files):
         max_model_len=128,
         gpu_memory_utilization=0.8,  # avoid OOM
         trust_remote_code=True,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
     )
 
     # split lora_requests into 3 parts

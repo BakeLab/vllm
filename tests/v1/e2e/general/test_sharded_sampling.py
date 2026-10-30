@@ -109,7 +109,7 @@ def _generate(
         # Keep capacity at least as large as the TP size. The actual request
         # count may be smaller to exercise an empty rank.
         max_num_seqs=len(PROMPTS),
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         enable_prefix_caching=False,
         gpu_memory_utilization=0.7,
         # Timing-based kernel selection is the dominant source of cross-boot

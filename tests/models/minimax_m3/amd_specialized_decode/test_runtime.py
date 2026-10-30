@@ -115,7 +115,7 @@ def _vllm_config(layers=60, **parallel):
         attention_config=SimpleNamespace(
             resolve_indexer_kv_dtype=lambda _default: "fp8"
         ),
-        compilation_config=SimpleNamespace(mode=CompilationMode.NONE),
+        compilation_config=SimpleNamespace(mode=CompilationMode.STOCK_TORCH_COMPILE),
         kernel_config=SimpleNamespace(moe_backend="aiter", monokernel=True),
         lora_config=None,
         kv_transfer_config=SimpleNamespace(kv_connector=None),

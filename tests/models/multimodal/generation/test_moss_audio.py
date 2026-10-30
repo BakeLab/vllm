@@ -52,7 +52,7 @@ def test_moss_audio_generation_smoke(vllm_runner) -> None:
     with vllm_runner(
         model,
         dtype="half",
-        enforce_eager=True,
+        stock_compile=True,
         max_model_len=1024,
         limit_mm_per_prompt={"audio": 1},
         trust_remote_code=True,
@@ -90,7 +90,7 @@ def test_moss_audio_hf_vllm_accuracy(
     with vllm_runner(
         model,
         dtype=dtype,
-        enforce_eager=True,
+        stock_compile=True,
         max_model_len=1024,
         limit_mm_per_prompt={"audio": 1},
         trust_remote_code=True,
@@ -139,7 +139,7 @@ def test_moss_audio_parallel_smoke(vllm_runner, parallel_kwargs) -> None:
     with vllm_runner(
         model,
         dtype="half",
-        enforce_eager=True,
+        stock_compile=True,
         max_model_len=1024,
         limit_mm_per_prompt={"audio": 1},
         trust_remote_code=True,

@@ -70,7 +70,7 @@ def start_vllm_server() -> subprocess.Popen:
         SERVER_DEVICE_IDS,
         "--quantization",
         "fp8",
-        "-cc.mode=none",
+        "-cc.mode=1",
         "-cc.cudagraph_mode=none",
         "--load-format",
         "dummy",

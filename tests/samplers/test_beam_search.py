@@ -25,14 +25,14 @@ from vllm.sampling_params import BeamSearchParams, StructuredOutputsParams
 # On ROCm, floating-point reductions in attention and GEMM kernels are
 # non-associative and sensitive to batch geometry, so we:
 #   async_scheduling=False      – deterministic batch composition
-#   enforce_eager=True          – no CUDA-graph padding changing effective size
+#   stock_compile=True          – no CUDA-graph padding changing effective size
 #   enable_prefix_caching=False – avoid prefix-sharing side effects
 #   max_num_seqs=1              – fixed batch size across runs
 # On other platforms these are not needed and the dict is empty.
 EXTRA_ENGINE_KWARGS: dict = (
     dict(
         async_scheduling=False,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         enable_prefix_caching=False,
         max_num_seqs=1,
     )
@@ -334,7 +334,7 @@ def test_beam_search_structured_output(
             disable_any_whitespace=True,
         ),
         **(
-            dict(compilation_config={"mode": 0, "cudagraph_mode": "NONE"})
+            dict(compilation_config={"mode": 1, "cudagraph_mode": "NONE"})
             | EXTRA_ENGINE_KWARGS
         ),
     )

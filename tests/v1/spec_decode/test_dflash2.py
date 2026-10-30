@@ -447,7 +447,7 @@ def _mock_draft_configs(monkeypatch, hf_config):
             custom_ops="all",
             enabled_custom_ops=set(),
             static_forward_context={},
-            mode=0,  # CompilationMode.NONE is 0
+            mode=1,  # Stock torch.compile reference.
         ),
         model_config=SimpleNamespace(
             dtype=torch.float32,

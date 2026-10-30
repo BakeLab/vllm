@@ -43,7 +43,7 @@ def colqwen3_5_model(request, vllm_runner):
         runner="pooling",
         dtype=DTYPE,
         max_model_len=4096,
-        enforce_eager=True,
+        stock_compile=True,
     ) as vllm_model:
         yield model, vllm_model
 

@@ -105,7 +105,7 @@ def test_relu2_static_fp8_quant_ignores_custom_op_dispatch(enabled_ops) -> None:
 @requires_sm90
 @torch.inference_mode()
 def test_relu2_static_fp8_quant_without_compilation() -> None:
-    config = VllmConfig(optimization_level=OptimizationLevel.O0)
+    config = VllmConfig(optimization_level=OptimizationLevel.O1)
     with set_current_vllm_config(config):
         torch.manual_seed(0)
         relu2 = ReLUSquaredActivation()

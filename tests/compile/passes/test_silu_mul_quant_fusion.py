@@ -309,7 +309,7 @@ def test_fusion_silu_and_mul_quant(
         custom_ops.append("+quant_fp8")
     config = VllmConfig(
         compilation_config=CompilationConfig(
-            mode=CompilationMode.NONE,
+            mode=CompilationMode.STOCK_TORCH_COMPILE,
             custom_ops=custom_ops,
             pass_config=PassConfig(fuse_act_quant=True, eliminate_noops=True),
         ),

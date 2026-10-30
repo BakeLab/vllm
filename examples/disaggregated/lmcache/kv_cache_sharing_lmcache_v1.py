@@ -56,7 +56,7 @@ def run_store(store_done, prompts):
         kv_transfer_config=ktc,
         max_model_len=8000,
         gpu_memory_utilization=0.8,
-        compilation_config={"mode": "none", "cudagraph_mode": "none"},
+        compilation_config={"mode": "STOCK_TORCH_COMPILE", "cudagraph_mode": "none"},
     )
 
     outputs = llm.generate(prompts, sampling_params)
@@ -84,7 +84,7 @@ def run_retrieve(store_done, prompts, timeout=1):
         kv_transfer_config=ktc,
         max_model_len=8000,
         gpu_memory_utilization=0.8,
-        compilation_config={"mode": "none", "cudagraph_mode": "none"},
+        compilation_config={"mode": "STOCK_TORCH_COMPILE", "cudagraph_mode": "none"},
     )
 
     print("Waiting for KV cache store to finish...")

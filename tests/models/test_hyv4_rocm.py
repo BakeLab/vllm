@@ -64,7 +64,7 @@ def _piecewise_compile_state(worker):
 
 
 @pytest.mark.parametrize(
-    "tp,enforce_eager,mtp,dtype,kv_cache_dtype",
+    "tp,stock_compile,mtp,dtype,kv_cache_dtype",
     [
         pytest.param(1, True, False, "bfloat16", "auto", id="eager-tp1"),
         pytest.param(1, True, False, "float16", "auto", id="eager-fp16"),
@@ -85,7 +85,7 @@ def test_hyv4_dummy_generation(
     vllm_runner,
     enable_pickle,
     tp: int,
-    enforce_eager: bool,
+    stock_compile: bool,
     mtp: bool,
     dtype: str,
     kv_cache_dtype: str,
@@ -106,7 +106,7 @@ def test_hyv4_dummy_generation(
         enable_chunked_prefill=True,
         enable_prefix_caching=False,
         kv_cache_memory_bytes=128 * 1024 * 1024,
-        enforce_eager=enforce_eager,
+        stock_compile=stock_compile,
         tensor_parallel_size=tp,
         speculative_config={"method": "mtp", "num_speculative_tokens": 2}
         if mtp
@@ -114,14 +114,14 @@ def test_hyv4_dummy_generation(
         seed=17,
         # Exercise supported decode graphs independently of default graph policy.
         compilation_config=CompilationConfig(
-            mode=CompilationMode.NONE,
+            mode=CompilationMode.STOCK_TORCH_COMPILE,
             cudagraph_mode=CUDAGraphMode.NONE
-            if enforce_eager
+            if stock_compile
             else CUDAGraphMode.FULL_DECODE_ONLY,
-            cudagraph_capture_sizes=[] if enforce_eager else [1, 2, 4],
+            cudagraph_capture_sizes=[] if stock_compile else [1, 2, 4],
         ),
     ) as model:
-        if not enforce_eager:
+        if not stock_compile:
             assert model.collective_rpc(_num_captured_graphs) == [3] * tp
         prompts = [
             {"prompt_token_ids": [11, 12, 13, 14]},
@@ -169,7 +169,7 @@ def test_hyv4_backbone_reaches_the_compiler(vllm_runner, enable_pickle) -> None:
         enable_chunked_prefill=True,
         enable_prefix_caching=False,
         kv_cache_memory_bytes=128 * 1024 * 1024,
-        enforce_eager=False,
+        stock_compile=False,
         seed=17,
         compilation_config=CompilationConfig(
             mode=CompilationMode.VLLM_COMPILE,

@@ -125,13 +125,13 @@ QWEN3_AUTOROUND_MODELS = [
 
 MODEL_RUNNER_KWARGS: dict[str, dict[str, Any]] = {
     "INCModel/Qwen3-1.7B-AutoRound-MXFP4-W4A4": {
-        "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"}
+        "compilation_config": {"mode": 1, "cudagraph_mode": "NONE"}
     },
     "INCModel/Qwen3-30B-A3B-12L-MXFP4-test": {
-        "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"}
+        "compilation_config": {"mode": 1, "cudagraph_mode": "NONE"}
     },
     "INCModel/Qwen3-30B-A3B-12L-MXFP8-test": {
-        "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"}
+        "compilation_config": {"mode": 1, "cudagraph_mode": "NONE"}
     },
     "Intel/Qwen3-8B-w2g64-for-ut": {
         "block_size": 64,
@@ -2707,7 +2707,10 @@ def test_e2e_generates_with_real_weights(vllm_runner, monkeypatch, model) -> Non
     monkeypatch.setenv(_BACKEND_ENV, "w4a8")
 
     with vllm_runner(
-        model, max_model_len=512, enforce_eager=True, gpu_memory_utilization=0.55
+        model,
+        max_model_len=512,
+        stock_compile=True,
+        gpu_memory_utilization=0.55,
     ) as vllm_model:
         out = vllm_model.generate_greedy(["The capital of France is"], max_tokens=8)
 
@@ -2729,7 +2732,7 @@ def test_e2e_selects_w4a8_for_every_linear(vllm_runner, monkeypatch) -> None:
     with vllm_runner(
         E2E_MODELS[0].values[0],
         max_model_len=512,
-        enforce_eager=True,
+        stock_compile=True,
         gpu_memory_utilization=0.55,
     ) as vllm_model:
 

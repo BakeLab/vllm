@@ -353,7 +353,7 @@ class MoETestConfig:
 
     # TODO: add more error messages
     @staticmethod
-    def from_id(id: str) -> "MoETestConfig":
+    def from_id(id: str) -> MoETestConfig:
         id = id[1:-1]
         str_values = id.split("-")
 
@@ -2194,7 +2194,7 @@ def test_moe_layer(
     )
 
     compilation_config = CompilationConfig()
-    # compilation_config.mode = CompilationMode.NONE  # for now
+    # compilation_config.mode = CompilationMode.STOCK_TORCH_COMPILE  # for now
     compilation_config.pass_config.fuse_allreduce_rms = False  # for now
 
     vllm_config = VllmConfig(

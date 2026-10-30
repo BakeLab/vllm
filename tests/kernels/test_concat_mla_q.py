@@ -175,7 +175,7 @@ def test_concat_mla_q_fp8_nope_and_rope(rope_dim, transposed, enabled):
     expected = expected.to(current_platform.fp8_dtype())
     custom_ops = ["none"] + (["+mla_decode_concat_quant_fp8"] if enabled else [])
     config = VllmConfig(
-        compilation_config=CompilationConfig(mode=0, custom_ops=custom_ops)
+        compilation_config=CompilationConfig(mode=1, custom_ops=custom_ops)
     )
     with set_current_vllm_config(config):
         quant = _DecodeConcatQuantFP8(static=True, group_shape=GroupShape.PER_TENSOR)

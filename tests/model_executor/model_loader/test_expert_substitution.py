@@ -301,7 +301,7 @@ def test_loads_mone_checkpoint_into_compact_experts(
     )
     load_config = LoadConfig(load_format="safetensors", use_tqdm_on_load=False)
     vllm_config = VllmConfig(
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         model_config=model_config,
         device_config=DeviceConfig(device="cuda"),
         load_config=load_config,

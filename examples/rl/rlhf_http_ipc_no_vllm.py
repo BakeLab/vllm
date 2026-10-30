@@ -17,7 +17,8 @@ Start a server; IPC handles are pickled, so it needs
 
     VLLM_SERVER_DEV_MODE=1 VLLM_ALLOW_INSECURE_SERIALIZATION=1 \
         CUDA_VISIBLE_DEVICES=0 vllm serve Qwen/Qwen3-0.6B \
-        --load-format dummy -cc.mode=none -cc.cudagraph_mode=none --gpu-memory-utilization 0.4 \
+        --load-format dummy -cc.mode=1 \
+        -cc.cudagraph_mode=NONE --gpu-memory-utilization 0.4 \
         --weight-transfer-config '{"backend": "ipc"}'
 
 Then run the trainer on the same GPU(s) (`--packed` for chunked transfer):

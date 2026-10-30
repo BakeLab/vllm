@@ -122,7 +122,7 @@ def test_cpu_mla_backend_smoke(tmp_path) -> None:
         skip_tokenizer_init=True,
         trust_remote_code=True,
         load_format="dummy",
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         max_model_len=128,
         max_num_seqs=2,
         block_size=16,

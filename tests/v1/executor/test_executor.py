@@ -164,7 +164,7 @@ def test_custom_executor(distributed_executor_backend, tmp_path):
             max_model_len=8192,
             distributed_executor_backend=distributed_executor_backend,
             compilation_config={
-                "mode": 0,
+                "mode": 1,
                 "cudagraph_mode": "NONE",
             },  # reduce test time
         )
@@ -198,7 +198,7 @@ def test_custom_executor_async(distributed_executor_backend, tmp_path):
             max_model_len=8192,
             distributed_executor_backend=distributed_executor_backend,
             compilation_config={
-                "mode": 0,
+                "mode": 1,
                 "cudagraph_mode": "NONE",
             },  # reduce test time
         )

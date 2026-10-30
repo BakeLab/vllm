@@ -29,7 +29,7 @@ def test_decoder_token_embed_model_runner_v2(
         pooler_config=PoolerConfig(task="token_embed"),
         max_model_len=128,
         max_num_batched_tokens=chunk_size,
-        enforce_eager=True,
+        stock_compile=True,
         # `enable_chunked_prefill`: Set to `False` instead of `None` in VllmRunner
         enable_chunked_prefill=True,
         enable_prefix_caching=True,
@@ -74,10 +74,10 @@ def test_last_pool_score_chunked_prefill_matches_unchunked(vllm_runner, model: s
     """LAST-pooling score must not depend on whether the prompt is chunked.
 
     Regression test for a wrong-score bug where, under ``torch.compile`` (i.e.
-    not ``enforce_eager``), a query+document pair long enough to be split across
+    not ``stock_compile``), a query+document pair long enough to be split across
     prefill chunks produced a corrupted last-token hidden state and thus a
     wrong relevance score, while the same input scored correctly unchunked.
-    The existing pooling+chunked-prefill coverage runs ``enforce_eager=True``
+    The existing pooling+chunked-prefill coverage runs ``stock_compile=True``
     and so never exercised the compiled path.
     """
     chat_template = _RERANKER_TEMPLATE.read_text()
@@ -136,7 +136,7 @@ def test_sequence_embed_model_runner_v2(hf_runner, vllm_runner, monkeypatch) -> 
         max_num_batched_tokens=chunk_size,
         max_num_seqs=2,
         gpu_memory_utilization=0.25,
-        enforce_eager=True,
+        stock_compile=True,
         enable_chunked_prefill=True,
     ) as vllm_model:
         assert vllm_model.llm.llm_engine.vllm_config.use_v2_model_runner

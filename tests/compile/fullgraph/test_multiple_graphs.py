@@ -255,7 +255,7 @@ def test_multi_graph_piecewise_compile(
     # no compile or cudagraph
     vllm_config = VllmConfig(
         compilation_config=CompilationConfig(
-            mode=CompilationMode.NONE,
+            mode=CompilationMode.STOCK_TORCH_COMPILE,
         )
     )
     cudagraph_runtime_mode = CUDAGraphMode.NONE

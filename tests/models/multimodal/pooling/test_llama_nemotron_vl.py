@@ -122,7 +122,7 @@ def _run_test(
         runner="pooling",
         dtype=dtype,
         max_model_len=2048,
-        enforce_eager=True,
+        stock_compile=True,
         trust_remote_code=True,
         **ROCM_ENGINE_KWARGS,
     ) as vllm_model:
@@ -283,7 +283,7 @@ def _run_vllm_reranker(
         runner="pooling",
         dtype=dtype,
         max_model_len=2048,
-        enforce_eager=True,
+        stock_compile=True,
         trust_remote_code=True,
         **ROCM_ENGINE_KWARGS,
     ) as vllm_model:

@@ -52,7 +52,7 @@ def test_gemma4_dspark_loads_confidence_head(
         confidence_head_with_markov=with_markov,
     )
     vllm_config = SimpleNamespace(
-        compilation_config=CompilationConfig(mode=CompilationMode.NONE),
+        compilation_config=CompilationConfig(mode=CompilationMode.STOCK_TORCH_COMPILE),
         model_config=SimpleNamespace(dtype=torch.bfloat16),
         speculative_config=SimpleNamespace(
             draft_model_config=SimpleNamespace(hf_config=config),

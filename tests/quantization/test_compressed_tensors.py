@@ -243,7 +243,7 @@ def test_compressed_tensors_w8a8_logprobs(
             example_prompts, max_tokens, num_logprobs
         )
 
-    with vllm_runner(model_path, dtype=dtype, enforce_eager=True) as vllm_model:
+    with vllm_runner(model_path, dtype=dtype, stock_compile=True) as vllm_model:
         vllm_outputs = vllm_model.generate_greedy_logprobs(
             example_prompts, max_tokens, num_logprobs
         )
@@ -259,7 +259,7 @@ def test_compressed_tensors_w8a8_logprobs(
         torch.accelerator.synchronize()
 
 
-def test_compressed_tensors_no_enforce_eager(vllm_runner):
+def test_compressed_tensors_no_stock_compile(vllm_runner):
     model_path = "nm-testing/tinyllama-oneshot-w8w8-test-static-shape-change"
     with vllm_runner(model_path) as llm:
         output = llm.generate_greedy("Hello my name is", max_tokens=4)
@@ -322,7 +322,7 @@ def test_compressed_tensors_w8a8_dynamic_per_token(
 )
 def test_compressed_tensors_wNa16(vllm_runner, wNa16_args):
     model, strategy, group, pack_factor, symmetric = wNa16_args
-    with vllm_runner(model, enforce_eager=True) as llm:
+    with vllm_runner(model, stock_compile=True) as llm:
 
         def check_model(model):
             layer = model.model.layers[0]
@@ -473,7 +473,7 @@ def test_compressed_tensors_nvfp4(args, dist_init, workspace_init):
 )
 def test_compressed_tensors_w4a8_fp8(vllm_runner, args):
     model, scheme = args
-    with vllm_runner(model, enforce_eager=True) as llm:
+    with vllm_runner(model, stock_compile=True) as llm:
 
         def check_model(model):
             layer = model.model.layers[0]
@@ -524,7 +524,7 @@ def test_compressed_tensors_w4a8_fp8(vllm_runner, args):
 def test_compressed_tensors_transforms_perplexity(
     vllm_runner, model, prompt, exp_perplexity
 ):
-    with vllm_runner(model, enforce_eager=True) as llm:
+    with vllm_runner(model, stock_compile=True) as llm:
         perplexity = llm.generate_prompt_perplexity([prompt])[0]
         print(perplexity)
         assert perplexity <= exp_perplexity
@@ -590,7 +590,7 @@ def test_compressed_tensors_moe_ignore_with_model(vllm_runner):
     # model_path = "nm-testing/tinysmokeqwen3moe-W4A16-first-only" # CT 12.3
     model_path = "nm-testing/tinysmokeqwen3moe-W4A16-first-only-CTstable"  # CT 12.2
 
-    with vllm_runner(model_path, enforce_eager=True) as llm:
+    with vllm_runner(model_path, stock_compile=True) as llm:
 
         def check_model(model):
             from vllm.model_executor.layers.fused_moe import MoERunner
@@ -630,7 +630,7 @@ def test_w4a16_moe_torch_compile(vllm_runner):
 
     with vllm_runner(
         model_path,
-        enforce_eager=False,
+        stock_compile=False,
         max_model_len=256,
         compilation_config={
             "cudagraph_mode": "NONE",
@@ -929,7 +929,7 @@ def test_compressed_tensors_mxfp8_moe_setup(vllm_runner):
     model_path = "AliEdalati97/Qwen3-30B-A3B-MXFP8"
     with vllm_runner(
         model_path,
-        enforce_eager=True,
+        stock_compile=True,
         load_format="dummy",
         hf_overrides={"num_hidden_layers": 4},
     ) as llm:
@@ -1001,7 +1001,7 @@ def test_quant_key_str_supports_scalar_type_dtypes():
 )
 def test_compressed_tensors_mxfp4(vllm_runner):
     model_path = "nm-testing/TinyLlama-1.1B-Chat-v1.0-MXFP4"
-    with vllm_runner(model_path, enforce_eager=True) as llm:
+    with vllm_runner(model_path, stock_compile=True) as llm:
 
         def check_model(model):
             layer = model.model.layers[0]

@@ -36,7 +36,7 @@ def _run_test(
         model,
         runner="pooling",
         dtype="half",
-        enforce_eager=True,
+        stock_compile=True,
         skip_tokenizer_init=True,
         enable_mm_embeds=True,
         # Limit the maximum number of sequences to avoid the

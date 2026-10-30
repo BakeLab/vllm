@@ -113,7 +113,7 @@ mkdir -p "$EC_SHARED_STORAGE_PATH"
 env "$DEVICE_AFFINITY_ENV=$GPU_E" vllm serve "$MODEL" \
     --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION_E" \
     --port "$ENCODE_PORT" \
-    -cc.mode=none -cc.cudagraph_mode=none \
+    -cc.mode=1 -cc.cudagraph_mode=none \
     --enable-request-id-headers \
     --disable-prefix-caching \
     --max-num-batched-tokens 114688 \
@@ -139,7 +139,7 @@ VLLM_NIXL_SIDE_CHANNEL_PORT=5559 \
 vllm serve "$MODEL" \
     --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION_P" \
     --port "$PREFILL_PORT" \
-    -cc.mode=none -cc.cudagraph_mode=none \
+    -cc.mode=1 -cc.cudagraph_mode=none \
     --enable-request-id-headers \
     --max-num-seqs "$MAX_NUM_SEQS" \
     --max-model-len "$MAX_MODEL_LEN" \
@@ -168,7 +168,7 @@ VLLM_NIXL_SIDE_CHANNEL_PORT=6000 \
 vllm serve "$MODEL" \
     --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION_D" \
     --port "$DECODE_PORT" \
-    -cc.mode=none -cc.cudagraph_mode=none \
+    -cc.mode=1 -cc.cudagraph_mode=none \
     --enable-request-id-headers \
     --max-num-seqs "$MAX_NUM_SEQS" \
     --max-model-len "$MAX_MODEL_LEN" \

@@ -68,7 +68,7 @@ def test_mxfp8_logprobs(
         with vllm_runner(
             model,
             max_model_len=MAX_MODEL_LEN,
-            enforce_eager=True,
+            stock_compile=True,
             quantization="mxfp8",
         ) as vllm_model:
             test_outputs = vllm_model.generate_greedy_logprobs(
@@ -247,7 +247,7 @@ def test_mxfp8_generation(vllm_runner, model: str) -> None:
     prompt = "1 2 3 4 5"
     with vllm_runner(
         model,
-        enforce_eager=True,
+        stock_compile=True,
         quantization="mxfp8",
         max_model_len=MAX_MODEL_LEN,
     ) as vllm_model:

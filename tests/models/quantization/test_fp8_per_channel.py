@@ -64,7 +64,7 @@ def test_fp8_per_channel_logprobs(
         with vllm_runner(
             model,
             max_model_len=MAX_MODEL_LEN,
-            enforce_eager=True,
+            stock_compile=True,
             quantization="fp8_per_channel",
         ) as vllm_model:
             test_outputs = vllm_model.generate_greedy_logprobs(

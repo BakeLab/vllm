@@ -13,7 +13,7 @@ import psutil
 import torch
 
 from vllm import envs
-from vllm.config import CompilationMode, VllmConfig
+from vllm.config import VllmConfig
 from vllm.logger import init_logger
 from vllm.platforms import CpuArchEnum, current_platform
 from vllm.utils.cpu_resource_utils import (
@@ -185,17 +185,7 @@ class CPUWorker(Worker):
 
     def _should_warm_up_model(self) -> bool:
         # VLLM_CPU_CI_ENV always skips warmup to save CI time.
-        if envs.VLLM_CPU_CI_ENV:
-            return False
-        # With eager (CompilationMode.NONE) execution and an explicit KV
-        # cache size, warmup serves no purpose: there's no compiled graph to
-        # prewarm, and the auto KV-cache-size calc below -- which relies on
-        # a warmup forward pass having already bumped RSS to a realistic
-        # steady-state value -- is bypassed whenever the size is explicit.
-        return not (
-            self.compilation_config.mode == CompilationMode.NONE
-            and self.cache_config.kv_cache_memory_bytes is not None
-        )
+        return not envs.VLLM_CPU_CI_ENV
 
     def determine_available_memory(self) -> int:
         if self._should_warm_up_model():

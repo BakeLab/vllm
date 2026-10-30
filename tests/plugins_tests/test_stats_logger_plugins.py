@@ -62,7 +62,7 @@ async def test_stat_logger_plugin_integration_with_engine(
         engine_args = AsyncEngineArgs(
             model="facebook/opt-125m",
             compilation_config={
-                "mode": 0,
+                "mode": 1,
                 "cudagraph_mode": "NONE",
             },  # reduce test time
             disable_log_stats=True,  # disable default loggers

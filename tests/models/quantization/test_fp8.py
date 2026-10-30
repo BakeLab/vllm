@@ -43,7 +43,7 @@ from ..utils import check_logprobs_close
 )
 # Due to low-precision numerical divergence, we only test logprob of 4 tokens
 @pytest.mark.parametrize("max_tokens", [4])
-@pytest.mark.parametrize("enforce_eager", [True])
+@pytest.mark.parametrize("stock_compile", [True])
 @pytest.mark.parametrize("backend", ["FLASH_ATTN"])
 # NOTE: Increasing this in this suite will fail CI because we currently cannot
 # reset distributed env properly. Use a value > 1 just when you test.
@@ -55,7 +55,7 @@ def test_models(
     base_model: str,
     test_model: str,
     max_tokens: int,
-    enforce_eager: bool,
+    stock_compile: bool,
     backend: str,
     tensor_parallel_size: int,
     monkeypatch: pytest.MonkeyPatch,
@@ -85,7 +85,7 @@ def test_models(
             base_model,
             max_model_len=MAX_MODEL_LEN,
             tensor_parallel_size=tensor_parallel_size,
-            enforce_eager=enforce_eager,
+            stock_compile=stock_compile,
             kv_cache_dtype="auto",
             attention_config={"backend": backend},
         ) as vllm_model:
@@ -97,7 +97,7 @@ def test_models(
             test_model,
             max_model_len=MAX_MODEL_LEN,
             tensor_parallel_size=tensor_parallel_size,
-            enforce_eager=enforce_eager,
+            stock_compile=stock_compile,
             kv_cache_dtype=kv_cache_dtype,
             attention_config={"backend": backend},
         ) as vllm_model:

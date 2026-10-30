@@ -85,7 +85,7 @@ def test_auto_fit_max_model_len_rejects_oversized_input(
         model_name=model,
         max_model_len=-1,
         max_num_seqs=1,
-        enforce_eager=True,
+        stock_compile=True,
         block_size=16,
         kv_cache_memory_bytes=kv_cache_bytes,
         load_format="dummy",

@@ -67,7 +67,7 @@ def test_minicpmv_lora(minicpmv_lora_files):
         enable_lora=True,
         max_loras=2,
         max_lora_rank=8,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         max_model_len=2048,
         limit_mm_per_prompt={"image": 2, "video": 0},
         trust_remote_code=True,

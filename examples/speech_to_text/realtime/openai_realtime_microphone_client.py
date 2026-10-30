@@ -4,7 +4,8 @@
 
 Start the vLLM server first:
 
-    vllm serve mistralai/Voxtral-Mini-4B-Realtime-2602 -cc.mode=none -cc.cudagraph_mode=none
+    vllm serve mistralai/Voxtral-Mini-4B-Realtime-2602 -cc.mode=1 \
+        -cc.cudagraph_mode=NONE
 
 Then run this script:
 

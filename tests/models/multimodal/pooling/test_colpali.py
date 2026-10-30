@@ -210,7 +210,7 @@ def test_colpali_default_runner(
         runner="pooling",
         dtype=dtype,
         max_model_len=4096,
-        enforce_eager=True,
+        stock_compile=True,
         gpu_memory_utilization=GPU_MEMORY_UTILIZATION,
     ) as vllm_model:
         _run_token_embed_test(vllm_model, model)
@@ -235,7 +235,7 @@ def test_colpali_v2_multimodal_text_query_image_docs(
         runner="pooling",
         dtype=dtype,
         max_model_len=4096,
-        enforce_eager=True,
+        stock_compile=True,
         gpu_memory_utilization=GPU_MEMORY_UTILIZATION,
         attention_backend=attention_backend,
         kernel_config={"enable_flashinfer_autotune": False},

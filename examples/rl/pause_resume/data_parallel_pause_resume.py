@@ -9,7 +9,7 @@ Prerequisites:
     Start a vLLM server with data parallelism:
 
     $ VLLM_SERVER_DEV_MODE=1 vllm serve facebook/opt-125m \
-        -cc.mode=none -cc.cudagraph_mode=none \
+        -cc.mode=1 -cc.cudagraph_mode=none \
         --data-parallel-size 4 \
         --tensor-parallel-size 1
 

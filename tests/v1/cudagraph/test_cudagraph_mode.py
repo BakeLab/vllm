@@ -81,13 +81,13 @@ def test_backend_and_cudagraph_mode_combo(backend_name, cudagraph_mode, supporte
 attn_backend = "RocmAttn" if current_platform.is_rocm() else "FA2"
 
 combo_cases_2 = [
-    (attn_backend, "FULL", CompilationMode.NONE, True),
-    (attn_backend, "PIECEWISE", CompilationMode.NONE, True),
+    (attn_backend, "FULL", CompilationMode.STOCK_TORCH_COMPILE, True),
+    (attn_backend, "PIECEWISE", CompilationMode.STOCK_TORCH_COMPILE, True),
     (attn_backend, "PIECEWISE", CompilationMode.VLLM_COMPILE, True),
-    (attn_backend, "FULL_AND_PIECEWISE", CompilationMode.NONE, True),
-    (attn_backend, "FULL_DECODE_ONLY", CompilationMode.NONE, True),
+    (attn_backend, "FULL_AND_PIECEWISE", CompilationMode.STOCK_TORCH_COMPILE, True),
+    (attn_backend, "FULL_DECODE_ONLY", CompilationMode.STOCK_TORCH_COMPILE, True),
     (attn_backend, "FULL_DECODE_ONLY", CompilationMode.VLLM_COMPILE, True),
-    (attn_backend, "NONE", CompilationMode.NONE, True),
+    (attn_backend, "NONE", CompilationMode.STOCK_TORCH_COMPILE, True),
     (attn_backend, "NONE", CompilationMode.VLLM_COMPILE, True),
 ]
 

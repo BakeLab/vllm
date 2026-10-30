@@ -6,7 +6,8 @@ audio transcription by uploading an audio file.
 Before running this script, you must start the vLLM server with a realtime-capable
 model, for example:
 
-    vllm serve mistralai/Voxtral-Mini-4B-Realtime-2602 -cc.mode=none -cc.cudagraph_mode=none
+    vllm serve mistralai/Voxtral-Mini-4B-Realtime-2602 -cc.mode=1 \
+        -cc.cudagraph_mode=NONE
 
 Requirements:
 - vllm with audio support

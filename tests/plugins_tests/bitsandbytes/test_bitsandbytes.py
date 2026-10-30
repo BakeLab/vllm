@@ -79,7 +79,7 @@ def validate_generated_texts(
         model_name,
         quantization=None if pre_quant else "bitsandbytes",
         tensor_parallel_size=vllm_tp_size,
-        enforce_eager=False,
+        stock_compile=False,
         default_torch_num_threads=1,
         tokenizer_mode="hf",
         load_format="hf",
@@ -191,7 +191,7 @@ def test_4bit_bnb_moe_model(
     with vllm_runner(
         model_name,
         quantization="bitsandbytes",
-        enforce_eager=False,
+        stock_compile=False,
         default_torch_num_threads=1,
     ) as llm:
         vllm_outputs = llm.generate_greedy_logprobs(

@@ -13,7 +13,7 @@ PROMPT = "Hello my name is Robert and I"
 
 @pytest.fixture(scope="module")
 def llm() -> LLM:
-    return LLM(MODEL, compilation_config={"mode": 0, "cudagraph_mode": "NONE"})
+    return LLM(MODEL, compilation_config={"mode": 1, "cudagraph_mode": "NONE"})
 
 
 def test_n_gt_1(llm):

@@ -40,14 +40,14 @@ def generate_and_test(llm: vllm.LLM, lora_path: str, lora_id: int):
 
 
 def test_deepseekv2_lora(deepseekv2_lora_files):
-    # We enable enforce_eager=True here to reduce VRAM usage for lora-test CI,
+    # We enable stock_compile=True here to reduce VRAM usage for lora-test CI,
     # Otherwise, the lora-test will fail due to CUDA OOM.
     llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
         max_loras=4,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         enable_chunked_prefill=True,
     )
@@ -55,14 +55,14 @@ def test_deepseekv2_lora(deepseekv2_lora_files):
 
 
 def test_deepseekv2(deepseekv2_lora_files):
-    # We enable enforce_eager=True here to reduce VRAM usage for lora-test CI,
+    # We enable stock_compile=True here to reduce VRAM usage for lora-test CI,
     # Otherwise, the lora-test will fail due to CUDA OOM.
     llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
         max_loras=4,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
     )
     generate_and_test(llm, deepseekv2_lora_files, 1)
@@ -70,14 +70,14 @@ def test_deepseekv2(deepseekv2_lora_files):
 
 @multi_gpu_test(num_gpus=2)
 def test_deepseekv2_tp2(deepseekv2_lora_files):
-    # We enable enforce_eager=True here to reduce VRAM usage for lora-test CI,
+    # We enable stock_compile=True here to reduce VRAM usage for lora-test CI,
     # Otherwise, the lora-test will fail due to CUDA OOM.
     llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
         max_loras=4,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         tensor_parallel_size=2,
     )
@@ -86,14 +86,14 @@ def test_deepseekv2_tp2(deepseekv2_lora_files):
 
 @multi_gpu_test(num_gpus=4)
 def test_deepseekv2_tp4(deepseekv2_lora_files):
-    # We enable enforce_eager=True here to reduce VRAM usage for lora-test CI,
+    # We enable stock_compile=True here to reduce VRAM usage for lora-test CI,
     # Otherwise, the lora-test will fail due to CUDA OOM.
     llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
         max_loras=4,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         tensor_parallel_size=4,
     )

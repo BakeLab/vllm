@@ -146,7 +146,7 @@ def test_shared_storage_connector_hashes(tmp_path, attn_backend):
         max_num_seqs=1,
         gpu_memory_utilization=0.4,
         attention_config=AttentionConfig(backend=attn_backend),
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         kv_transfer_config=KVTransferConfig(
             kv_connector="ExampleConnector",
             kv_role="kv_both",

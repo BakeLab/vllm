@@ -13,7 +13,7 @@ def vision_llm(vllm_runner):
         "microsoft/Phi-3.5-vision-instruct",
         max_model_len=4096,
         max_num_seqs=5,
-        enforce_eager=True,
+        stock_compile=True,
         trust_remote_code=True,
         limit_mm_per_prompt={"image": 2},
         seed=0,

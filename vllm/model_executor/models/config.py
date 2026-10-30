@@ -17,17 +17,17 @@ logger = init_logger(__name__)
 
 class VerifyAndUpdateConfig:
     @staticmethod
-    def verify_and_update_config(vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(vllm_config: VllmConfig) -> None:
         return
 
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         return
 
 
 class AliceAIForCausalLMConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         hf_config = model_config.hf_config
         if getattr(hf_config, "kda_allow_negative_eigenvalues", None) is not False:
             raise NotImplementedError(
@@ -47,7 +47,7 @@ class AliceAIForCausalLMConfig(VerifyAndUpdateConfig):
             )
 
     @staticmethod
-    def verify_and_update_config(vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(vllm_config: VllmConfig) -> None:
         if vllm_config.parallel_config.pipeline_parallel_size != 1:
             raise NotImplementedError(
                 "AliceAI does not support pipeline parallelism; "
@@ -72,7 +72,7 @@ class AliceAIForCausalLMConfig(VerifyAndUpdateConfig):
 
 class DeepseekV32ForCausalLM(VerifyAndUpdateConfig):
     @classmethod
-    def verify_and_update_config(cls, vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(cls, vllm_config: VllmConfig) -> None:
         hf_config = vllm_config.model_config.hf_config
 
         # Mirror the check in vllm/model_executor/models/deepseek_v2.py
@@ -87,7 +87,7 @@ class DeepseekV32ForCausalLM(VerifyAndUpdateConfig):
 
 class GlmMoeDsaForCausalLM(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_config(vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(vllm_config: VllmConfig) -> None:
         from vllm.platforms import current_platform
 
         cache_config = vllm_config.cache_config
@@ -117,7 +117,7 @@ class GlmMoeDsaForCausalLM(VerifyAndUpdateConfig):
 
 class Glm5NextModelConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_config(vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(vllm_config: VllmConfig) -> None:
         from vllm.platforms import current_platform
 
         cache_config = vllm_config.cache_config
@@ -143,7 +143,7 @@ class Glm5NextModelConfig(VerifyAndUpdateConfig):
 
 class Ernie4_5_VLMoeForConditionalGenerationConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_config(vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(vllm_config: VllmConfig) -> None:
         # Ernie4.5-VL conditionally executes text/vision MoE branches, so
         # fast_moe_cold_start can silently produce incorrect execution order.
         vllm_config.compilation_config.fast_moe_cold_start = False
@@ -151,14 +151,14 @@ class Ernie4_5_VLMoeForConditionalGenerationConfig(VerifyAndUpdateConfig):
 
 class Gemma3TextModelConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         hf_config = model_config.hf_config
         hf_config.is_causal = not hf_config.use_bidirectional_attention
 
 
 class UnlimitedOCRForCausalLMConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_config(vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(vllm_config: VllmConfig) -> None:
         """Configure Unlimited-OCR attention backends for R-SWA and vision.
 
         Backend selection — controlled by the standard ``--attention-config``
@@ -285,7 +285,7 @@ class UnlimitedOCRForCausalLMConfig(VerifyAndUpdateConfig):
                 mm_config.mm_encoder_attn_backend = AttentionBackendEnum.FLASH_ATTN
 
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         text_config = model_config.hf_config.text_config
         text_config.architectures = ["DeepseekV2ForCausalLM"]
         if getattr(model_config.hf_config, "rswa_window", None) is None:
@@ -299,7 +299,7 @@ class UnlimitedOCRForCausalLMConfig(VerifyAndUpdateConfig):
 
 class Gemma4Config(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_config(vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(vllm_config: VllmConfig) -> None:
         """Configure attention for heterogeneous head dimensions.
 
         Gemma4 uses different head dimensions for sliding window vs full attention
@@ -369,7 +369,7 @@ class Gemma4Config(VerifyAndUpdateConfig):
 
 class EmbeddingGemma2ModelConfig(Gemma4Config):
     @staticmethod
-    def verify_and_update_config(vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(vllm_config: VllmConfig) -> None:
         Gemma4Config.verify_and_update_config(vllm_config)
         from vllm.v1.attention.backends.registry import AttentionBackendEnum
 
@@ -394,7 +394,7 @@ class EmbeddingGemma2ModelConfig(Gemma4Config):
 
 class DiffusionGemmaModelForBlockDiffusionConfig(VerifyAndUpdateConfig):
     @classmethod
-    def verify_and_update_config(cls, vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(cls, vllm_config: VllmConfig) -> None:
         """Set up the diffusion config and defaults for DiffusionGemma.
 
         Auto-creates DiffusionConfig from the HF config when the user
@@ -465,7 +465,7 @@ class DiffusionGemmaModelForBlockDiffusionConfig(VerifyAndUpdateConfig):
 
 class DeepseekV4ForCausalLMConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         quant_config = getattr(model_config.hf_config, "quantization_config", None)
         if quant_config is not None and quant_config.get("quant_method") == "fp8":
             model_type = getattr(model_config.hf_config, "model_type", None)
@@ -506,7 +506,7 @@ class KimiK3ForConditionalGenerationConfig(VerifyAndUpdateConfig):
     """
 
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         for cfg in (
             model_config.hf_config,
             model_config.hf_text_config,
@@ -523,7 +523,7 @@ class KimiK3ForConditionalGenerationConfig(VerifyAndUpdateConfig):
 
 class GptOssForCausalLMConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         quant_config = getattr(model_config.hf_config, "quantization_config", None)
         if quant_config is not None and quant_config.get("quant_method") == "mxfp4":
             model_config.hf_config.quantization_config["quant_method"] = "gpt_oss_mxfp4"
@@ -540,7 +540,7 @@ class GptOssForCausalLMConfig(VerifyAndUpdateConfig):
             )
 
     @staticmethod
-    def verify_and_update_config(vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(vllm_config: VllmConfig) -> None:
         structured_outputs_config = vllm_config.structured_outputs_config
         if structured_outputs_config.reasoning_parser == "":
             structured_outputs_config.reasoning_parser = "openai_gptoss"
@@ -563,7 +563,7 @@ class GptOssForCausalLMConfig(VerifyAndUpdateConfig):
 
 class GteNewModelConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         config = model_config.hf_config
 
         assert config.__class__.__name__ == "NewConfig"
@@ -583,7 +583,7 @@ class GteNewModelConfig(VerifyAndUpdateConfig):
 
 class HybridAttentionMambaModelConfig(VerifyAndUpdateConfig):
     @classmethod
-    def verify_and_update_config(cls, vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(cls, vllm_config: VllmConfig) -> None:
         """Perform early validation and setup for hybrid attention/mamba models.
 
         Block size alignment with mamba page sizes is handled later by
@@ -600,7 +600,7 @@ class HybridAttentionMambaModelConfig(VerifyAndUpdateConfig):
 
 class JambaForSequenceClassificationConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         pooler_config = model_config.pooler_config
         assert pooler_config is not None
         if pooler_config.use_activation is None:
@@ -611,7 +611,7 @@ class JinaEmbeddingsV5ModelConfig(VerifyAndUpdateConfig):
     """Config handler for Jina Embeddings V5 embedding models."""
 
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         """Enable the bidirectional encoder backbone for -nano checkpoints.
 
         The V5 family ships more than one backbone under a single
@@ -631,13 +631,13 @@ class JinaEmbeddingsV5ModelConfig(VerifyAndUpdateConfig):
 
 class JinaForRankingConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         model_config.hf_config.embedding_size = 512
 
 
 class JinaRobertaModelConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         config = model_config.hf_config
 
         if config.position_embedding_type == "rotary":
@@ -664,7 +664,7 @@ class JinaRobertaModelConfig(VerifyAndUpdateConfig):
 
 class JinaVLForSequenceClassificationConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         config = model_config.hf_config
         config.num_labels = 1
         config.get_text_config().num_labels = 1
@@ -676,7 +676,7 @@ class JinaVLForSequenceClassificationConfig(VerifyAndUpdateConfig):
 
 class LlamaBidirectionalConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         from vllm.config.pooler import SequencePoolingType
 
         hf_config = model_config.hf_config
@@ -710,7 +710,7 @@ class LlamaNemotronVLConfig(VerifyAndUpdateConfig):
     """Config handler for LlamaNemotronVL embedding models."""
 
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         from vllm.config.pooler import SequencePoolingType
 
         hf_config = model_config.hf_config
@@ -747,7 +747,7 @@ class LlamaNemotronVLConfig(VerifyAndUpdateConfig):
 
 class MambaModelConfig(VerifyAndUpdateConfig):
     @classmethod
-    def verify_and_update_config(cls, vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(cls, vllm_config: VllmConfig) -> None:
         """Enable FULL_AND_PIECEWISE cuda graph mode by default (required
         to get good performance for mamba layers in V1).
 
@@ -786,12 +786,12 @@ class MambaModelConfig(VerifyAndUpdateConfig):
 
 
 class NemotronHForCausalLMConfig(VerifyAndUpdateConfig):
-    DEFAULT_MAMBA_SSM_CACHE_DTYPE: "MambaDType" = "float32"
+    DEFAULT_MAMBA_SSM_CACHE_DTYPE: MambaDType = "float32"
     """Only `float32` is known to have no accuracy issues by default."""
 
     @classmethod
     def update_mamba_ssm_cache_dtype(
-        cls, *, cache_config: "CacheConfig", hf_config: "PreTrainedConfig"
+        cls, *, cache_config: CacheConfig, hf_config: PreTrainedConfig
     ) -> None:
         """Update mamba_ssm_cache_dtype for NemotronH models when set to 'auto'
         (or not explicitly set), to the value specified in the HF config, or to
@@ -808,7 +808,7 @@ class NemotronHForCausalLMConfig(VerifyAndUpdateConfig):
             cache_config.mamba_ssm_cache_dtype = mamba_ssm_cache_dtype
 
     @classmethod
-    def verify_and_update_config(cls, vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(cls, vllm_config: VllmConfig) -> None:
         cls.update_mamba_ssm_cache_dtype(
             cache_config=vllm_config.cache_config,
             hf_config=vllm_config.model_config.hf_config,
@@ -817,14 +817,14 @@ class NemotronHForCausalLMConfig(VerifyAndUpdateConfig):
 
 class NemotronHNanoVLV2Config(VerifyAndUpdateConfig):
     @classmethod
-    def verify_and_update_config(cls, vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(cls, vllm_config: VllmConfig) -> None:
         NemotronHForCausalLMConfig.update_mamba_ssm_cache_dtype(
             cache_config=vllm_config.cache_config,
             hf_config=vllm_config.model_config.hf_config.text_config,
         )
 
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         mm_config = model_config.multimodal_config
         if mm_config is not None:
             video_kwargs = mm_config.media_io_kwargs.setdefault("video", {})
@@ -833,7 +833,7 @@ class NemotronHNanoVLV2Config(VerifyAndUpdateConfig):
 
 class NomicBertModelConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         config = model_config.hf_config
 
         assert config.__class__.__name__ == "NomicBertConfig"
@@ -882,7 +882,7 @@ class NomicBertModelConfig(VerifyAndUpdateConfig):
 
 class Qwen2ForProcessRewardModelConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         pooler_config = model_config.pooler_config
         assert pooler_config is not None
 
@@ -892,7 +892,7 @@ class Qwen2ForProcessRewardModelConfig(VerifyAndUpdateConfig):
 
 class Qwen2ForRewardModelConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         pooler_config = model_config.pooler_config
         assert pooler_config is not None
 
@@ -902,7 +902,7 @@ class Qwen2ForRewardModelConfig(VerifyAndUpdateConfig):
 
 class Qwen3ForSequenceClassificationConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         config = model_config.hf_config
 
         is_original_qwen3_reranker = getattr(
@@ -928,7 +928,7 @@ class Qwen3VLForSequenceClassificationConfig(Qwen3ForSequenceClassificationConfi
 
 class Qwen3_5ForConditionalGenerationConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_config(vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(vllm_config: VllmConfig) -> None:
         """Update mamba_ssm_cache_dtype for Qwen3.5 models when set to 'auto'
         (or not explicitly set), to the value specified in the HF config's
         mamba_ssm_dtype field. Warn if the user explicitly overrides it to a
@@ -955,7 +955,7 @@ class Qwen3_5ForConditionalGenerationConfig(VerifyAndUpdateConfig):
 
 class Qwen3_5ForCausalLMConfig(Qwen3_5ForConditionalGenerationConfig):
     @staticmethod
-    def verify_and_update_config(vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(vllm_config: VllmConfig) -> None:
         Qwen3_5ForConditionalGenerationConfig.verify_and_update_config(vllm_config)
 
         # Text-only Qwen3.5 models use one-dimensional positions. Remove the
@@ -967,7 +967,7 @@ class Qwen3_5ForCausalLMConfig(Qwen3_5ForConditionalGenerationConfig):
             rope_parameters.pop("mrope_interleaved", None)
 
 
-def _strip_qwen4_exp_mrope(model_config: "ModelConfig") -> None:
+def _strip_qwen4_exp_mrope(model_config: ModelConfig) -> None:
     configs = {
         id(config): config
         for config in (
@@ -987,7 +987,7 @@ class Qwen4ExpForConditionalGenerationConfig(Qwen3_5ForConditionalGenerationConf
     """Apply the Qwen3.5 hybrid-cache contract to Qwen4Exp."""
 
     @staticmethod
-    def verify_and_update_config(vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(vllm_config: VllmConfig) -> None:
         from vllm.platforms import current_platform
 
         Qwen3_5ForConditionalGenerationConfig.verify_and_update_config(vllm_config)
@@ -1037,7 +1037,7 @@ class Qwen4ExpForConditionalGenerationConfig(Qwen3_5ForConditionalGenerationConf
 
 class Qwen4ExpForCausalLMConfig(Qwen4ExpForConditionalGenerationConfig):
     @staticmethod
-    def verify_and_update_config(vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(vllm_config: VllmConfig) -> None:
         Qwen4ExpForConditionalGenerationConfig.verify_and_update_config(vllm_config)
 
         _strip_qwen4_exp_mrope(vllm_config.model_config)
@@ -1047,7 +1047,7 @@ class Qwen4ExpMTPConfig(Qwen4ExpForConditionalGenerationConfig):
     """Preserve MRoPE for a VL target and use 1D RoPE for a text target."""
 
     @staticmethod
-    def verify_and_update_config(vllm_config: "VllmConfig") -> None:
+    def verify_and_update_config(vllm_config: VllmConfig) -> None:
         Qwen4ExpForConditionalGenerationConfig.verify_and_update_config(vllm_config)
         if hasattr(vllm_config.model_config.hf_config, "vision_config"):
             return
@@ -1058,7 +1058,7 @@ class ColQwen3_5Config(Qwen3_5ForConditionalGenerationConfig):
     """Apply the attention contract declared by a ColQwen3.5 checkpoint."""
 
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         configs = {
             id(config): config
             for config in (
@@ -1096,7 +1096,7 @@ class D3ForSequenceClassificationConfig(Qwen3_5ForConditionalGenerationConfig):
     """Apply the contract declared by a Decision 3.0 `decision_config.json`."""
 
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         hf_config = model_config.hf_config
         decision = getattr(hf_config, "decision_config", None)
         if not isinstance(decision, dict):
@@ -1142,7 +1142,7 @@ class D3ForSequenceClassificationConfig(Qwen3_5ForConditionalGenerationConfig):
 
 class SnowflakeGteNewModelConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         config = model_config.hf_config
 
         assert config.__class__.__name__ == "GteConfig"
@@ -1162,26 +1162,18 @@ class SnowflakeGteNewModelConfig(VerifyAndUpdateConfig):
 
 class VoyageQwen3BidirectionalEmbedModelConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_model_config(model_config: "ModelConfig") -> None:
+    def verify_and_update_model_config(model_config: ModelConfig) -> None:
         model_config.hf_config.is_causal = False
         model_config.hf_config.embedding_size = model_config.hf_config.num_labels
 
 
 class LongcatFlashNgramForCausalLMConfig(VerifyAndUpdateConfig):
     @staticmethod
-    def verify_and_update_config(vllm_config: "VllmConfig") -> None:
-        # LongCat-Flash-Lite's zero-expert MoE trips a data-dependent assert
-        # under torch.compile, and its n-gram inputs_embeds are only wired for
-        # FULL cudagraph capture (PIECEWISE prefill drops them). Default to
-        # no-compile + FULL cudagraph (prefill runs eager) unless the user
-        # configured compilation explicitly.
-        from vllm.config.compilation import CompilationMode, CUDAGraphMode
-
-        compilation_config = vllm_config.compilation_config
-        if compilation_config.mode is None:
-            compilation_config.mode = CompilationMode.NONE
-        if compilation_config.cudagraph_mode is None:
-            compilation_config.cudagraph_mode = CUDAGraphMode.FULL
+    def verify_and_update_config(vllm_config: VllmConfig) -> None:
+        raise ValueError(
+            "LongCat-Flash-Lite requires uncompiled execution and is "
+            "unsupported in trim."
+        )
 
 
 MODELS_CONFIG_MAP: dict[str, type[VerifyAndUpdateConfig]] = {

@@ -24,7 +24,7 @@ def test_ngram_max_len(num_speculative_tokens: int, vllm_runner):
         trust_remote_code=False,
         max_model_len=100,
         enable_chunked_prefill=None,
-        enforce_eager=True,  # For faster initialization.
+        stock_compile=True,  # For faster initialization.
         speculative_config={
             "method": "ngram",
             "prompt_lookup_max": 5,
@@ -51,7 +51,7 @@ def test_ngram_gpu_max_len(
         trust_remote_code=False,
         max_model_len=100,
         enable_chunked_prefill=None,
-        enforce_eager=True,  # For faster initialization.
+        stock_compile=True,  # For faster initialization.
         speculative_config={
             "method": method,
             "prompt_lookup_max": 5,
@@ -84,7 +84,7 @@ def test_eagle_max_len(
         "meta-llama/Meta-Llama-3-8B-Instruct",
         trust_remote_code=False,
         enable_chunked_prefill=None,
-        enforce_eager=True,  # For faster initialization.
+        stock_compile=True,  # For faster initialization.
         speculative_config={
             "method": "eagle",
             "model": "yuhuili/EAGLE-LLaMA3-Instruct-8B",

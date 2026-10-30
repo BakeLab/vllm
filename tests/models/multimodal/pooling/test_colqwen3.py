@@ -58,7 +58,7 @@ def colqwen3_model(request, vllm_runner):
         runner="pooling",
         dtype=DTYPE,
         max_model_len=4096,
-        enforce_eager=True,
+        stock_compile=True,
         gpu_memory_utilization=GPU_MEMORY_UTILIZATION,
     ) as vllm_model:
         yield model, vllm_model

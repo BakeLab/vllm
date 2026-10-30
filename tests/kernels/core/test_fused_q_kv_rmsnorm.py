@@ -221,7 +221,11 @@ def test_shared_query_quant_preserves_projection(
         pytest.skip(reason)
     torch.manual_seed(0)
     with set_current_vllm_config(
-        VllmConfig(compilation_config=CompilationConfig(mode=CompilationMode.NONE))
+        VllmConfig(
+            compilation_config=CompilationConfig(
+                mode=CompilationMode.STOCK_TORCH_COMPILE
+            )
+        )
     ):
         # Match the checkpoint's TP4 attention and replicated indexer widths.
         if projection == "attention":

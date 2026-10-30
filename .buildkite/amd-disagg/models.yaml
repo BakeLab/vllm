@@ -41,7 +41,7 @@ models:
     base_flags: "--trust-remote-code --kv-cache-dtype fp8"
     prefill:
       tp: "--gpu-memory-utilization 0.85"
-      ep: "--gpu-memory-utilization 0.75 -cc.mode=none -cc.cudagraph_mode=none"
+      ep: "--gpu-memory-utilization 0.75 -cc.mode=1 -cc.cudagraph_mode=none"
     decode:
       tp: "--gpu-memory-utilization 0.85"
       ep: '--gpu-memory-utilization 0.75 --compilation-config {"cudagraph_mode":"PIECEWISE","custom_ops":["+quant_fp8"]}'
@@ -56,8 +56,8 @@ models:
       VLLM_KV_CACHE_LAYOUT: "HND"
     base_flags: "--trust-remote-code --attention-backend TRITON_ATTN --block-size 128 --language-model-only --kv-cache-dtype fp8"
     prefill:
-      tp: "--gpu-memory-utilization 0.85 -cc.mode=none -cc.cudagraph_mode=none"
-      ep: "--gpu-memory-utilization 0.85 -cc.mode=none -cc.cudagraph_mode=none"
+      tp: "--gpu-memory-utilization 0.85 -cc.mode=1 -cc.cudagraph_mode=none"
+      ep: "--gpu-memory-utilization 0.85 -cc.mode=1 -cc.cudagraph_mode=none"
     decode:
       tp: "--gpu-memory-utilization 0.85"
       ep: '--gpu-memory-utilization 0.75 --compilation-config {"cudagraph_mode":"FULL_DECODE_ONLY","custom_ops":["+quant_fp8"]}'
@@ -72,7 +72,7 @@ models:
     base_flags: "--trust-remote-code --kv-cache-dtype fp8"
     prefill:
       tp: "--gpu-memory-utilization 0.85"
-      ep: "--gpu-memory-utilization 0.75 -cc.mode=none -cc.cudagraph_mode=none"
+      ep: "--gpu-memory-utilization 0.75 -cc.mode=1 -cc.cudagraph_mode=none"
     decode:
       tp: "--gpu-memory-utilization 0.85"
       ep: '--gpu-memory-utilization 0.75 --compilation-config {"cudagraph_mode":"PIECEWISE","custom_ops":["+quant_fp8"]}'
@@ -87,7 +87,7 @@ models:
     base_flags: "--trust-remote-code --kv-cache-dtype fp8 --mm-encoder-tp-mode data --block-size 1 --attention-backend ROCM_AITER_MLA"
     prefill:
       tp: "--gpu-memory-utilization 0.9"
-      ep: "--gpu-memory-utilization 0.75 -cc.mode=none -cc.cudagraph_mode=none"
+      ep: "--gpu-memory-utilization 0.75 -cc.mode=1 -cc.cudagraph_mode=none"
     decode:
       tp: "--gpu-memory-utilization 0.9"
       ep: '--gpu-memory-utilization 0.75 --compilation-config {"cudagraph_mode":"PIECEWISE","custom_ops":["+quant_fp8"]}'
@@ -103,7 +103,7 @@ models:
     base_flags: "--trust-remote-code --kv-cache-dtype fp8"
     prefill:
       tp: "--gpu-memory-utilization 0.85"
-      ep: "--gpu-memory-utilization 0.75 -cc.mode=none -cc.cudagraph_mode=none"
+      ep: "--gpu-memory-utilization 0.75 -cc.mode=1 -cc.cudagraph_mode=none"
     decode:
       tp: "--gpu-memory-utilization 0.85"
       ep: '--gpu-memory-utilization 0.75 --compilation-config {"cudagraph_mode":"PIECEWISE"}'

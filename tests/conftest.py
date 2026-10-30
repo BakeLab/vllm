@@ -962,7 +962,7 @@ class VllmRunner:
         devices, otherwise default to `16`.
     - `enable_chunked_prefill`: Set to `False` instead of `None` for
       test reproducibility.
-    - `enforce_eager`: Test-only reference control selecting no compilation or
+    - `stock_compile`: Test-only reference control selecting no compilation or
       CUDA graphs. `False` preserves the requested compilation configuration.
     - `kernel_config.enable_jit_warmup`: Set to `False` to reduce test startup
       time.
@@ -983,7 +983,7 @@ class VllmRunner:
         tensor_parallel_size: int = 1,
         block_size: int = _default_block_size(),
         enable_chunked_prefill: bool | None = False,
-        enforce_eager: bool | None = False,
+        stock_compile: bool | None = False,
         # Set this to avoid hanging issue
         default_torch_num_threads: int | None = None,
         **kwargs,
@@ -1011,17 +1011,17 @@ class VllmRunner:
                     num_speculative_tokens + 1
                 )
 
-        if enforce_eager:
+        if stock_compile:
             compilation_config = deepcopy(kwargs["compilation_config"])
             if isinstance(compilation_config, CompilationConfig):
-                compilation_config.mode = CompilationMode.NONE
+                compilation_config.mode = CompilationMode.STOCK_TORCH_COMPILE
                 compilation_config.cudagraph_mode = CUDAGraphMode.NONE
                 compilation_config.cudagraph_mm_encoder = False
             else:
                 if isinstance(compilation_config, int):
                     compilation_config = {}
                 compilation_config.update(
-                    mode=0, cudagraph_mode="NONE", cudagraph_mm_encoder=False
+                    mode=1, cudagraph_mode="NONE", cudagraph_mm_encoder=False
                 )
             kwargs["compilation_config"] = compilation_config
 

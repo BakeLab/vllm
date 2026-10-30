@@ -8,6 +8,7 @@ from dataclasses import field, fields
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
+import torch
 from pydantic import Field, TypeAdapter, field_validator
 
 import vllm.envs as envs
@@ -37,9 +38,6 @@ class CompilationMode(enum.IntEnum):
     """The compilation approach used for torch.compile-based compilation of the
     model."""
 
-    NONE = 0
-    """No torch.compile compilation is applied, model runs in fully eager pytorch mode.
-    The model runs as-is."""
     STOCK_TORCH_COMPILE = 1
     """The standard `torch.compile` compilation pipeline."""
     DYNAMO_TRACE_ONCE = 2
@@ -434,8 +432,6 @@ class CompilationConfig:
 
     - None: If None, we will select the default compilation mode.
       For V1 engine this is 3.
-    - 0: NONE: No torch.compile compilation is applied, model runs in fully
-         eager pytorch mode. The model runs as-is.
     - 1: STOCK_TORCH_COMPILE: The standard `torch.compile` compilation pipeline.
     - 2: DYNAMO_TRACE_ONCE: Single Dynamo trace through the model, avoiding
          recompilation by removing guards.
@@ -486,8 +482,7 @@ class CompilationConfig:
     - 'none,+op1,+op2' to enable only op1 and op2
 
     By default, all custom ops are enabled when running without Inductor and
-    disabled when running with Inductor: mode>CompilationMode.NONE and
-    backend="inductor".
+    disabled when running with Inductor: backend="inductor".
     Inductor generates (fused) Triton kernels for disabled custom ops."""
 
     ir_enable_torch_wrap: bool = None  # type: ignore[assignment]
@@ -853,7 +848,7 @@ class CompilationConfig:
     @classmethod
     def validate_mode_before(cls, value: Any) -> Any:
         """Enable parsing the `mode` field from string mode names.
-        Accepts both integers (0-3) and string names, like NONE, STOCK_TORCH_COMPILE,
+        Accepts integers (1-3) and string names, like STOCK_TORCH_COMPILE,
         DYNAMO_TRACE_ONCE, VLLM_COMPILE.
         """
         if isinstance(value, str):
@@ -912,10 +907,10 @@ class CompilationConfig:
         return handler(value)
 
     def __post_init__(self) -> None:
+        torch._dynamo.config.fail_on_recompile_limit_hit = True
         if self.backend == "eager":
             raise ValueError(
-                "The eager compilation backend was removed; use mode=NONE "
-                "to disable compilation."
+                "The eager compilation backend was removed; use a compiling backend."
             )
         # Custom passes (fusion) rely on auto-functionalization V1 and don't
         #    work with V2. Addressing this will take extra engineering effort
@@ -1077,8 +1072,6 @@ class CompilationConfig:
                 "called via vllm config where the level is set if none is "
                 "provided."
             )
-        if self.mode == CompilationMode.NONE:
-            raise ValueError("No compilation mode is set.")
 
         from torch._dynamo.backends.registry import list_backends
 
@@ -1285,7 +1278,7 @@ class CompilationConfig:
             return self.mode == CompilationMode.VLLM_COMPILE
 
         # Inductor partition case
-        return self.backend == "inductor" and self.mode != CompilationMode.NONE
+        return self.backend == "inductor"
 
     def custom_op_log_check(self):
         """This method logs the enabled/disabled custom ops and checks that the

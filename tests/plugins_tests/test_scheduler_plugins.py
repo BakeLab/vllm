@@ -24,7 +24,7 @@ def test_scheduler_plugins_v1(monkeypatch: pytest.MonkeyPatch):
             engine_args = EngineArgs(
                 model="facebook/opt-125m",
                 compilation_config={
-                    "mode": 0,
+                    "mode": 1,
                     "cudagraph_mode": "NONE",
                 },  # reduce test time
                 scheduler_cls=DummyV1Scheduler,

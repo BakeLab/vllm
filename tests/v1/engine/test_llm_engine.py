@@ -96,7 +96,7 @@ def _vllm_model(
         MODEL,
         dtype=DTYPE,
         max_model_len=128,
-        enforce_eager=True,
+        stock_compile=True,
         enable_prefix_caching=apc,
         gpu_memory_utilization=0.5,
         skip_tokenizer_init=skip_tokenizer_init,
@@ -282,7 +282,7 @@ def test_skip_tokenizer_initialization(model: str):
     llm = LLM(
         model=model,
         skip_tokenizer_init=True,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
     )
     sampling_params = SamplingParams(prompt_logprobs=True, detokenize=True)
 

@@ -45,7 +45,7 @@ async def engine():
 
     engine_args = AsyncEngineArgs(
         model=MODEL,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         gpu_memory_utilization=0.7,
     )
     with set_default_torch_num_threads(1):
@@ -68,7 +68,7 @@ def get_sampling_params(max_tokens: int = 20) -> SamplingParams:
 
 
 async def collect_outputs(
-    output_gen: AsyncGenerator[RequestOutput, None],
+    output_gen: AsyncGenerator[RequestOutput],
 ) -> tuple[list[RequestOutput], str]:
     """Collect all outputs from a generate call, return outputs and full text."""
     outputs: list[RequestOutput] = []
@@ -91,7 +91,7 @@ async def test_streaming_input_bunched(engine: AsyncLLM):
     sampling_params = get_sampling_params(max_tokens=10)
 
     # Create an input generator that yields all inputs quickly
-    async def bunched_input_generator() -> AsyncGenerator[StreamingInput, None]:
+    async def bunched_input_generator() -> AsyncGenerator[StreamingInput]:
         # Send multiple inputs rapidly - they should be queued
         yield StreamingInput(prompt="Hello, my name is")
         yield StreamingInput(prompt=" Alice and I like")
@@ -136,7 +136,7 @@ async def test_streaming_input_spaced(engine: AsyncLLM):
     outputs_per_chunk: list[int] = [0, 0, 0]
     current_chunk = 0
 
-    async def spaced_input_generator() -> AsyncGenerator[StreamingInput, None]:
+    async def spaced_input_generator() -> AsyncGenerator[StreamingInput]:
         nonlocal current_chunk
         import time
 
@@ -201,7 +201,7 @@ async def test_streaming_input_output_equivalence(engine: AsyncLLM):
     sampling_params = get_sampling_params(max_tokens=15)
 
     # Test bunched inputs
-    async def bunched_gen() -> AsyncGenerator[StreamingInput, None]:
+    async def bunched_gen() -> AsyncGenerator[StreamingInput]:
         for prompt in prompts:
             yield StreamingInput(prompt=prompt)
 
@@ -210,7 +210,7 @@ async def test_streaming_input_output_equivalence(engine: AsyncLLM):
     )
 
     # Test spaced inputs (same prompts, but with delays)
-    async def spaced_gen() -> AsyncGenerator[StreamingInput, None]:
+    async def spaced_gen() -> AsyncGenerator[StreamingInput]:
         for prompt in prompts:
             yield StreamingInput(prompt=prompt)
             await asyncio.sleep(0.3)
@@ -242,7 +242,7 @@ async def test_streaming_input_cancel_output_stream(engine: AsyncLLM):
     input_completed = asyncio.Event()
     input_task_cancelled = False
 
-    async def slow_input_generator() -> AsyncGenerator[StreamingInput, None]:
+    async def slow_input_generator() -> AsyncGenerator[StreamingInput]:
         nonlocal input_task_cancelled
         try:
             yield StreamingInput(prompt="Tell me a very long story about")
@@ -299,7 +299,7 @@ async def test_streaming_input_close_signals_completion(engine: AsyncLLM):
 
     input_generator_finished = False
 
-    async def limited_input_generator() -> AsyncGenerator[StreamingInput, None]:
+    async def limited_input_generator() -> AsyncGenerator[StreamingInput]:
         nonlocal input_generator_finished
         yield StreamingInput(prompt="What is 2 + 2? The answer is")
         # Generator finishes naturally here
@@ -330,7 +330,7 @@ async def test_streaming_input_close_while_paused(engine: AsyncLLM):
     a `wait` pause drains it still completes the session normally."""
     close_input = asyncio.Event()
 
-    async def input_generator() -> AsyncGenerator[StreamingInput, None]:
+    async def input_generator() -> AsyncGenerator[StreamingInput]:
         yield StreamingInput(prompt="What is 2 + 2? The answer is")
         await close_input.wait()
 
@@ -369,7 +369,7 @@ async def test_streaming_input_abort_queued_inputs(engine: AsyncLLM):
     inputs_sent = 0
     input_cancelled = False
 
-    async def many_inputs_generator() -> AsyncGenerator[StreamingInput, None]:
+    async def many_inputs_generator() -> AsyncGenerator[StreamingInput]:
         nonlocal inputs_sent, input_cancelled
         try:
             # Send several inputs to fill the queue
@@ -427,7 +427,7 @@ async def test_streaming_input_error_propagation(engine: AsyncLLM):
     class InputError(Exception):
         pass
 
-    async def error_input_generator() -> AsyncGenerator[StreamingInput, None]:
+    async def error_input_generator() -> AsyncGenerator[StreamingInput]:
         yield StreamingInput(prompt="Start with this")
         await asyncio.sleep(0.1)
         raise InputError("Simulated input error")
@@ -465,7 +465,7 @@ async def test_streaming_input_multiple_concurrent_sessions(engine: AsyncLLM):
 
         prompts = [f"Session {session_id}: Hello", f" world from session {session_id}"]
 
-        async def input_gen() -> AsyncGenerator[StreamingInput, None]:
+        async def input_gen() -> AsyncGenerator[StreamingInput]:
             for prompt in prompts:
                 yield StreamingInput(prompt=prompt)
                 await asyncio.sleep(0.1)
@@ -499,7 +499,7 @@ async def test_streaming_input_per_chunk_sampling_params(engine: AsyncLLM):
     request_id = "test_per_chunk_params"
     base_params = get_sampling_params(max_tokens=10)
 
-    async def variable_params_generator() -> AsyncGenerator[StreamingInput, None]:
+    async def variable_params_generator() -> AsyncGenerator[StreamingInput]:
         # First chunk with base params
         yield StreamingInput(prompt="Count to five:", sampling_params=base_params)
 
@@ -529,7 +529,7 @@ async def test_streaming_input_empty_generator(engine: AsyncLLM):
     request_id = "test_empty_generator"
     sampling_params = get_sampling_params(max_tokens=10)
 
-    async def empty_generator() -> AsyncGenerator[StreamingInput, None]:
+    async def empty_generator() -> AsyncGenerator[StreamingInput]:
         # Don't yield anything
         return
         yield  # Make it a generator
@@ -551,7 +551,7 @@ async def test_streaming_input_single_chunk(engine: AsyncLLM):
     request_id = "test_single_chunk"
     sampling_params = get_sampling_params(max_tokens=15)
 
-    async def single_chunk_generator() -> AsyncGenerator[StreamingInput, None]:
+    async def single_chunk_generator() -> AsyncGenerator[StreamingInput]:
         yield StreamingInput(prompt="What color is the sky? The sky is")
 
     outputs, full_text = await collect_outputs(
@@ -572,7 +572,7 @@ async def test_streaming_input_reuse_request_id(engine: AsyncLLM):
     sampling_params = get_sampling_params(max_tokens=5)
 
     # First session
-    async def gen1() -> AsyncGenerator[StreamingInput, None]:
+    async def gen1() -> AsyncGenerator[StreamingInput]:
         yield StreamingInput(prompt="First session")
 
     _, text1 = await collect_outputs(
@@ -580,7 +580,7 @@ async def test_streaming_input_reuse_request_id(engine: AsyncLLM):
     )
 
     # Second session with same ID
-    async def gen2() -> AsyncGenerator[StreamingInput, None]:
+    async def gen2() -> AsyncGenerator[StreamingInput]:
         yield StreamingInput(prompt="Second session")
 
     _, text2 = await collect_outputs(
@@ -598,7 +598,7 @@ async def test_streaming_input_reuse_request_id(engine: AsyncLLM):
 async def test_streaming_input_validation_errors(engine: AsyncLLM):
     """Test that invalid configurations raise appropriate errors."""
 
-    async def dummy_generator() -> AsyncGenerator[StreamingInput, None]:
+    async def dummy_generator() -> AsyncGenerator[StreamingInput]:
         yield StreamingInput(prompt="test")
 
     # Test n > 1 is rejected
@@ -645,7 +645,7 @@ async def test_streaming_input_delayed_generator_exit(engine: AsyncLLM):
     input_generator_exited = False
     finish_count = 0
 
-    async def delayed_exit_input_generator() -> AsyncGenerator[StreamingInput, None]:
+    async def delayed_exit_input_generator() -> AsyncGenerator[StreamingInput]:
         nonlocal input_generator_exited
         # Send all inputs immediately
         yield StreamingInput(prompt="Hello, my name is")

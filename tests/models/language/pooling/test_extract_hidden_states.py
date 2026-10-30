@@ -19,7 +19,7 @@ def test_extract_hidden_states(hf_runner, vllm_runner, model: str):
     with vllm_runner(
         model,
         max_model_len=128,
-        enforce_eager=True,
+        stock_compile=True,
         runner="pooling",
         pooler_config=PoolerConfig(task="token_embed"),
         enable_prefix_caching=True,

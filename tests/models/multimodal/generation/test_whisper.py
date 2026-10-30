@@ -42,7 +42,7 @@ def run_test(
     num_logprobs: int,
     tensor_parallel_size: int,
     distributed_executor_backend: str | None = None,
-    enforce_eager: bool = True,
+    stock_compile: bool = True,
     gpu_memory_utilization: float = 0.9,
 ) -> None:
     """Inference result should be the same between hf and vllm.
@@ -59,7 +59,7 @@ def run_test(
         tensor_parallel_size=tensor_parallel_size,
         distributed_executor_backend=distributed_executor_backend,
         limit_mm_per_prompt={"audio": 2},
-        enforce_eager=enforce_eager,
+        stock_compile=stock_compile,
         gpu_memory_utilization=gpu_memory_utilization,
         disable_custom_all_reduce=True,
     ) as vllm_model:
@@ -180,7 +180,7 @@ def test_beam_search_encoder_decoder(
         tensor_parallel_size=1,
         max_num_seqs=4,
         limit_mm_per_prompt={"audio": 2},
-        enforce_eager=True,
+        stock_compile=True,
     ) as vllm_model:
         vllm_outputs_by_beam_width = [
             vllm_model.generate_beam_search(
@@ -313,7 +313,7 @@ def test_create_fake_bias_for_k_proj_forwards_real_bias():
 @pytest.mark.parametrize("model", ["openai/whisper-large-v3-turbo"])
 @pytest.mark.parametrize("dtype", ["half", "float"])
 @pytest.mark.parametrize("num_logprobs", [5])
-@pytest.mark.parametrize("enforce_eager", [True, False])
+@pytest.mark.parametrize("stock_compile", [True, False])
 def test_models(
     hf_runner,
     vllm_runner,
@@ -321,10 +321,10 @@ def test_models(
     dtype: str,
     num_logprobs: int,
     input_audios,
-    enforce_eager: bool,
+    stock_compile: bool,
 ) -> None:
     check_model_available(model)
-    if current_platform.is_cpu() and not enforce_eager:
+    if current_platform.is_cpu() and not stock_compile:
         pytest.skip("Skipping test for CPU with non-eager mode")
     run_test(
         hf_runner,
@@ -336,7 +336,7 @@ def test_models(
         max_tokens=200,
         num_logprobs=num_logprobs,
         tensor_parallel_size=1,
-        enforce_eager=enforce_eager,
+        stock_compile=stock_compile,
     )
 
 
@@ -370,7 +370,7 @@ def test_models_distributed(
         num_logprobs=num_logprobs,
         tensor_parallel_size=2,
         distributed_executor_backend=distributed_executor_backend,
-        enforce_eager=False,
+        stock_compile=False,
         gpu_memory_utilization=0.65,
     )
 
@@ -399,7 +399,7 @@ def test_encoder_cache_cleanup(
         max_model_len=448,
         tensor_parallel_size=1,
         limit_mm_per_prompt={"audio": 2},
-        enforce_eager=True,
+        stock_compile=True,
     ) as vllm_model:
         engine_core = vllm_model.llm.llm_engine.engine_core.engine_core
         model_runner = engine_core.model_executor.driver_worker.worker.model_runner

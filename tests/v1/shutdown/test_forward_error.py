@@ -70,7 +70,7 @@ async def test_async_llm_model_error(
 
     engine_args = AsyncEngineArgs(
         model=model,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         tensor_parallel_size=tensor_parallel_size,
     )
     async_llm = AsyncLLM.from_engine_args(engine_args)
@@ -142,7 +142,7 @@ def test_llm_model_error(
 
         llm = LLM(
             model=model,
-            compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+            compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
             tensor_parallel_size=tensor_parallel_size,
         )
 

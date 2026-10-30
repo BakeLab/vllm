@@ -63,7 +63,7 @@ TINY_CONFIG = {
 @pytest.mark.skipif(not current_platform.is_cuda(), reason="Beam targets CUDA")
 @pytest.mark.usefixtures("enable_pickle")
 @pytest.mark.parametrize(
-    "enforce_eager,tp_size,num_experts,enable_ep",
+    "stock_compile,tp_size,num_experts,enable_ep",
     [
         (True, 1, 8, False),
         (False, 1, 8, False),
@@ -72,7 +72,7 @@ TINY_CONFIG = {
     ],
 )
 def test_beam_builds_and_generates(
-    tmp_path, enforce_eager, tp_size, num_experts, enable_ep
+    tmp_path, stock_compile, tp_size, num_experts, enable_ep
 ):
     """Release-style metadata must load and generate in both execution modes."""
     if torch.accelerator.device_count() < tp_size:
@@ -95,7 +95,7 @@ def test_beam_builds_and_generates(
         kv_cache_memory_bytes=16 * 1024**2,
         gpu_memory_utilization=0.25,
         compilation_config=(
-            {"mode": 0, "cudagraph_mode": "NONE"} if (enforce_eager) else {}
+            {"mode": 1, "cudagraph_mode": "NONE"} if (stock_compile) else {}
         ),
         tensor_parallel_size=tp_size,
         enable_expert_parallel=enable_ep,

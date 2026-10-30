@@ -553,6 +553,11 @@ class GPUModelRunner(LoRAModelRunnerMixin):
 
         if self.compilation_config.mode == CompilationMode.STOCK_TORCH_COMPILE:
             compile_model_with_stock_torch(self.model, self.vllm_config)
+        elif not has_compiled_submodule(self.model):
+            raise ValueError(
+                f"{type(self.model).__name__} has no active compilation entry point. "
+                "Use STOCK_TORCH_COMPILE or add support_torch_compile support."
+            )
 
     @property
     def dp_size(self) -> int:

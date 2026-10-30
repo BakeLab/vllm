@@ -18,6 +18,6 @@ MODELS = [
 def test_gptq_with_dynamic_desc_act_rejected(vllm_runner, model_id: str):
     with (
         pytest.raises(ValueError, match="desc_act=True"),
-        vllm_runner(model_id, max_model_len=2048, enforce_eager=True),
+        vllm_runner(model_id, max_model_len=2048, stock_compile=True),
     ):
         pass

@@ -65,14 +65,14 @@ def generate_and_test(llm: vllm.LLM, lora_path: str, lora_id: int) -> None:
 
 
 def test_qwen3moe_lora(qwen3moe_lora_files):
-    # We enable enforce_eager=True here to reduce VRAM usage for lora-test CI,
+    # We enable stock_compile=True here to reduce VRAM usage for lora-test CI,
     # Otherwise, the lora-test will fail due to CUDA OOM.
     llm = TestLLM(
         MODEL_PATH,
         max_model_len=1024,
         enable_lora=True,
         max_loras=4,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         trust_remote_code=True,
         enable_chunked_prefill=True,
         enable_mixed_moe_lora_format=True,

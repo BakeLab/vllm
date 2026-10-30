@@ -89,7 +89,7 @@ def test_oot_registration_multimodal(
             trust_remote_code=True,
             gpu_memory_utilization=0.98,
             max_model_len=4096,
-            compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+            compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
             limit_mm_per_prompt={"image": 1},
         )
 

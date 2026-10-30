@@ -226,7 +226,7 @@ def test_structured_output(
     # speed up the test suite.
     with vllm_runner(
         model_name,
-        enforce_eager=True,
+        stock_compile=True,
         max_model_len=1024,
         structured_outputs_config=dict(
             backend=backend, disable_any_whitespace=backend in {"xgrammar", "guidance"}
@@ -745,7 +745,7 @@ def test_structured_output_with_reasoning_matrices(
     # speed up the test suite.
     with vllm_runner(
         model_name,
-        enforce_eager=False,
+        stock_compile=False,
         max_model_len=1024,
         max_num_seqs=16,
         structured_outputs_config=dict(
@@ -915,11 +915,11 @@ def test_structured_output_batched_with_non_structured_outputs_requests(
     vllm_runner,
 ):
     sample_json_schema = SAMPLE_JSON_SCHEMA
-    enforce_eager = False
+    stock_compile = False
 
     with vllm_runner(
         "meta-llama/Meta-Llama-3.1-8B-Instruct",
-        enforce_eager=enforce_eager,
+        stock_compile=stock_compile,
         max_model_len=1024,
         structured_outputs_config=StructuredOutputsConfig(
             backend=backend,

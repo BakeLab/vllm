@@ -62,20 +62,20 @@ use_fork_for_test = (
         # no-silent-fallback assertion below is exercised by the V2 cases.
     ],
 )
-@pytest.mark.parametrize("enforce_eager", [True, False])
+@pytest.mark.parametrize("stock_compile", [True, False])
 def test_kv_sharing_fast_prefill(
     monkeypatch: pytest.MonkeyPatch,
     kv_sharing_fast_prefill: bool,
-    enforce_eager: bool,
+    stock_compile: bool,
     use_v2_model_runner: bool,
 ):
-    if not enforce_eager and current_platform.is_rocm():
+    if not stock_compile and current_platform.is_rocm():
         # Relevant context: https://github.com/vllm-project/vllm/pull/29244
         pytest.skip(
             "ROCm: torch.compile produces incorrect output for gemma-3n's GELU "
-            "with tanh approximation. Use enforce_eager=True instead."
+            "with tanh approximation. Use stock_compile=True instead."
         )
-    if not enforce_eager and not use_v2_model_runner and current_platform.is_cuda():
+    if not stock_compile and not use_v2_model_runner and current_platform.is_cuda():
         pytest.skip(
             "cublasCreate fails with CUBLAS_STATUS_ALLOC_FAILED during memory "
             "profiling with torch 2.14: "
@@ -88,9 +88,9 @@ def test_kv_sharing_fast_prefill(
         # managing buffers for cudagraph
         cudagraph_copy_inputs=True,
         mode=CompilationMode.VLLM_COMPILE
-        if not enforce_eager
-        else CompilationMode.NONE,
-        cudagraph_mode=CUDAGraphMode.NONE if enforce_eager else None,
+        if not stock_compile
+        else CompilationMode.STOCK_TORCH_COMPILE,
+        cudagraph_mode=CUDAGraphMode.NONE if stock_compile else None,
     )
     batch_size = 10
 

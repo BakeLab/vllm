@@ -20,7 +20,7 @@ Start the server with:
         --convert classify \
         --pooler-config \
         '{"tok_pooling_type":"STEP","step_tag_id":151705,"use_activation":false}' \
-        -cc.mode=none -cc.cudagraph_mode=none \
+        -cc.mode=1 -cc.cudagraph_mode=none \
         --trust-request-chat-template
 
 Then run:

@@ -72,7 +72,7 @@ def _run_mixed_2d_3d_lora_test(
         mm_processor_cache_gb=0,
         limit_mm_per_prompt={"image": 1},
         compilation_config=vllm.config.CompilationConfig(
-            mode=0,
+            mode=1,
             cudagraph_mode="NONE",
             cudagraph_specialize_lora=False,
         ),

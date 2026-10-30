@@ -15,7 +15,7 @@ def parse_args():
     parser.set_defaults(
         model="boltuix/NeuroBERT-NER",
         runner="pooling",
-        compilation_config={"mode": "none", "cudagraph_mode": "none"},
+        compilation_config={"mode": "STOCK_TORCH_COMPILE", "cudagraph_mode": "none"},
         trust_remote_code=True,
     )
     return parser.parse_args()

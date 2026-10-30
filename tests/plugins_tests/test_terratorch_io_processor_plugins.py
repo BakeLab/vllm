@@ -134,7 +134,7 @@ def test_prithvi_mae_plugin_offline(
         runner="pooling",
         skip_tokenizer_init=True,
         enable_mm_embeds=True,
-        enforce_eager=True,
+        stock_compile=True,
         # Limit the maximum number of parallel requests
         # to avoid the model going OOM in CI.
         max_num_seqs=32,

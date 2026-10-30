@@ -1038,7 +1038,7 @@ def test_fewer_blocks_with_hma(monkeypatch, model_name, sw_size):
     block_size = maybe_update_block_size(16)
     llm_kwargs = {
         "model": model_name,
-        "compilation_config": {"mode": 0, "cudagraph_mode": "NONE"},
+        "compilation_config": {"mode": 1, "cudagraph_mode": "NONE"},
         "gpu_memory_utilization": 0.3,
         "kv_transfer_config": kv_transfer_config,
         "max_model_len": 2048,

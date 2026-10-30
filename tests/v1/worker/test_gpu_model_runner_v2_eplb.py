@@ -24,7 +24,7 @@ class FakeMemoryProfiler:
 
 
 class FakeEplbState:
-    instances: list["FakeEplbState"] = []
+    instances: list[FakeEplbState] = []
 
     def __init__(self, parallel_config: Any, device: torch.device):
         self.parallel_config = parallel_config
@@ -75,7 +75,9 @@ def _make_runner(**overrides: Any) -> Any:
         enable_batch_sharded_sampling=False,
         eplb_config=SimpleNamespace(log_balancedness=True),
     )
-    runner.compilation_config = CompilationConfig(mode=CompilationMode.NONE)
+    runner.compilation_config = CompilationConfig(
+        mode=CompilationMode.STOCK_TORCH_COMPILE
+    )
     runner.vllm_config = SimpleNamespace(
         compilation_config=runner.compilation_config,
         load_config=runner.load_config,

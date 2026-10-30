@@ -68,7 +68,7 @@ async def main():
     engine_args = AsyncEngineArgs(
         model="meta-llama/Llama-3.2-1B-Instruct",
         compilation_config={
-            "mode": "none",
+            "mode": "STOCK_TORCH_COMPILE",
             "cudagraph_mode": "none",
         },  # Faster startup for examples
     )

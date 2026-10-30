@@ -16,7 +16,7 @@ different CUDA_VISIBLE_DEVICES:
 
     vllm serve ibm-research/PowerMoE-3b -dp 2 -dpr 1 \
         --data-parallel-address 127.0.0.1 --data-parallel-rpc-port 62300 \
-        --data-parallel-size-local 1 -cc.mode=none -cc.cudagraph_mode=none --headless
+        --data-parallel-size-local 1 -cc.mode=1 -cc.cudagraph_mode=none --headless
 
 Once both instances have completed the handshake, this example will
 send a request to the instance with DP rank 1.
@@ -43,7 +43,7 @@ async def main():
         data_parallel_address="127.0.0.1",
         data_parallel_rpc_port=62300,
         data_parallel_size_local=1,
-        compilation_config={"mode": "none", "cudagraph_mode": "none"},
+        compilation_config={"mode": "STOCK_TORCH_COMPILE", "cudagraph_mode": "none"},
         enable_log_requests=True,
         disable_custom_all_reduce=True,
     )

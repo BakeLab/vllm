@@ -862,7 +862,7 @@ def test_same_mamba_output_apc_on_vs_off(
 
     base_kwargs = _get_vllm_runner_params(model, max_model_len)
     base_kwargs.update(
-        enforce_eager=True, block_size=16, seed=42, gpu_memory_utilization=0.8
+        stock_compile=True, block_size=16, seed=42, gpu_memory_utilization=0.8
     )
 
     # No prefix caching
@@ -911,7 +911,7 @@ def test_apc_common_prefix_same_batch(
     monkeypatch.setenv("VLLM_ENABLE_V1_MULTIPROCESSING", "0")
     llm = LLM(
         model=model,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         block_size=16,
         mamba_block_size=16,
         enable_prefix_caching=True,

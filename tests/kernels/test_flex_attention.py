@@ -87,7 +87,7 @@ def test_flex_attention_full_cudagraphs(vllm_runner):
         runner="generate",
         tensor_parallel_size=1,
         num_gpu_blocks_override=128,
-        enforce_eager=True,
+        stock_compile=True,
         attention_config={"backend": "FLEX_ATTENTION"},
     ) as llm_flex:
         output_eager = llm_flex.generate_greedy_logprobs(
@@ -101,7 +101,7 @@ def test_flex_attention_full_cudagraphs(vllm_runner):
         runner="generate",
         tensor_parallel_size=1,
         num_gpu_blocks_override=128,
-        enforce_eager=False,
+        stock_compile=False,
         gpu_memory_utilization=0.85,
         attention_config={"backend": "FLEX_ATTENTION"},
     ) as llm_default:
@@ -150,7 +150,7 @@ def test_flex_attention_custom_mask_full_cudagraphs(vllm_runner, monkeypatch):
         runner="generate",
         tensor_parallel_size=1,
         num_gpu_blocks_override=128,
-        enforce_eager=True,
+        stock_compile=True,
         attention_config={"backend": "FLEX_ATTENTION"},
     ) as llm_eager:
         output_eager = llm_eager.generate_greedy_logprobs(
@@ -163,7 +163,7 @@ def test_flex_attention_custom_mask_full_cudagraphs(vllm_runner, monkeypatch):
         runner="generate",
         tensor_parallel_size=1,
         num_gpu_blocks_override=128,
-        enforce_eager=False,
+        stock_compile=False,
         gpu_memory_utilization=0.85,
         compilation_config={
             "cudagraph_mode": "FULL",
@@ -210,7 +210,7 @@ def test_flex_attention_vs_default_backend(vllm_runner):
         runner="generate",
         tensor_parallel_size=1,
         num_gpu_blocks_override=128,
-        enforce_eager=True,
+        stock_compile=True,
         attention_config={"backend": "FLEX_ATTENTION"},
     ) as llm_flex:
         output_flex = llm_flex.generate_greedy_logprobs(
@@ -224,7 +224,7 @@ def test_flex_attention_vs_default_backend(vllm_runner):
         runner="generate",
         tensor_parallel_size=1,
         num_gpu_blocks_override=128,
-        enforce_eager=True,
+        stock_compile=True,
         gpu_memory_utilization=0.85,
     ) as llm_default:
         output_default = llm_default.generate_greedy_logprobs(
@@ -265,7 +265,7 @@ def test_encoder_flex_attention_vs_default_backend(vllm_runner):
         dtype=torch.bfloat16,
         tensor_parallel_size=1,
         max_model_len=384,
-        enforce_eager=True,
+        stock_compile=True,
         attention_config={"backend": "FLEX_ATTENTION"},
     ) as llm_flex:
         flex_outputs = llm_flex.embed(prompts)
@@ -277,7 +277,7 @@ def test_encoder_flex_attention_vs_default_backend(vllm_runner):
         dtype=torch.bfloat16,
         tensor_parallel_size=1,
         max_model_len=384,
-        enforce_eager=True,
+        stock_compile=True,
     ) as llm_default:
         default_outputs = llm_default.embed(prompts)
 

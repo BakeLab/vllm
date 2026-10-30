@@ -82,7 +82,7 @@ def make_vllm_config(
         ),
         scheduler_config=SimpleNamespace(max_num_batched_tokens=8),
         cache_config=None,
-        compilation_config=SimpleNamespace(mode=CompilationMode.NONE),
+        compilation_config=SimpleNamespace(mode=CompilationMode.STOCK_TORCH_COMPILE),
     )
 
 

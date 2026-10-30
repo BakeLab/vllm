@@ -36,7 +36,7 @@ def llm(vllm_runner):
         tensor_parallel_size=1,
         gpu_memory_utilization=0.10,
         compilation_config=CompilationConfig(
-            mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+            mode=CompilationMode.STOCK_TORCH_COMPILE, cudagraph_mode=CUDAGraphMode.NONE
         ),
     ) as runner:
         # pytest caches yielded fixtures until after teardown, so use a proxy to
@@ -112,7 +112,7 @@ def test_max_model_len(vllm_runner):
         max_model_len=max_model_len,
         gpu_memory_utilization=0.10,
         compilation_config=CompilationConfig(
-            mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+            mode=CompilationMode.STOCK_TORCH_COMPILE, cudagraph_mode=CUDAGraphMode.NONE
         ),  # reduce test time
     ) as runner:
         sampling_params = SamplingParams(max_tokens=max_model_len + 10)
@@ -133,7 +133,7 @@ def test_log_stats(vllm_runner):
         disable_log_stats=False,
         gpu_memory_utilization=0.10,
         compilation_config=CompilationConfig(
-            mode=CompilationMode.NONE, cudagraph_mode=CUDAGraphMode.NONE
+            mode=CompilationMode.STOCK_TORCH_COMPILE, cudagraph_mode=CUDAGraphMode.NONE
         ),  # reduce test time
     ) as runner:
         outputs = runner.llm.generate(PROMPTS, sampling_params=None)

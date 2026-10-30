@@ -26,7 +26,7 @@ async def test_async_llm_processor_error(model: str) -> None:
     AsyncLLM always uses an MP client.
     """
     engine_args = AsyncEngineArgs(
-        model=model, compilation_config={"mode": 0, "cudagraph_mode": "NONE"}
+        model=model, compilation_config={"mode": 1, "cudagraph_mode": "NONE"}
     )
     async_llm = AsyncLLM.from_engine_args(engine_args)
 

@@ -57,7 +57,7 @@ def test_tensor_parallel(image_assets: ImageTestAssets):
         dtype="bfloat16",
         tensor_parallel_size=2,
         max_model_len=1024,
-        compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+        compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
         limit_mm_per_prompt={"image": 1},
         gpu_memory_utilization=0.45,
     )
@@ -93,7 +93,7 @@ def llm():
             trust_remote_code=True,
             dtype="bfloat16",
             max_model_len=2048,
-            compilation_config={"mode": 0, "cudagraph_mode": "NONE"},
+            compilation_config={"mode": 1, "cudagraph_mode": "NONE"},
             limit_mm_per_prompt={"image": 1},
             gpu_memory_utilization=0.45,
         )

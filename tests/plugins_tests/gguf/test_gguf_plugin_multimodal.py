@@ -108,7 +108,7 @@ def run_multimodal_gguf_test(
         set_default_torch_num_threads(1),
         vllm_runner(
             model_name=model.gguf_model,
-            enforce_eager=True,
+            stock_compile=True,
             tokenizer_name=model.original_model,
             dtype=dtype,
             max_model_len=model.max_model_len,
