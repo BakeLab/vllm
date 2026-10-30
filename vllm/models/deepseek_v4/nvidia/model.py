@@ -9,6 +9,8 @@ import torch
 import torch.nn as nn
 
 import vllm.envs as envs
+import vllm.model_executor.kernels.mhc.tilelang  # noqa: F401
+from vllm.compilation.decorators import support_torch_compile
 from vllm.config import VllmConfig
 from vllm.config.kernel import MEGA_MOE_BACKENDS, NATIVE_MEGA_MOE_BACKENDS
 from vllm.distributed import (
@@ -18,13 +20,6 @@ from vllm.distributed import (
 )
 from vllm.forward_context import get_forward_context, is_forward_context_available
 from vllm.logger import init_logger
-from vllm.model_executor.kernels.mhc.tilelang import (
-    hc_head_fused_kernel_tilelang,
-    mhc_fused_post_pre_tilelang,
-    mhc_post_tilelang,
-    mhc_pre_broadcast_tilelang,
-    mhc_pre_tilelang,
-)
 from vllm.model_executor.layers.activation import SiluAndMul, SiluAndMulWithClamp
 from vllm.model_executor.layers.fused_moe import (
     FusedMoEFactory,
@@ -727,23 +722,25 @@ class DeepseekV4DecoderLayer(nn.Module):
             # Run standalone mhc_pre on first layer
             if x.dim() == 2:
                 assert self.hc_attn_fn_broadcast is not None
-                residual, post_mix, res_mix, x = mhc_pre_broadcast_tilelang(
-                    x,
-                    self.hc_attn_fn,
-                    self.hc_attn_scale,
-                    self.hc_attn_base,
-                    self.rms_norm_eps,
-                    self.hc_eps,
-                    self.hc_eps,
-                    self.hc_post_alpha,
-                    self.hc_sinkhorn_iters,
-                    norm_weight=attn_norm_weight,
-                    norm_eps=attn_norm_eps,
-                    fn_broadcast=self.hc_attn_fn_broadcast,
+                residual, post_mix, res_mix, x = (
+                    torch.ops.vllm.mhc_pre_broadcast_tilelang(
+                        x,
+                        self.hc_attn_fn,
+                        self.hc_attn_scale,
+                        self.hc_attn_base,
+                        self.rms_norm_eps,
+                        self.hc_eps,
+                        self.hc_eps,
+                        self.hc_post_alpha,
+                        self.hc_sinkhorn_iters,
+                        norm_weight=attn_norm_weight,
+                        norm_eps=attn_norm_eps,
+                        fn_broadcast=self.hc_attn_fn_broadcast,
+                    )
                 )
             else:
                 residual = x
-                post_mix, res_mix, x = mhc_pre_tilelang(
+                post_mix, res_mix, x = torch.ops.vllm.mhc_pre_tilelang(
                     x,
                     self.hc_attn_fn,
                     self.hc_attn_scale,
@@ -757,7 +754,7 @@ class DeepseekV4DecoderLayer(nn.Module):
                     norm_eps=attn_norm_eps,
                 )
         else:
-            residual, post_mix, res_mix, x = mhc_fused_post_pre_tilelang(
+            residual, post_mix, res_mix, x = torch.ops.vllm.mhc_fused_post_pre_tilelang(
                 x,
                 residual,
                 post_mix,
@@ -785,7 +782,7 @@ class DeepseekV4DecoderLayer(nn.Module):
 
         ffn_norm_weight = self.ffn_norm.weight.data
         ffn_norm_eps = self.ffn_norm.variance_epsilon
-        residual, post_mix, res_mix, x = mhc_fused_post_pre_tilelang(
+        residual, post_mix, res_mix, x = torch.ops.vllm.mhc_fused_post_pre_tilelang(
             x,
             residual,
             post_mix,
@@ -808,6 +805,14 @@ class DeepseekV4DecoderLayer(nn.Module):
         return x, residual, post_mix, res_mix
 
 
+@support_torch_compile(
+    dynamic_arg_dims={
+        "input_ids": 0,
+        "positions": -1,
+        "intermediate_tensors": 0,
+        "inputs_embeds": 0,
+    }
+)
 class DeepseekV4Model(nn.Module, EagleModelMixin):
     supports_aux_hidden_states_over_pp = True
 
@@ -1005,7 +1010,7 @@ class DeepseekV4Model(nn.Module, EagleModelMixin):
             )
             if idx + 1 in self.aux_hidden_state_layers:
                 # Reconstruct the aux hidden state for draft models
-                aux_recon = mhc_post_tilelang(
+                aux_recon = torch.ops.vllm.mhc_post_tilelang(
                     hidden_states, residual, post_mix, res_mix
                 )
                 aux_hidden_state = aux_recon.mean(dim=1)
@@ -1018,7 +1023,7 @@ class DeepseekV4Model(nn.Module, EagleModelMixin):
             if self.end_layer in self.aux_hidden_state_layers:
                 hidden_states = final_aux_recon
             else:
-                hidden_states = mhc_post_tilelang(
+                hidden_states = torch.ops.vllm.mhc_post_tilelang(
                     hidden_states, residual, post_mix, res_mix
                 )
 
@@ -1037,7 +1042,7 @@ class DeepseekV4Model(nn.Module, EagleModelMixin):
             num_tokens = hidden_states.shape[0]
             self._mtp_hidden_buffer[:num_tokens].copy_(hidden_states.flatten(1))
 
-        hidden_states = hc_head_fused_kernel_tilelang(
+        hidden_states = torch.ops.vllm.hc_head_fused_kernel_tilelang(
             hidden_states,
             self.hc_head_fn,
             self.hc_head_scale,
@@ -1270,9 +1275,9 @@ def _make_deepseek_v4_weights_mapper(expert_dtype: str) -> WeightsMapper:
 
 
 class DeepseekV4MixtureOfExperts(MixtureOfExperts):
-    moe_mlp_layers: list["DeepseekV4MoE"]
+    moe_mlp_layers: list[DeepseekV4MoE]
 
-    def extract_moe_parameters(self, example_moe: "DeepseekV4MoE | None") -> None:
+    def extract_moe_parameters(self, example_moe: DeepseekV4MoE | None) -> None:
         if example_moe is None:
             self.num_moe_layers = 0
             self.num_expert_groups = 0

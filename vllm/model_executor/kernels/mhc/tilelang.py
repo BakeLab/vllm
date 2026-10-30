@@ -775,6 +775,35 @@ def mhc_pre_broadcast_tilelang(
     )
 
 
+def _mhc_pre_broadcast_tilelang_fake(
+    residual: torch.Tensor,
+    fn: torch.Tensor,
+    hc_scale: torch.Tensor,
+    hc_base: torch.Tensor,
+    rms_eps: float,
+    hc_pre_eps: float,
+    hc_sinkhorn_eps: float,
+    hc_post_mult_value: float,
+    sinkhorn_repeat: int,
+    n_splits: int = 1,
+    norm_weight: torch.Tensor | None = None,
+    norm_eps: float = 1e-6,
+    fn_broadcast: torch.Tensor | None = None,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    num_tokens, hidden_size = residual.shape
+    hc_mult = fn.shape[1] // hidden_size
+    return (
+        residual.new_empty((num_tokens, hc_mult, hidden_size)),
+        torch.empty(
+            num_tokens, hc_mult, 1, dtype=torch.float32, device=residual.device
+        ),
+        torch.empty(
+            num_tokens, hc_mult, hc_mult, dtype=torch.float32, device=residual.device
+        ),
+        residual.new_empty((num_tokens, hidden_size)),
+    )
+
+
 def mhc_post_tilelang(
     x: torch.Tensor,
     residual: torch.Tensor,
@@ -1089,6 +1118,12 @@ direct_register_custom_op(
     op_func=mhc_pre_tilelang,
     mutates_args=[],
     fake_impl=_mhc_pre_tilelang_fake,
+)
+direct_register_custom_op(
+    op_name="mhc_pre_broadcast_tilelang",
+    op_func=mhc_pre_broadcast_tilelang,
+    mutates_args=[],
+    fake_impl=_mhc_pre_broadcast_tilelang_fake,
 )
 direct_register_custom_op(
     op_name="mhc_post_tilelang",

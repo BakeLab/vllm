@@ -60,6 +60,7 @@ include = ["vllm*"]
 "tests/**" = ["D417"]
 
 [tool.ruff.lint]
+extend-select = ["TID251"]
 select = [
     # pydocstyle
     "D",
@@ -108,6 +109,9 @@ ignore-var-parameters = true
 
 [tool.ruff.format]
 docstring-code-format = true
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"vllm.platforms.current_platform.is_tpu" = { msg = "TPU support was removed." }
 
 [tool.mypy]
 plugins = ['pydantic.mypy']
