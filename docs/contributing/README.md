@@ -390,16 +390,31 @@ It uses the runner labels `[self-hosted, linux, x64, bb, cuda]` on either GitHub
 Actions or Gitea Actions. Manual dispatch is also supported once the workflow
 is available to that instance. Jobs wait until a matching runner is online.
 
-The runner needs Docker with Buildx and NVIDIA Container Toolkit inside its disposable BB
-sandbox, plus access to the Git service and public build dependencies. Each
-job builds the existing Dockerfile's `test` target from the checked-out commit,
-using its Python/CUDA toolchain and PyTorch nightly dependency path. This is a
-full source build; allow sufficient disk, memory, and time for that image.
+The runner needs Docker and NVIDIA Container Toolkit inside its disposable BB
+sandbox, plus access to the Git service and public build dependencies. Each job
+checks out the triggering vLLM commit and resolves `BakeLab/pytorch:trim` and
+`BakeLab/vision:trim` once at job startup. It builds those sources in the same
+container using PyTorch's `.ci/pytorch/trim-cuda.Dockerfile` and
+`.ci/pytorch/trim_cuda.sh`. These shared files must be present on the PyTorch
+mirror's `trim` branch before running this workflow.
+For private Gitea mirrors, the owner-level Actions cross-repository read allowlist
+must include `BakeLab/pytorch` and `BakeLab/vision`. The job uses its ephemeral
+Actions token; it does not need a personal access token or repository secret.
+
+The toolchain uses CUDA 13.4, CPython 3.14, and an archived Arch package snapshot
+with the C++26 compilers required by the fork. PyTorch is installed from source;
+dependency constraints and a `torch.version.git_version` check prevent replacing
+it with an upstream wheel. vLLM also builds from source without precompiled
+extensions. Source SHAs and dependency constraints are saved alongside the JUnit
+report. A rerun keeps the triggering vLLM SHA and resolves dependency heads anew.
+Allow sufficient disk, memory, and time for these source builds.
 
 CUDA architectures are detected from the assigned GPUs. Build parallelism is
 fixed at four jobs with two nvcc threads each. The job runs the
 existing activation, layernorm, and rotary kernel suites and uploads their
-JUnit report, including on test failures. It does not cover the full Buildkite
+JUnit report, including on test failures. Changes to PyTorch alone run PyTorch's
+own CI; dispatch this workflow to retest an unchanged vLLM commit against a new
+PyTorch dependency. It does not cover the full Buildkite
 matrix, multi-GPU tests, or model evaluations. The controller must destroy the
 sandbox after the job, including cancellation, to reclaim build caches.
 
