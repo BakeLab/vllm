@@ -24,40 +24,40 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ github.sha }}
-          path: vllm
+          fetch-depth: 0
           persist-credentials: false
           submodules: recursive
 
-      - name: Checkout shared CI infrastructure
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          repository: BakeLab/breadkernel
-          ref: 551bee53ff70429c7abb8e83e5e280bd9a63211a
-          path: .cuda-ci/infra
-          persist-credentials: false
-
-      - name: Prepare exact CUDA dependencies
-        id: cuda
-        uses: ./.cuda-ci/infra/.github/actions/cuda-env
-
-      - name: Build vLLM and run its CUDA tests
-        env:
-          CONTAINER: ${{ steps.cuda.outputs.container }}
+      - name: Build current commit using the existing test image
         run: |
-          git -C vllm rev-parse HEAD > cuda-ci-results/vllm.sha
-          docker exec --workdir /workspace/vllm "$CONTAINER" bash -euc '
-            uv pip install --python /opt/venv/bin/python \
-              -r requirements/build/cuda.txt -r requirements/cuda.txt -r requirements/test/cuda.in \
-              --excludes /opt/cuda-ci/frameworks.txt
-            CMAKE_ARGS="$CMAKE_ARGS -DVLLM_X86_BASELINE=x86-64-v3" \
-              VLLM_USE_PRECOMPILED=0 uv pip install --python /opt/venv/bin/python \
-              --no-build-isolation --no-deps -v -e .
-            /opt/venv/bin/python -m pytest -v \
-              tests/kernels/core/test_activation.py \
-              tests/kernels/core/test_layernorm.py \
-              tests/kernels/core/test_rotary_embedding.py \
-              --junitxml=/workspace/cuda-ci-results/vllm.xml
-          '
+          mkdir -p cuda-ci-results
+          git rev-parse HEAD > cuda-ci-results/vllm.sha
+          docker info
+          docker buildx version
+          nvidia-smi
+          cuda_arch_list=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | sort -u | paste -sd ' ' -)
+          [[ "$cuda_arch_list" =~ ^[0-9]+\.[0-9]+(\ [0-9]+\.[0-9]+)*$ ]]
+          docker buildx build --load --file docker/Dockerfile --target test \
+            --build-arg "torch_cuda_arch_list=$cuda_arch_list" \
+            --build-arg max_jobs=4 --build-arg nvcc_threads=2 \
+            --build-arg PYTORCH_NIGHTLY=1 --build-arg VLLM_USE_PRECOMPILED=0 \
+            --tag "vllm-cuda-ci:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" .
+
+      - name: Run existing CUDA kernel tests
+        timeout-minutes: 90
+        run: |
+          docker run --name "vllm-cuda-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --gpus all --shm-size=8g --workdir /vllm-workspace \
+            --volume "$GITHUB_WORKSPACE/cuda-ci-results:/ci-results" \
+            "vllm-cuda-ci:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" bash -euc '
+              uv venv --system-site-packages .venv
+              .venv/bin/python -c "import torch; torch.cuda.init(); x = torch.ones(16, device=\"cuda\"); torch.testing.assert_close(x + x, torch.full_like(x, 2)); torch.cuda.synchronize()"
+              .venv/bin/python -m pytest -v \
+                tests/kernels/core/test_activation.py \
+                tests/kernels/core/test_layernorm.py \
+                tests/kernels/core/test_rotary_embedding.py \
+                --junitxml=/ci-results/vllm.xml
+            '
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
@@ -66,8 +66,8 @@ jobs:
           path: cuda-ci-results/
           if-no-files-found: warn
 
-      - name: Stop the build container
-        if: always() && steps.cuda.outputs.container != ''
-        env:
-          CONTAINER: ${{ steps.cuda.outputs.container }}
-        run: docker rm -f "$CONTAINER"
+      - name: Clean up this job's container and image
+        if: always()
+        run: |
+          docker rm -f "vllm-cuda-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" 2>/dev/null || true
+          docker image rm "vllm-cuda-ci:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" 2>/dev/null || true
