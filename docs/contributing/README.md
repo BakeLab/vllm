@@ -384,24 +384,35 @@ The CI command workflow does not configure these repository or pipeline settings
 
 ### BakeLab CUDA Actions
 
-`BakeLab/vllm` runs `.github/workflows/cuda-ci.yml` on pushes to `trim`, including
-Gitea pull-mirror updates, with no additional variables or Buildkite token.
-It uses the runner labels `[self-hosted, linux, x64, bb, cuda]` on either GitHub
-Actions or Gitea Actions. Manual dispatch is also supported once the workflow
-is available to that instance. Jobs wait until a matching runner is online.
+`BakeLab/vllm` runs `.github/workflows/cuda-ci.yml` in Gitea when the GitHub
+`trim` branch is mirrored, or on manual dispatch. The job is skipped on
+github.com and uses `[self-hosted, linux, x64, bb, cuda]` runners in Gitea.
+No repository variables, PAT, or Buildkite token are required.
 
-The runner needs Docker with Buildx and NVIDIA Container Toolkit inside its disposable BB
-sandbox, plus access to the Git service and public build dependencies. Each
-job builds the existing Dockerfile's `test` target from the checked-out commit,
-using its Python/CUDA toolchain and PyTorch nightly dependency path. This is a
-full source build; allow sufficient disk, memory, and time for that image.
+The workflow checks out the triggering vLLM SHA and consumes Breadkernel's
+shared `cuda-env` action at a pinned infrastructure commit. That action owns
+the CUDA/Python toolchain and dependency builds: it resolves the current
+PyTorch, torchvision, and Triton `trim` heads once, restores only the exact
+matching wheel bundle or builds it, and verifies checksums, source SHAs, and
+CUDA execution before handing vLLM a container. A missing bundle never falls
+back to upstream nightly or an older source commit. Actions caches are scoped
+to the consuming repository, not shared across repositories.
 
-CUDA architectures are detected from the assigned GPUs. Build parallelism is
-fixed at four jobs with two nvcc threads each. The job runs the
-existing activation, layernorm, and rotary kernel suites and uploads their
-JUnit report, including on test failures. It does not cover the full Buildkite
-matrix, multi-GPU tests, or model evaluations. The controller must destroy the
-sandbox after the job, including cancellation, to reclaim build caches.
+vLLM owns only its source build and existing activation, layernorm, and rotary
+kernel tests. The shared environment constrains framework versions so its
+dependency installation cannot replace the selected wheels. The workflow
+uploads dependency provenance and JUnit results, including on test failure.
+Reruns preserve the triggering vLLM SHA and resolve dependency heads anew;
+manually dispatch it to test unchanged vLLM against a newer PyTorch head.
+
+The Gitea owner-level Actions cross-repository read allowlist must include
+`BakeLab/breadkernel`, `BakeLab/pytorch`, `BakeLab/vision`, and `BakeLab/triton`.
+Mirror the pinned infrastructure commit before running the workflow. The
+runner needs Docker and NVIDIA Container Toolkit in its disposable BB sandbox.
+Cold dependency builds can be lengthy; cache hits still validate GPU execution.
+The controller must destroy the sandbox after completion or cancellation.
+This lane does not cover the full Buildkite matrix, multi-GPU tests, or model
+evaluations.
 
 ### Pull Request Limits and Escalation
 
