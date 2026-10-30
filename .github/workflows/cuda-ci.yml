@@ -56,6 +56,10 @@ jobs:
                 tests/kernels/core/test_activation.py \
                 tests/kernels/core/test_layernorm.py \
                 tests/kernels/core/test_rotary_embedding.py \
+                tests/kernels/mhc/test_mhc_kernels.py::test_mhc_pre_broadcast_custom_op_supports_compile \
+                tests/model_executor/test_weight_utils.py::test_dummy_fp8_weight_is_not_degenerate \
+                tests/model_executor/test_weight_utils.py::test_dummy_e8m0_scale_is_fixed_exponent \
+                tests/model_executor/test_weight_utils.py::test_dummy_packed_weight_gets_random_bytes \
                 --junitxml=/ci-results/vllm.xml
             '
 

@@ -748,6 +748,23 @@ def test_deepseek_v41_capture_previous_aux(entry, monkeypatch, default_vllm_conf
     assert decoder(x, positions, None, **kwargs)[-1] is None
 
 
+@pytest.mark.skipif(not current_platform.is_cuda(), reason="CUDA required")
+@pytest.mark.skipif(not HAS_TILELANG_MHC, reason="TileLang MHC support required")
+def test_mhc_pre_broadcast_custom_op_supports_compile():
+    set_random_seed(0)
+    residual = torch.randn(2, 4096, dtype=torch.bfloat16, device=DEVICE)
+    fn = torch.randn(24, 16384, device=DEVICE) * 0.02
+    fn_broadcast = fn.view(24, 4, 4096).sum(dim=1)
+    scale = torch.ones(3, device=DEVICE)
+    base = torch.zeros(24, device=DEVICE)
+    norm_weight = torch.ones(4096, dtype=torch.bfloat16, device=DEVICE)
+    torch.library.opcheck(
+        torch.ops.vllm.mhc_pre_broadcast_tilelang.default,
+        (residual, fn, scale, base, 1e-6, 1e-6, 1e-6, 2.0, 20),
+        kwargs={"norm_weight": norm_weight, "fn_broadcast": fn_broadcast},
+    )
+
+
 @pytest.mark.skipif(not HAS_TILELANG_MHC, reason="TileLang MHC support required")
 @pytest.mark.parametrize("carried", [False, True])
 def test_mhc_pre_delayed_custom_op_supports_compile(carried):

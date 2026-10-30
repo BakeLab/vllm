@@ -1675,10 +1675,7 @@ def initialize_single_dummy_weight(
         param.view(torch.uint8).fill_(_DUMMY_E8M0_SCALE_BYTE)
         return
 
-    if (
-        param.dtype in (torch.uint8, torch.int8, torch.float4_e2m1fn_x2)
-        and not current_platform.is_tpu()
-    ):
+    if param.dtype in (torch.uint8, torch.int8, torch.float4_e2m1fn_x2):
         generator = torch.Generator(device=param.device)
         generator.manual_seed(seed)
         if param.dtype == torch.int8:
