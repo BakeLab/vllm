@@ -70,7 +70,7 @@ if(NOT vllm-flash-attn_POPULATED)
 endif()
 
 set(_VLLM_FLASH_ATTN_PATCH
-    "${CMAKE_CURRENT_LIST_DIR}/patches/0001-python-314-sm100.patch")
+    "${CMAKE_CURRENT_LIST_DIR}/patches/0001-python-315-sm100.patch")
 execute_process(
   COMMAND git apply --unidiff-zero --reverse --check "${_VLLM_FLASH_ATTN_PATCH}"
   WORKING_DIRECTORY "${vllm-flash-attn_SOURCE_DIR}"

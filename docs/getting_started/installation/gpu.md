@@ -25,7 +25,7 @@ vLLM is a Python library that supports the following GPU variants. Select your G
 ## Requirements
 
 - OS: Linux
-- Python: 3.14
+- Python: 3.15
 
 !!! note
     This tree supports Linux only. Windows is not supported, natively or under WSL.
