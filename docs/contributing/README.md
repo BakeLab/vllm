@@ -391,7 +391,8 @@ It builds this repository's
 layernorm, and rotary CUDA suites. The source SHA and JUnit report are uploaded.
 
 The Dockerfile owns Python, CUDA, and PyTorch dependencies. This lane selects
-its nightly PyTorch mode; it does not build the BakeLab PyTorch fork. Missing
+CUDA 13.4.1 with digest-pinned build/runtime images and nightly PyTorch mode;
+it does not build the BakeLab PyTorch fork. Missing
 or incompatible packages fail the image build. BB provides Docker and GPU
 access and reclaims the sandbox after the job. No Breadkernel action,
 cross-repository read permission, or repository variables are needed.

@@ -894,6 +894,7 @@ ENV VLLM_ENABLE_CUDA_COMPATIBILITY=0
 ARG PYTORCH_CUDA_INDEX_BASE_URL
 COPY requirements/common.txt /tmp/common.txt
 COPY requirements/cuda.txt /tmp/requirements-cuda.txt
+ARG PYTORCH_NIGHTLY
 RUN --mount=type=cache,target=/opt/uv/cache \
     --mount=type=bind,source=requirements,target=/tmp/vllm-requirements,ro \
     if [ "${INSTALL_RUBIN_PRERELEASE}" = "true" ] && \
@@ -911,6 +912,10 @@ RUN --mount=type=cache,target=/opt/uv/cache \
         && uv pip install --system \
             --prerelease=allow --index-strategy unsafe-first-match \
             -r /tmp/vllm-requirements/rubin-prerelease.txt; \
+    elif [ "${PYTORCH_NIGHTLY}" = "1" ]; then \
+        uv pip install --system --prerelease=allow \
+            -r /tmp/requirements-cuda.txt \
+            --extra-index-url ${PYTORCH_CUDA_INDEX_BASE_URL}/nightly/cu$(echo $CUDA_VERSION | cut -d. -f1,2 | tr -d '.'); \
     else \
         uv pip install --system \
             -r /tmp/requirements-cuda.txt \
