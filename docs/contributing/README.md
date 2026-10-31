@@ -75,7 +75,7 @@ For an optimized workflow when iterating on C++/CUDA kernels, see the [Increment
 For JIT kernel warmup conventions, see [JIT Kernel Warmup](./jit_kernel_warmup.md).
 
 !!! tip
-    vLLM requires Python 3.14. vLLM's default [Dockerfile](../../docker/Dockerfile) ships with Python 3.14 and tests in CI are run with Python 3.14.
+    vLLM requires Python 3.15. vLLM's default [Dockerfile](../../docker/Dockerfile) ships with Python 3.15 and tests in CI are run with Python 3.15.
 
     Therefore, we recommend developing with Python 3.12 to minimise the chance of your local environment clashing with our CI environment.
 
@@ -108,7 +108,7 @@ integration, use the configuration files in `tools/pre_commit/`:
     Some `pre-commit` hooks only run in CI. If you need to, you can run them locally with:
 
     ```bash
-    pre-commit run --hook-stage manual mypy-3.14
+    pre-commit run --hook-stage manual mypy-3.15
     ```
 
 ### Documentation

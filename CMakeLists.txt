@@ -73,7 +73,7 @@ install(CODE "set(CMAKE_INSTALL_LOCAL_ONLY TRUE)" ALL_COMPONENTS)
 #
 # Minimum supported Python version. Keep in sync with pyproject.toml.
 #
-set(PYTHON_MINIMUM_VERSION "3.14")
+set(PYTHON_MINIMUM_VERSION "3.15")
 
 # Supported AMD GPU architectures.
 set(HIP_SUPPORTED_ARCHS "gfx906;gfx908;gfx90a;gfx942;gfx950;gfx1250;gfx1030;gfx1100;gfx1101;gfx1102;gfx1103;gfx1150;gfx1151;gfx1152;gfx1153;gfx1200;gfx1201")
