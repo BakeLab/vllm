@@ -20,6 +20,9 @@ The edges of the build graph represent:
 The `test-deps` stage branches from `vllm-runtime-base` so Git and the test
 requirements remain cached independently of per-commit vLLM wheels and source.
 
+`PYTORCH_NIGHTLY=1` selects the CUDA nightly index for both build and runtime
+dependencies, including `vllm-runtime-base`. Without it, the release index is used.
+
 The `vllm-runtime-base` stage explicitly installs the current Ubuntu
 `ca-certificates` package so clients using the system trust store receive
 certificate removals when the image is rebuilt. This complements the Python
