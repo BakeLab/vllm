@@ -2,6 +2,7 @@
 
 # --- Test Infrastructure ---
 tblib==3.1.0
+outlines_core==0.2.14+bakelab.1 # required for Outlines backend tests
 pytest
 pytest_asyncio
 pytest-timeout

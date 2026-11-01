@@ -539,7 +539,15 @@ class PyNvVideoCodecVideoBackendMixin:
         max_height: int | None = None,
         **kwargs,
     ) -> tuple[npt.NDArray, VideoSourceMetadata, list[int], list[int]]:
-        import PyNvVideoCodec as nvc
+        try:
+            import PyNvVideoCodec as nvc
+        except ModuleNotFoundError as exc:
+            if exc.name != "PyNvVideoCodec":
+                raise
+            raise RuntimeError(
+                "The 'pynvvideocodec' video backend requires PyNvVideoCodec. "
+                "Install a wheel compatible with this Python version and platform."
+            ) from exc
 
         from vllm.multimodal.gpu_ipc_memory import get_mm_gpu_ipc_pool
 

@@ -6,6 +6,10 @@ vLLM supports the generation of structured outputs using
 This document shows you some examples of the different options that are
 available to generate structured outputs.
 
+The Outlines backend is optional. Install it with `pip install 'vllm[outlines]'`.
+Most requests use XGrammar or Guidance without this extra. Some `auto` fallback
+cases select Outlines when the other backends cannot handle a constraint.
+
 !!! warning
     If you are still using the following deprecated API fields which were removed in v0.12.0, please update your code to use `structured_outputs` as demonstrated in the rest of this document:
 

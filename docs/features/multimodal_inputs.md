@@ -931,6 +931,11 @@ preprocessing. For workloads with large videos and relatively light inference,
 such as video tagging, this can alleviate bottlenecks in CPU-based video
 decoders.
 
+This backend is optional and requires a PyNvVideoCodec wheel compatible with
+the Python version and platform. Other video backends do not require it. NVIDIA
+does not currently publish a CPython 3.15 wheel, so this backend is unavailable
+in Python 3.15 environments until a compatible wheel is released.
+
 !!! warning
     [CUDA Multi-Process Service (MPS)](https://docs.nvidia.com/deploy/mps/quick-start.html)
     is required when using this backend. Video decoding runs in the API server
