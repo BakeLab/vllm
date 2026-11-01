@@ -39,6 +39,15 @@ ASSETS_DIR = Path(__file__).parent.parent / "assets"
 assert ASSETS_DIR.exists()
 
 
+def test_pynvvideocodec_backend_reports_missing_optional_dependency(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setitem(sys.modules, "PyNvVideoCodec", None)
+
+    with pytest.raises(RuntimeError, match="requires PyNvVideoCodec"):
+        PyNvVideoCodecVideoBackendMixin.decode_frames_pynvvideocodec(None, b"", None)
+
+
 @VIDEO_LOADER_REGISTRY.register("assert_10_frames_1_fps")
 class Assert10Frames1FPSVideoLoader(VideoLoader):
     @classmethod

@@ -643,8 +643,8 @@ orjson==3.12.0
     #   genai-perf
 oss-harmony==0.0.11
     # via -r requirements/test/../common.txt
-outlines-core==0.2.14
-    # via -r requirements/test/../common.txt
+outlines-core==0.2.14+bakelab.1
+    # via -r requirements/test/cuda.in
 packaging==24.2
     # via
     #   accelerate

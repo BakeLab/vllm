@@ -1,0 +1,231 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -1,6 +1,6 @@
+ [package]
+ name = "outlines-core"
+-version = "0.2.14"
++version = "0.2.14+bakelab.1"
+ edition = "2021"
+ description = "Structured Generation"
+ license = "Apache-2.0"
+@@ -11,7 +11,7 @@
+ [dependencies]
+ once_cell = "1.20"
+ thiserror = "2.0"
+-pyo3 = { version = "0.27", features = ["extension-module"], optional = true }
++pyo3 = { version = "0.29.3", features = ["extension-module"], optional = true }
+ regex = "1.10.6"
+ serde-pyobject = { version = "0.8.0", optional = true }
+ serde_json = { version = "1.0", features = ["preserve_order"] }
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -38,12 +38,6 @@
+ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
+ 
+ [[package]]
+-name = "autocfg"
+-version = "1.5.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
+-
+-[[package]]
+ name = "aws-lc-rs"
+ version = "1.15.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+@@ -751,15 +745,6 @@
+ ]
+ 
+ [[package]]
+-name = "indoc"
+-version = "2.0.7"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "79cf5c93f93228cf8efb3ba362535fb11199ac548a09ce117c9b1adc3030d706"
+-dependencies = [
+- "rustversion",
+-]
+-
+-[[package]]
+ name = "ipnet"
+ version = "2.11.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+@@ -865,15 +850,6 @@
+ version = "2.7.6"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
+-
+-[[package]]
+-name = "memoffset"
+-version = "0.9.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
+-dependencies = [
+- "autocfg",
+-]
+ 
+ [[package]]
+ name = "minimal-lexical"
+@@ -976,7 +952,7 @@
+ 
+ [[package]]
+ name = "outlines-core"
+-version = "0.2.14"
++version = "0.2.14+bakelab.1"
+ dependencies = [
+  "bincode",
+  "hf-hub",
+@@ -1057,36 +1033,32 @@
+ 
+ [[package]]
+ name = "pyo3"
+-version = "0.27.2"
++version = "0.29.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "ab53c047fcd1a1d2a8820fe84f05d6be69e9526be40cb03b73f86b6b03e6d87d"
++checksum = "700d18fa267b73b9b521fd7e13580e2f446916f176cacee1ab63fcc8191f1655"
+ dependencies = [
+- "indoc",
+  "libc",
+- "memoffset",
+  "once_cell",
+  "portable-atomic",
+  "pyo3-build-config",
+  "pyo3-ffi",
+  "pyo3-macros",
+- "unindent",
+ ]
+ 
+ [[package]]
+ name = "pyo3-build-config"
+-version = "0.27.2"
++version = "0.29.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "b455933107de8642b4487ed26d912c2d899dec6114884214a0b3bb3be9261ea6"
++checksum = "7b3fc0c4d08f6bb10e71fe39dfb9e2f59c6eb6854e22ec8092f50c69a4499adb"
+ dependencies = [
+- "python3-dll-a",
+  "target-lexicon",
+ ]
+ 
+ [[package]]
+ name = "pyo3-ffi"
+-version = "0.27.2"
++version = "0.29.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "1c85c9cbfaddf651b1221594209aed57e9e5cff63c4d11d1feead529b872a089"
++checksum = "dfc0b8e19df29aad7086cf977bb0c2a2f143e30567eb113e9cf72b62ca698330"
+ dependencies = [
+  "libc",
+  "pyo3-build-config",
+@@ -1094,9 +1066,9 @@
+ 
+ [[package]]
+ name = "pyo3-macros"
+-version = "0.27.2"
++version = "0.29.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "0a5b10c9bf9888125d917fb4d2ca2d25c8df94c7ab5a52e13313a07e050a3b02"
++checksum = "6100e8a4b5eba53afaa5ed078364851a0b2499c553a44c31026b929049b49dc6"
+ dependencies = [
+  "proc-macro2",
+  "pyo3-macros-backend",
+@@ -1106,27 +1078,17 @@
+ 
+ [[package]]
+ name = "pyo3-macros-backend"
+-version = "0.27.2"
++version = "0.29.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "03b51720d314836e53327f5871d4c0cfb4fb37cc2c4a11cc71907a86342c40f9"
++checksum = "6143877a16e82b5a727b7127ff4cd86858a24a28d745d72f43e6f227c7b1bdb3"
+ dependencies = [
+  "heck",
+  "proc-macro2",
+- "pyo3-build-config",
+  "quote",
+  "syn",
+ ]
+ 
+ [[package]]
+-name = "python3-dll-a"
+-version = "0.2.14"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "d381ef313ae70b4da5f95f8a4de773c6aa5cd28f73adec4b4a31df70b66780d8"
+-dependencies = [
+- "cc",
+-]
+-
+-[[package]]
+ name = "quinn"
+ version = "0.11.9"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+@@ -1860,12 +1822,6 @@
+ version = "0.1.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "39ec24b3121d976906ece63c9daad25b85969647682eee313cb5779fdd69e14e"
+-
+-[[package]]
+-name = "unindent"
+-version = "0.2.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "7264e107f553ccae879d21fbea1d6724ac785e8c3bfc762137959b5802826ef3"
+ 
+ [[package]]
+ name = "untrusted"
+--- a/src/python_bindings/mod.rs
++++ b/src/python_bindings/mod.rs
+@@ -6,7 +6,7 @@
+ use bincode::{config, Decode, Encode};
+ use pyo3::exceptions::PyValueError;
+ use pyo3::prelude::*;
+-use pyo3::types::{PyAny, PyDict};
++use pyo3::types::{PyAny, PyDict, PyTypeMethods};
+ use pyo3::wrap_pyfunction;
+ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+ #[cfg(feature = "hugginface-hub")]
+@@ -17,9 +17,8 @@
+ use crate::prelude::*;
+ 
+ macro_rules! type_name {
+-    ($obj:expr) => {
+-        // Safety: obj is always initialized and tp_name is a C-string
+-        unsafe { std::ffi::CStr::from_ptr((&*(&*$obj.as_ptr()).ob_type).tp_name) }
++    ($py:expr, $obj:expr) => {
++        $obj.bind($py).get_type().name()?.extract::<String>()?
+     };
+ }
+ 
+@@ -338,7 +337,7 @@
+         }
+ 
+         let message = "Expected a dict with keys of type str or bytes and values of type list[int]";
+-        let tname = type_name!(map).to_string_lossy();
++        let tname = type_name!(py, map);
+         if tname == "dict" {
+             Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+                 "Dict keys or/and values of the wrong types. {message}"
+@@ -380,7 +379,7 @@
+         }
+         Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+             "Expected a token of type str or bytes, got {:?}",
+-            type_name!(token)
++            type_name!(py, token)
+         )))
+     }
+ 
+@@ -396,7 +395,7 @@
+         }
+         Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+             "Expected a token of type str or bytes, got {:?}",
+-            type_name!(token)
++            type_name!(py, token)
+         )))
+     }
+ 
+@@ -410,7 +409,7 @@
+         }
+         Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(format!(
+             "Expected a token of type str or bytes, got {:?}",
+-            type_name!(token)
++            type_name!(py, token)
+         )))
+     }
