@@ -196,6 +196,16 @@ def validate_structured_output_request_outlines(params: SamplingParams):
     if params.structured_outputs is None:
         return
 
+    try:
+        import outlines_core  # noqa: F401
+    except ModuleNotFoundError as exc:
+        if exc.name != "outlines_core":
+            raise
+        raise VLLMValidationError(
+            "The 'outlines' structured-output backend is optional. "
+            "Install it with `pip install 'vllm[outlines]'`."
+        ) from exc
+
     so_params = params.structured_outputs
 
     if so_params.regex is not None:

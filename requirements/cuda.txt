@@ -8,7 +8,6 @@ torch>=2.15.0.dev0
 # These must be updated alongside torch
 torchvision>=0.30.0.dev0 # Matches the trimmed PyTorch 2.15 wheel.
 torchcodec >= 0.14
-PyNvVideoCodec==2.0.4
 flashinfer-python==0.7.2
 apache-tvm-ffi==0.1.11
 tilelang==0.1.12
