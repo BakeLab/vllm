@@ -3,6 +3,7 @@
 """Request-time validation of structured output requests."""
 
 import json
+import sys
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -78,6 +79,20 @@ def test_plain_request_allowed_for_diffusion_models():
         StructuredOutputsConfig(),
         tokenizer=None,
     )
+
+
+def test_outlines_backend_reports_missing_optional_dependency(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setitem(sys.modules, "outlines_core", None)
+    params = SamplingParams(structured_outputs=StructuredOutputsParams(regex="[0-9]+"))
+
+    with pytest.raises(VLLMValidationError, match=r"vllm\[outlines\]"):
+        params._validate_structured_outputs(
+            _StubModelConfig(is_diffusion=False),
+            StructuredOutputsConfig(backend="outlines"),
+            tokenizer=object(),
+        )
 
 
 @pytest.mark.parametrize(

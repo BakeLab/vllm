@@ -2,6 +2,7 @@
 
 # testing
 pytest
+outlines_core==0.2.14+bakelab.1 # required for Outlines backend tests
 tensorizer==2.10.1
 pytest-forked
 pytest-asyncio
