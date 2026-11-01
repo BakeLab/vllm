@@ -7,6 +7,18 @@ from typing import Any
 from tqdm.auto import tqdm
 
 from tests.engine_harness.offline import OfflineInferenceMixin
+from vllm.entrypoints.pooling.base.io_processor import PoolingIOProcessor
+from vllm.entrypoints.pooling.factories import init_pooling_io_processors
+from vllm.entrypoints.pooling.scoring.io_processor import ScoringIOProcessor
+from vllm.entrypoints.pooling.scoring.typing import ScoreInput
+from vllm.entrypoints.pooling.typing import (
+    AnyOfflineInputsContext,
+    OfflineEncodeInputsContext,
+    OfflineOutputsContext,
+    OfflinePluginInputsContext,
+    OfflineScoringInputsContext,
+    RequestFactory,
+)
 from vllm.inputs import DataPrompt, PromptType
 from vllm.logger import init_logger
 from vllm.lora.request import LoRARequest
@@ -19,19 +31,6 @@ from vllm.outputs import (
 from vllm.pooling_params import PoolingParams
 from vllm.renderers.chat_utils import ChatTemplateConfig
 from vllm.tasks import SCORE_TYPE_MAP, PoolingTask, SupportedTask
-
-from .base.io_processor import PoolingIOProcessor
-from .factories import init_pooling_io_processors
-from .scoring.io_processor import ScoringIOProcessor
-from .scoring.typing import ScoreInput
-from .typing import (
-    AnyOfflineInputsContext,
-    OfflineEncodeInputsContext,
-    OfflineOutputsContext,
-    OfflinePluginInputsContext,
-    OfflineScoringInputsContext,
-    RequestFactory,
-)
 
 logger = init_logger(__name__)
 
