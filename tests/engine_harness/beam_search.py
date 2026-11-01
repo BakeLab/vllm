@@ -10,6 +10,13 @@ from tqdm import tqdm
 
 from tests.engine_harness.offline import OfflineInferenceMixin
 from vllm import RequestOutput, TextPrompt, TokensPrompt
+from vllm.entrypoints.generate.beam_search.utils import (
+    BeamSearchInstance,
+    BeamSearchOutput,
+    BeamSearchSequence,
+    create_sort_beams_key_function,
+    get_beam_search_eos_token_ids,
+)
 from vllm.logger import init_logger
 from vllm.lora.request import LoRARequest
 from vllm.pooling_params import PoolingParams
@@ -21,14 +28,6 @@ from vllm.sampling_params import (
 from vllm.tokenizers import TokenizerLike
 from vllm.v1.structured_output.backend_types import StructuredOutputBackend
 from vllm.v1.structured_output.request import get_structured_output_key
-
-from .utils import (
-    BeamSearchInstance,
-    BeamSearchOutput,
-    BeamSearchSequence,
-    create_sort_beams_key_function,
-    get_beam_search_eos_token_ids,
-)
 
 logger = init_logger(__name__)
 
