@@ -21,8 +21,10 @@ fastsafetensors >= 0.3.3
 instanttensor >= 0.2.2
 
 # QuACK and Cutlass DSL for FA4 (cute-DSL implementation)
-nvidia-cutlass-dsl[cu13]==4.8.0
-quack-kernels==0.6.5  # Required by MSA
+# CUTLASS 4.8's binary wheels currently stop at CPython 3.14. Keep these
+# optional on Python 3.15 until upstream publishes compatible wheels.
+nvidia-cutlass-dsl[cu13]==4.8.0; python_version < "3.15"
+quack-kernels==0.6.5; python_version < "3.15"  # Requires CUTLASS DSL
 
 # Tokenspeed_MLA for faster mla with spec decode
 tokenspeed-mla==2.0.3; platform_system == "Linux"
