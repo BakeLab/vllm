@@ -1362,10 +1362,7 @@ def nvmlFriendlyObjectToStruct(obj, model):
         key = x[0]
         value = obj.__dict__[key]
         # any c_char_p in python3 needs to be bytes, default encoding works fine.
-        if sys.version_info >= (3,):
-            setattr(model, key, value.encode())
-        else:
-            setattr(model, key, value)
+        setattr(model, key, value.encode())
     return model
 
 
@@ -1414,20 +1411,14 @@ class _PrintableStructure(Structure):
 
     def __getattribute__(self, name):
         res = super(_PrintableStructure, self).__getattribute__(name)
-        # need to convert bytes to unicode for python3 don't need to for python2
-        # Python 2 strings are of both str and bytes
-        # Python 3 strings are not of type bytes
-        # ctypes should convert everything to the correct values otherwise
+        # Convert bytes to unicode; ctypes handles all other conversions.
         if isinstance(res, bytes):
-            if isinstance(res, str):
-                return res
             return res.decode()
         return res
 
     def __setattr__(self, name, value):
         if isinstance(value, str):
-            # encoding a python2 string returns the same value, since python2 strings are bytes already
-            # bytes passed in python3 will be ignored.
+            # ctypes requires bytes for c_char fields.
             value = value.encode()
         super(_PrintableStructure, self).__setattr__(name, value)
 
@@ -2806,21 +2797,15 @@ def convertStrBytes(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        # encoding a str returns bytes in python 2 and 3
+        # Encoding str returns bytes.
         args = [arg.encode() if isinstance(arg, str) else arg for arg in args]
         res = func(*args, **kwargs)
-        # In python 2, str and bytes are the same
-        # In python 3, str is unicode and should be decoded.
-        # Ctypes handles most conversions, this only effects c_char and char arrays.
+        # Decode c_char and char array results to Python strings.
         if isinstance(res, bytes):
-            if isinstance(res, str):
-                return res
             return res.decode()
         return res
 
-    if sys.version_info >= (3,):
-        return wrapper
-    return func
+    return wrapper
 
 
 def throwOnVersionMismatch(func):

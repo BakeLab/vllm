@@ -84,11 +84,7 @@
 // ROCm-compatible direct float -> E4M3 FP8 conversion (mirrors the DeepSeek V4
 // fused kernel).
 __device__ __forceinline__ uint8_t rocm_cvt_float_to_fp8_e4m3(float val) {
-  #if defined(HIP_FP8_TYPE_OCP)
   __hip_fp8_e4m3 fp8_val(val);
-  #else
-  __hip_fp8_e4m3_fnuz fp8_val(val);
-  #endif
   return reinterpret_cast<uint8_t&>(fp8_val);
 }
 #endif
