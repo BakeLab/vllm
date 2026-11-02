@@ -97,7 +97,6 @@ DEFAULT_PIP_PATTERNS = {
     "flake8",
     "triton",
     "optree",
-    "onnx",
     "nccl",
     "transformers",
     "zmq",
