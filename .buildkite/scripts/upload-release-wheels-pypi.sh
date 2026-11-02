@@ -45,8 +45,8 @@ if ! command -v uv &> /dev/null; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
 
-# install twine and sdist build prerequisites using uv with Python 3.12
-uv venv --python 3.12 /tmp/vllm-release-env
+# install twine and sdist build prerequisites using uv with Python 3.15
+uv venv --python 3.15 /tmp/vllm-release-env
 source /tmp/vllm-release-env/bin/activate
 uv pip install twine
 uv pip install -r requirements/build/cuda.txt

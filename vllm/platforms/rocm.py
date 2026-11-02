@@ -321,16 +321,10 @@ def _maybe_default_dsv4_mxfp4_indexer(vllm_config: "VllmConfig") -> None:
 @cache
 def get_rocm_version() -> tuple[int, ...] | None:
     """Return the installed ROCm release as (major, minor, patch), or None."""
-    # ROCm 10+ ships as the `rocm` pip SDK; older releases install to /opt/rocm.
     try:
         version = importlib.metadata.version("rocm")
     except importlib.metadata.PackageNotFoundError:
-        rocm_path = os.environ.get("ROCM_PATH", "/opt/rocm")
-        try:
-            with open(os.path.join(rocm_path, ".info", "version")) as f:
-                version = f.read()
-        except OSError:
-            return None
+        return None
     match = re.match(r"\s*(\d+)\.(\d+)(?:\.(\d+))?", version)
     if match is None:
         return None

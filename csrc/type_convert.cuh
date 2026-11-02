@@ -68,8 +68,7 @@ struct _typeConvert<torch::headeronly::Half> {
 };
 
   #if (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800) || defined(USE_ROCM)
-// CUDA_ARCH < 800 does not have BF16 support
-// ROCm 7.0+ supports bfloat16
+// CUDA_ARCH < 800 does not have BF16 support.
 template <>
 struct _typeConvert<torch::headeronly::BFloat16> {
   static constexpr bool exists = true;

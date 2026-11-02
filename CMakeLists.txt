@@ -235,8 +235,7 @@ elseif(HIP_FOUND OR PYTORCH_FOUND_HIP)
   # .hip extension automatically, HIP must be enabled explicitly.
   enable_language(HIP)
 
-  # ROCm 5.X and 6.X
-  if (NOT TORCH_NIGHTLY_BUILD AND ROCM_VERSION_DEV_MAJOR GREATER_EQUAL 5 AND
+  if (NOT TORCH_NIGHTLY_BUILD AND
       Torch_VERSION VERSION_LESS ${TORCH_SUPPORTED_VERSION_ROCM})
     message(WARNING "Pytorch version >= ${TORCH_SUPPORTED_VERSION_ROCM} "
       "expected for ROCm build, saw ${Torch_VERSION} instead.")

@@ -8,7 +8,7 @@
 # to avoid rebuilding them when the stack's base Dockerfile hasn't changed.
 #
 # Usage: cache-rocm-base-wheels.sh <base-dockerfile> <command>
-#   base-dockerfile  e.g. docker/Dockerfile.rocm_base or docker/Dockerfile.rocm_72_base
+#   base-dockerfile  e.g. docker/Dockerfile.rocm_base
 # Commands:
 #   check    - Check if cache exists, outputs "hit" or "miss"
 #   upload   - Upload wheels to cache

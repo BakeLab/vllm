@@ -2083,8 +2083,7 @@ environment_variables: dict[str, Callable[[], Any]] = {
         int(os.getenv("VLLM_WEIGHT_OFFLOADING_DISABLE_UVA", "0"))
     ),
     # Max descriptors per CPU-KV-offload batch-memcpy call. 0 = platform default
-    # (ROCm chunks at 8192, since hipMemcpyBatchAsync faults above that on
-    # rocm 7.14/7.15 when batch copy is optimized; CUDA uncapped). Set >0 to override.
+    # (ROCm chunks at 8192; CUDA is uncapped). Set >0 to override.
     "VLLM_KV_OFFLOAD_MAX_BATCH_DESCRIPTORS": lambda: int(
         os.getenv("VLLM_KV_OFFLOAD_MAX_BATCH_DESCRIPTORS", "0")
     ),

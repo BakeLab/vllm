@@ -11,10 +11,7 @@ from typing import Any
 
 import regex as re
 
-try:
-    from re import _parser  # type: ignore[attr-defined]
-except ImportError:  # Python 3.10
-    import sre_parse as _parser
+from re import _parser  # type: ignore[attr-defined]
 
 from vllm.parser.chat_parsing.content_parsers import parse_content
 from vllm.parser.chat_parsing.response_parser import _schema_types
