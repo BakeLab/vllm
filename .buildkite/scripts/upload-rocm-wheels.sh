@@ -13,7 +13,7 @@
 #
 # S3 path structure:
 #   s3://vllm-wheels/rocm/{commit}/<variant>-wheels/ - This stack's wheels for this commit
-#   s3://vllm-wheels/rocm/{commit}/<variant>/   - Index per ROCm variant (e.g. rocm100)
+#   s3://vllm-wheels/rocm/{commit}/<variant>/   - Index per ROCm variant (e.g. rocm101)
 #   s3://vllm-wheels/rocm/nightly/<variant>/    - Index pointing to latest nightly
 #   s3://vllm-wheels/rocm/{version}/<variant>/  - Index for release versions
 # The top-level index.html at each prefix lists every variant present, since

@@ -9,8 +9,7 @@
 # Run when NIGHTLY=1 after the stack's release image has been pushed to ECR.
 #
 # Usage: push-nightly-builds-rocm.sh <base-dockerfile> [--default]
-#   e.g. "docker/Dockerfile.rocm_base --default" (ROCm 10.0, also :nightly)
-#   and "docker/Dockerfile.rocm_72_base" (ROCm 7.2, :nightly-rocm72).
+#   e.g. "docker/Dockerfile.rocm_base --default" (ROCm 10.1, also :nightly).
 #
 # Local testing (no push to Docker Hub):
 #   BUILDKITE_COMMIT=<commit-with-image-in-ecr> DRY_RUN=1 \

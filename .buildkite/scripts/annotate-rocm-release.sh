@@ -5,7 +5,7 @@
 # Generate Buildkite annotation for a ROCm stack's wheel release.
 #
 # Usage: annotate-rocm-release.sh <base-dockerfile> [--default]
-#   base-dockerfile  e.g. docker/Dockerfile.rocm_base or docker/Dockerfile.rocm_72_base
+#   base-dockerfile  e.g. docker/Dockerfile.rocm_base
 #   --default        the stack also owns the plain :latest / :v<ver> Docker Hub tags
 set -ex
 

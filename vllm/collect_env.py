@@ -10,7 +10,6 @@ import os
 import subprocess
 import sys
 
-# Unlike the rest of the PyTorch this file must be python2 compliant.
 # This script outputs relevant system environment info
 # Run it with `python collect_env.py` or `python -m torch.utils.collect_env`
 from collections import namedtuple
@@ -603,7 +602,7 @@ def get_pip_packages(run_lambda, patterns=None):
             line for line in out.splitlines() if any(name in line for name in patterns)
         )
 
-    pip_version = "pip3" if sys.version[0] == "3" else "pip"
+    pip_version = "pip3"
     out = run_with_pip()
     return pip_version, out
 

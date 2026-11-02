@@ -190,32 +190,16 @@ void swap_blocks_batch(const torch::stable::Tensor& src_ptrs,
     }
     return;
   }
-#elif defined(USE_ROCM) && defined(HIP_VERSION) && HIP_VERSION >= 70100000
-  // ROCm 7.1+ exposes hipMemcpyBatchAsync. ROCm 7.2.1-7.2.3 early-return
-  // hipErrorNotSupported whenever numAttrs > 0 (see ROCm/clr @ rocm-7.2.1
-  // hipamd/src/hip_memory.cpp:2819-2822), so those releases must call with
-  // numAttrs=0. ROCm 7.13+ accepts numAttrs > 0.
-  // rocm-7.14+ has better performance.
+#elif defined(USE_ROCM)
+  // ROCm 10.1+ supports batched copies with source access-order attributes.
   {
     hipMemcpyAttributes attr = {};
     size_t attrs_idx = 0;
     size_t fail_idx = 0;
-    size_t num_attrs = 0;
-  #if HIP_VERSION >= 71300000
-    static const bool runtime_accepts_attrs = []() {
-      int runtime_version = 0;
-      return hipRuntimeGetVersion(&runtime_version) == hipSuccess &&
-             runtime_version >= 71300000;
-    }();
-    if (runtime_accepts_attrs) {
-      attr.srcAccessOrder = is_src_access_order_any
-                                ? hipMemcpySrcAccessOrderAny
-                                : hipMemcpySrcAccessOrderStream;
-      num_attrs = 1;
-    }
-  #endif
-    // hipMemcpyBatchAsync faults (GPU memory access fault) above 8192
-    // descriptors/call on ROCm 7.15, so chunk the batch at the resolved cap.
+    attr.srcAccessOrder = is_src_access_order_any
+                              ? hipMemcpySrcAccessOrderAny
+                              : hipMemcpySrcAccessOrderStream;
+    // Bound the descriptor count per call to avoid large-batch runtime faults.
     const int64_t max_desc = resolve_max_batch_descriptors();
     const int64_t step = max_desc <= 0 ? n : max_desc;
     for (int64_t off = 0; off < n; off += step) {
@@ -224,7 +208,7 @@ void swap_blocks_batch(const torch::stable::Tensor& src_ptrs,
           reinterpret_cast<void**>(dst_data + off),
           reinterpret_cast<void**>(src_data + off),
           reinterpret_cast<size_t*>(size_data + off), static_cast<size_t>(cnt),
-          &attr, &attrs_idx, num_attrs, &fail_idx,
+          &attr, &attrs_idx, 1, &fail_idx,
           static_cast<hipStream_t>(stream));
       STD_TORCH_CHECK(result == hipSuccess,
                       "hipMemcpyBatchAsync failed at index ", fail_idx,
@@ -234,9 +218,8 @@ void swap_blocks_batch(const torch::stable::Tensor& src_ptrs,
   }
 #endif
   {
-    // Fallback for older CUDA drivers and ROCm < 7.1:
-    // individual async copies. cudaMemcpyDefault lets the driver infer
-    // direction from pointer types.
+    // Fallback for older CUDA drivers: individual async copies.
+    // cudaMemcpyDefault lets the driver infer direction from pointer types.
     for (int64_t i = 0; i < n; i++) {
       cudaMemcpyAsync(reinterpret_cast<void*>(dst_data[i]),
                       reinterpret_cast<void*>(src_data[i]),

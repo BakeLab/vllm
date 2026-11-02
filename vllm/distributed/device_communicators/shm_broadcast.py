@@ -122,7 +122,6 @@ def _native_wait_extension():
         return None
     supported_platform = (
         sys.platform == "linux"
-        and sys.version_info >= (3, 14)
         and int(platform.release().split(".", 1)[0]) >= 7
     )
     if supported_platform:
@@ -137,7 +136,7 @@ def _native_wait_extension():
             )
     if backend == "futex":
         raise RuntimeError(
-            "Native SHM waits require Linux 7+, Python 3.14+ and futex_waitv support"
+            "Native SHM waits require Linux 7+ and futex_waitv support"
         )
     return None
 

@@ -11,12 +11,10 @@ annotation naming it.
 import argparse
 import datetime
 import importlib.metadata
-import os
 import sys
 import urllib.request
 from dataclasses import dataclass
 from html.parser import HTMLParser
-from pathlib import Path
 from urllib.parse import unquote, urldefrag, urljoin
 
 import regex as re
@@ -26,9 +24,8 @@ AITER_COMMIT_URL = "https://github.com/ROCm/aiter/commit/"
 STALE_AFTER = datetime.timedelta(days=1)
 
 # Example:
-#   amd_aiter-0.1.25+rocm7.2.3.torch2.12.ae984f5.d20261008-cp312-cp312-linux_x86_64.whl
-# is AITER main at commit ae984f5, built 2026-10-08, for ROCm 7.2.3, torch 2.12
-# and Python 3.12. 0.1.25 is a guess at the next release, not a real one.
+#   amd_aiter-0.1.25+rocm10.1.0a20260822.torch2.11.ae984f5.d20261008-cp315-cp315-linux_x86_64.whl
+# names the AITER commit, build date, ROCm/PyTorch versions, and Python ABI.
 WHEEL_NAME = re.compile(
     r"^amd_aiter-(?P<base_version>[^+-]+)\+(?P<local>[^-]+)"
     r"-(?P<python>cp\d+)-(?P=python)-linux_x86_64\.whl$"
@@ -103,18 +100,12 @@ def parse_index(html: str, index_url: str) -> list[Wheel]:
 
 
 def rocm_version() -> str:
-    """This image's ROCm version; ROCm 10+ ships as the `rocm` pip SDK."""
-    try:
-        return importlib.metadata.version("rocm")
-    except importlib.metadata.PackageNotFoundError:
-        # No pip SDK: fall back to older ROCm releases, which install to ROCM_PATH.
-        rocm_path = Path(os.environ.get("ROCM_PATH", "/opt/rocm"))
-        return (rocm_path / ".info" / "version").read_text()
+    """This image's ROCm SDK version from the TheRock `rocm` package."""
+    return importlib.metadata.version("rocm")
 
 
 def rocm_release(version: str) -> str:
-    """`7.2.3-49` or `10.0.0a20261001` -> `7.2.3` or `10.0.0`, as wheel names
-    spell it."""
+    """Normalize the ROCm version as it appears in wheel names."""
     match = re.match(r"\d+(?:\.\d+)*", version.strip())
     if not match:
         raise ValueError(f"Unrecognised ROCm version: {version!r}")
@@ -130,7 +121,7 @@ def torch_release(version: str) -> str:
 
 
 def python_tag(version_info: tuple[int, int]) -> str:
-    """(3, 12) -> `cp312`, as wheel names spell it."""
+    """(3, 15) -> `cp315`, as wheel names spell it."""
     return f"cp{version_info[0]}{version_info[1]}"
 
 
@@ -140,7 +131,7 @@ def _base_version_key(wheel: Wheel) -> tuple[int, ...]:
 
 
 def _label(rocm: str, torch: str, python: str) -> str:
-    """`rocm7.2.3/torch2.12/cp312`, for messages."""
+    """`rocm10.1.0/torch2.11/cp315`, for messages."""
     return f"rocm{rocm}/torch{torch}/{python}"
 
 

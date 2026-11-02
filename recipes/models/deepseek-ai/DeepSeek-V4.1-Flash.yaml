@@ -41,11 +41,11 @@ model:
   min_vllm_version: "0.31.0"
   default_frontend: rust
   docker_image:
-    # ROCm 10.0 nightly channel. MI355X's --monokernel (vllm-project/vllm#60397,
+    # ROCm 10.1 nightly channel. MI355X's --monokernel (vllm-project/vllm#60397,
     # #61082), paged MXFP4 indexer (#58671) and Gluon sparse MLA (#53492) are on
     # main but not in 0.31.0, so AMD stays on the nightly image the AMD rows were
     # verified on; the MI355X pip tab is hidden in the variants below.
-    amd: "vllm/vllm-openai-rocm:nightly-rocm100"
+    amd: "vllm/vllm-openai-rocm:nightly-rocm101"
   architecture: moe
   parameter_count: "552B"
   active_parameters: "8-16B"
@@ -694,7 +694,7 @@ guide: |
     0.31.0 adds the KV-offload fix ([vllm-project/vllm#57145](https://github.com/vllm-project/vllm/pull/57145))
     and the ROCm Engram host-memory gate ([vllm-project/vllm#57491](https://github.com/vllm-project/vllm/pull/57491)).
     The launch-day `deepseekv41-flash-0909` image is no longer needed.
-  - On AMD the Docker tab uses `vllm/vllm-openai-rocm:nightly-rocm100`, the ROCm 10.0
+  - On AMD the Docker tab uses `vllm/vllm-openai-rocm:nightly-rocm101`, the ROCm 10.1
     nightly the AMD rows were verified on. **MI355X needs it**: the TP2 command uses
     `--monokernel` and the ROCm MXFP4 indexer, which are on `main` but not in 0.31.0,
     so the Install block offers only Docker on MI355X. MI300X, MI325X and MI350X also
