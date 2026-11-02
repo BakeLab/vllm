@@ -12,9 +12,6 @@ fi
 # Select requirements before optional packages can change the installed Torch.
 CUDA_MAJOR=$(python3 -c 'import torch; print(torch.version.cuda.split(".", 1)[0])')
 DEFAULT_REQUIREMENTS=/vllm-workspace/requirements/kv_connectors.txt
-if [ "${CUDA_MAJOR}" = "12" ]; then
-    DEFAULT_REQUIREMENTS=/vllm-workspace/requirements/kv_connectors_cu12.txt
-fi
 REQUIREMENTS_FILE="${KV_CONNECTORS_REQUIREMENTS:-${DEFAULT_REQUIREMENTS}}"
 
 CONSTRAINTS_DIR=$(mktemp -d)
@@ -46,13 +43,13 @@ MOONCAKE_VERSION="${MOONCAKE_VERSION:-}"
 
 # nixl>=1.1.0 can install multiple CUDA wheel variants. Keep only the variant
 # matching this CI image so nixl_ep_cpp links against the available libcudart.
-uv pip uninstall --system nixl-cu12 nixl-cu13 2>/dev/null || true
+uv pip uninstall --system nixl-cu13 2>/dev/null || true
 uv pip install --system --no-deps "nixl-cu${CUDA_MAJOR}==${NIXL_VERSION}"
 
 python3 - <<'PY'
 import importlib.metadata as metadata
 
-for package_name in ("nixl", "nixl-cu12", "nixl-cu13"):
+for package_name in ("nixl", "nixl-cu13"):
     try:
         version = metadata.version(package_name)
     except metadata.PackageNotFoundError:

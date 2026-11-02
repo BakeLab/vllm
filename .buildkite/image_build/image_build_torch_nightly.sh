@@ -46,7 +46,7 @@ fi
 echo "Image not found, proceeding with build..."
 
 # --- CUDA 13.0 for nightly builds ---
-# Nightly CI uses CUDA 13.0 while regular CI stays on CUDA 12.9
+# Nightly CI builds with CUDA 13.0.
 NIGHTLY_CUDA_VERSION="13.0.2"
 NIGHTLY_BUILD_BASE_IMAGE="pytorch/manylinux2_28-builder:cuda13.0-78e737ad29420ffc4800e677c51e2a852caf8359"
 # Keep the nightly runtime OS aligned with docker/Dockerfile.
@@ -63,7 +63,7 @@ docker buildx build --file docker/Dockerfile \
   --build-arg CUDA_VERSION="${NIGHTLY_CUDA_VERSION}" \
   --build-arg BUILD_BASE_IMAGE="${NIGHTLY_BUILD_BASE_IMAGE}" \
   --build-arg FINAL_BASE_IMAGE="${NIGHTLY_FINAL_BASE_IMAGE}" \
-  --build-arg torch_cuda_arch_list="8.0 8.9 9.0 10.0 12.0" \
+  --build-arg torch_cuda_arch_list="10.0 10.7 11.0 12.0" \
   --label "org.opencontainers.image.revision=${BUILDKITE_COMMIT}" \
   --label "ai.vllm.build.commit=${BUILDKITE_COMMIT}" \
   --label "ai.vllm.build.pipeline=${BUILDKITE_PIPELINE_SLUG:-local}" \
