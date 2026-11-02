@@ -22,7 +22,7 @@ This guide will help you quickly get started with vLLM to perform:
     It's recommended to use [uv](https://docs.astral.sh/uv/), a very fast Python environment manager, to create and manage Python environments. Please follow the [documentation](https://docs.astral.sh/uv/#getting-started) to install `uv`. After installing `uv`, you can create a new Python environment and install vLLM using the following commands:
 
     ```bash
-    uv venv --python 3.12 --seed
+    uv venv --python 3.15 --seed
     source .venv/bin/activate
     uv pip install vllm --torch-backend=auto
     vllm download-kernels
@@ -60,7 +60,7 @@ This guide will help you quickly get started with vLLM to perform:
     ```
 
     !!! note
-        It currently supports Python 3.12, ROCm 7.0 and `glibc >= 2.35`.
+        This trim supports Python 3.15, ROCm 10.1 or newer, and `glibc >= 2.35`.
 
     !!! note
         Note that, previously, docker images were published using AMD's docker release pipeline and were located `rocm/vllm-dev`. This is being deprecated by using vLLM's docker release pipeline.

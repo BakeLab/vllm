@@ -39,10 +39,10 @@ ARG PREBUILD_KERNELS=0
 ARG TRITON_KERNEL_BRANCH="padroute"
 ARG TRITON_KERNEL_REPO="https://github.com/jpvillam-amd/triton.git"
 
-# Required for RCCL in ROCm7.1
+# Required for RCCL.
 ENV HSA_NO_SCRATCH_RECLAIM=1
 
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_VERSION=3.15
 ENV PYTHON_VERSION=${PYTHON_VERSION}
 
 RUN mkdir -p /app
@@ -58,7 +58,7 @@ RUN apt-get update -y \
     done \
     && apt-get update -y \
     && apt-get install -y python${PYTHON_VERSION} python${PYTHON_VERSION}-dev python${PYTHON_VERSION}-venv \
-    python${PYTHON_VERSION}-lib2to3 python-is-python3  \
+    python-is-python3  \
     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python${PYTHON_VERSION} 1 \
     && update-alternatives --set python3 /usr/bin/python${PYTHON_VERSION} \
     && ln -sf /usr/bin/python${PYTHON_VERSION}-config /usr/bin/python3-config \

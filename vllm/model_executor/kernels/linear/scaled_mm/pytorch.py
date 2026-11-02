@@ -163,9 +163,7 @@ class RowWiseTorchFP8ScaledMMLinearKernel(TorchFP8ScaledMMLinearKernel):
     ) -> torch.Tensor:
         #  Note:
         #  For now it has only been validated on ROCm platform.
-        #  fp8 rowwise scaling in torch._scaled_mm is introduced in
-        #  https://github.com/pytorch/pytorch/pull/144432 using
-        #  hipBLASLt and ROCm 6.3, which only exists in torch 2.7 and above.
+        #  fp8 rowwise scaling in torch._scaled_mm uses hipBLASLt.
         #
         #  For CUDA platform please validate if the torch._scaled_mm supports
         #  rowwise scaled GEMM before using it

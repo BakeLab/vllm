@@ -6,15 +6,15 @@
 # Dockerfile, so the stack's image is the single input to every ROCm script.
 #
 # Usage: source .buildkite/scripts/rocm/stack.sh <base-dockerfile>
-#   e.g. docker/Dockerfile.rocm_base (ROCm 10.0) or docker/Dockerfile.rocm_72_base
+#   e.g. docker/Dockerfile.rocm_base (ROCm 10.1)
 #
 # Exports:
 #   ROCM_STACK_BASE_DOCKERFILE  the base Dockerfile
 #   ROCM_STACK_DOCKERFILE       the matching vLLM Dockerfile (base name minus _base)
 #   ROCM_STACK_THEROCK          1 if the ROCm SDK comes from TheRock wheels
-#   ROCM_STACK_VERSION          ROCm version, e.g. 10.0.0 or 7.2.3
+#   ROCM_STACK_VERSION          ROCm version, e.g. 10.1.0
 #   ROCM_STACK_VARIANT          wheel variant and Docker Hub tag flavor from major.minor,
-#                               same rule as setup.py (rocm100, rocm72)
+#                               same rule as setup.py (rocm101)
 #   ROCM_STACK_IMAGE_KEY        hash of the base Dockerfile (base image cache key)
 #   ROCM_STACK_WHEEL_KEY        hash of the base Dockerfile plus files it COPYs from
 #                               the repo (base wheel cache key)
@@ -49,6 +49,10 @@ rocm_stack_init() {
 
     local major minor
     IFS=. read -r major minor _ <<< "$ROCM_STACK_VERSION"
+    if ((major < 10 || (major == 10 && minor < 1))); then
+        echo "ROCm 10.1 or newer is required; $base selects ROCm $ROCM_STACK_VERSION" >&2
+        return 2
+    fi
     ROCM_STACK_VARIANT="rocm${major}${minor}"
 
     ROCM_STACK_IMAGE_KEY=$(sha256sum "$base" | cut -c1-16)

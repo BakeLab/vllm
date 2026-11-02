@@ -1183,9 +1183,7 @@ class WorkerProc:
             if output_rank is None or self.rank == output_rank:
                 self.handle_output(output)
         except Exception as e:
-            # Notes have been introduced in python 3.11
-            if hasattr(e, "add_note"):
-                e.add_note(traceback.format_exc())
+            e.add_note(traceback.format_exc())
             logger.exception("WorkerProc hit an exception.")
             # enqueue_output converts the exception to a FAILURE response
             # containing its string representation before transport.

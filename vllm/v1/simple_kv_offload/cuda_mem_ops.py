@@ -94,8 +94,7 @@ def _resolve_batch_memcpy() -> tuple[Any, int]:
     """Resolve the batch-memcpy entry point and its ``numAttrs`` (one-time).
 
     CUDA uses ``cuMemcpyBatchAsync``; ROCm uses ``hipMemcpyBatchAsync``.
-    Raises ``RuntimeError`` if the symbol is unavailable (old CUDA driver,
-    ROCm < 7.1, unusual install).
+    Raises ``RuntimeError`` if the symbol is unavailable.
     """
     if current_platform.is_rocm():
         try:
@@ -103,8 +102,7 @@ def _resolve_batch_memcpy() -> tuple[Any, int]:
             fn = lib.hipMemcpyBatchAsync
         except (OSError, AttributeError) as e:
             raise RuntimeError(
-                "hipMemcpyBatchAsync is unavailable in this ROCm install; "
-                "SimpleCPUOffloadConnector requires ROCm 7.1+."
+                "hipMemcpyBatchAsync is unavailable in this ROCm 10.1+ install."
             ) from e
         fn.restype = ctypes.c_uint
         fn.argtypes = [
@@ -118,7 +116,7 @@ def _resolve_batch_memcpy() -> tuple[Any, int]:
             ctypes.c_void_p,  # failIdx
             ctypes.c_void_p,  # stream
         ]
-        return fn, _rocm_num_attrs(lib)
+        return fn, 1
 
     from cuda.bindings import driver as drv
 
@@ -138,7 +136,7 @@ def _load_hip_runtime() -> ctypes.CDLL:
     versioned names resolve even when they are not on the loader search path.
     """
     errors = []
-    for name in ("libamdhip64.so", "libamdhip64.so.7", "libamdhip64.so.6"):
+    for name in ("libamdhip64.so", "libamdhip64.so.7"):
         try:
             return ctypes.CDLL(name, mode=ctypes.RTLD_GLOBAL)
         except OSError as e:
@@ -146,37 +144,12 @@ def _load_hip_runtime() -> ctypes.CDLL:
     raise OSError("could not load the HIP runtime: " + "; ".join(errors))
 
 
-def _rocm_num_attrs(lib: ctypes.CDLL) -> int:
-    """``numAttrs`` for ``hipMemcpyBatchAsync`` on the running HIP runtime."""
-    ver = ctypes.c_int(0)
-    try:
-        if lib.hipRuntimeGetVersion(ctypes.byref(ver)) != 0:
-            ver.value = 0
-    except (OSError, AttributeError):
-        ver.value = 0
-    return _num_attrs_for_hip_version(ver.value)
-
-
-def _num_attrs_for_hip_version(version: int) -> int:
-    """``numAttrs`` for ``hipMemcpyBatchAsync`` given a HIP runtime version int.
-
-    ROCm 7.2.1-7.2.3 reject ``numAttrs > 0`` (ROCm/clr @ rocm-7.2.1
-    hipamd/src/hip_memory.cpp:2819-2822); 7.13+ accept it. ``version`` 0
-    (unknown) yields the conservative 0.
-    """
-    # HIP encodes version as major*10_000_000 + minor*100_000 + patch.
-    major, minor = version // 10_000_000, (version // 100_000) % 100
-    return 1 if (major, minor) >= (7, 13) else 0
-
-
 class BatchMemcpyParams(NamedTuple):
     src_bases: np.ndarray  # [num_layers] uint64 — data_ptr per layer
     dst_bases: np.ndarray  # [num_layers] uint64
     bpb: np.ndarray  # [num_layers] uint64 — bytes per block
     num_layers: int
-    # One attributes entry carrying srcAccessOrder. Ignored when num_attrs is
-    # 0, which is what ROCm runtimes older than 7.13 require (see
-    # _num_attrs_for_hip_version).
+    # One attributes entry carrying srcAccessOrder.
     attrs: _CUmemcpyAttributes
     attrs_idx: ctypes.c_size_t
     num_attrs: int

@@ -10,9 +10,9 @@ set -euo pipefail
 
 TARGET="${1:-all}"
 case "${TARGET}" in
-  cuda-13-0 | cuda-13-0-ubuntu-24-04 | rocm | rocm72 | xpu | cpu | all) ;;
+  cuda-13-0 | cuda-13-0-ubuntu-24-04 | rocm | xpu | cpu | all) ;;
   *)
-    echo "Usage: $0 {cuda-13-0|cuda-13-0-ubuntu-24-04|rocm|rocm72|xpu|cpu|all}"
+    echo "Usage: $0 {cuda-13-0|cuda-13-0-ubuntu-24-04|rocm|xpu|cpu|all}"
     exit 2
     ;;
 esac
@@ -119,10 +119,6 @@ publish_rocm_stack() {
 
 if target_enabled rocm; then
   publish_rocm_stack docker/Dockerfile.rocm_base 1
-fi
-
-if target_enabled rocm72; then
-  publish_rocm_stack docker/Dockerfile.rocm_72_base 0
 fi
 
 # ---- XPU ----
