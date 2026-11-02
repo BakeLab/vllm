@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
-# This script is used to build FlashInfer wheels with AOT kernels
+# This script builds FlashInfer wheels with optional AOT kernel precompilation.
 
 set -ex
 
 # FlashInfer configuration
-FLASHINFER_GIT_REPO="https://github.com/flashinfer-ai/flashinfer.git"
+FLASHINFER_GIT_REPO="${FLASHINFER_GIT_REPO:-https://github.com/BakeLab/flashinfer.git}"
+FLASHINFER_GIT_REF="${FLASHINFER_GIT_REF:-ba21cd7da3d2ae02ffde3037d775c4cf2b7bb272}"
 BUILD_WHEEL="${BUILD_WHEEL:-true}"
-
-if [[ -z "${FLASHINFER_GIT_REF}" ]]; then
-    echo "❌ FLASHINFER_GIT_REF must be specified" >&2
-    exit 1
-fi
+BUILD_AOT="${BUILD_AOT:-true}"
 
 if [[ -z "${CUDA_VERSION}" ]]; then
     echo "❌ CUDA_VERSION must be specified" >&2
@@ -19,10 +16,19 @@ fi
 
 echo "🏗️  Building FlashInfer ${FLASHINFER_GIT_REF} for CUDA ${CUDA_VERSION}"
 
-# Clone FlashInfer
-git clone --depth 1 --recursive --shallow-submodules \
-    --branch "${FLASHINFER_GIT_REF}" \
-    ${FLASHINFER_GIT_REPO} flashinfer
+# Clone FlashInfer and its submodules. A full commit ref pins the fork source;
+# branch and tag refs remain available for local builds.
+if [[ "${FLASHINFER_GIT_REF}" =~ ^[[:xdigit:]]{40}$ ]]; then
+    git init flashinfer
+    git -C flashinfer remote add origin "${FLASHINFER_GIT_REPO}"
+    git -C flashinfer fetch --depth 1 origin "${FLASHINFER_GIT_REF}"
+    git -C flashinfer checkout --detach FETCH_HEAD
+    git -C flashinfer submodule update --init --recursive --depth 1
+else
+    git clone --depth 1 --recursive --shallow-submodules \
+        --branch "${FLASHINFER_GIT_REF}" \
+        "${FLASHINFER_GIT_REPO}" flashinfer
+fi
 
 # Set CUDA arch list based on CUDA version
 # Exclude CUDA arches for older versions (11.x and 12.0-12.7)
@@ -38,16 +44,19 @@ else
     FI_TORCH_CUDA_ARCH_LIST="7.5 8.0 8.9 9.0a 10.0f 11.0 12.0f"
 fi
 
-echo "🏗️ Building FlashInfer AOT for arches: ${FI_TORCH_CUDA_ARCH_LIST}"
+if [[ "${BUILD_AOT}" == "true" ]]; then
+    echo "🏗️ Building FlashInfer AOT for arches: ${FI_TORCH_CUDA_ARCH_LIST}"
+fi
 
 pushd flashinfer
     # Make sure the wheel is built for the correct CUDA version
     export UV_TORCH_BACKEND=cu$(echo "$CUDA_VERSION" | cut -d. -f1,2 | tr -d '.')
 
-    # Build AOT kernels
-    export TORCH_CUDA_ARCH_LIST="${FI_TORCH_CUDA_ARCH_LIST}"
-    export FLASHINFER_CUDA_ARCH_LIST="${FI_TORCH_CUDA_ARCH_LIST}"
-    python3 -m flashinfer.aot
+    if [[ "${BUILD_AOT}" == "true" ]]; then
+        export TORCH_CUDA_ARCH_LIST="${FI_TORCH_CUDA_ARCH_LIST}"
+        export FLASHINFER_CUDA_ARCH_LIST="${FI_TORCH_CUDA_ARCH_LIST}"
+        python3 -m flashinfer.aot
+    fi
     
     if [[ "${BUILD_WHEEL}" == "true" ]]; then
         # Build wheel for distribution
