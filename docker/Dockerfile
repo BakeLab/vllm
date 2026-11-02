@@ -265,7 +265,7 @@ RUN --mount=type=cache,target=/opt/uv/cache \
 # Do not add +PTX here: vLLM filters torch's top-level PTX flag when it
 # converts global gencode flags into per-kernel arch lists. If a specific
 # kernel needs PTX, add +PTX to that kernel's CMake arch list instead.
-ARG torch_cuda_arch_list='7.5 8.0 8.6 8.9 9.0 10.0 11.0 12.0'
+ARG torch_cuda_arch_list='10.0 10.7 11.0 12.0'
 ENV TORCH_CUDA_ARCH_LIST=${torch_cuda_arch_list}
 #################### BUILD BASE IMAGE ####################
 
@@ -497,10 +497,7 @@ RUN --mount=type=cache,target=/opt/uv/cache \
             > /tmp/nccl-override.txt && \
         export UV_OVERRIDE=/tmp/nccl-override.txt; \
     fi && \
-    DEEPEP_ARCH_LIST='9.0a 10.0a' && \
-    if [ "$(printf '%s\n' 12.9 "$CUDA_VERSION" | sort -V | head -n1)" = 12.9 ]; then \
-        DEEPEP_ARCH_LIST="$DEEPEP_ARCH_LIST 10.3a"; \
-    fi && \
+    DEEPEP_ARCH_LIST='10.0a 10.3a' && \
     if [ "${INSTALL_RUBIN_PRERELEASE}" = "true" ]; then \
         DEEPEP_ARCH_LIST="$DEEPEP_ARCH_LIST 10.7a"; \
     fi && \
@@ -1180,7 +1177,7 @@ ENV UV_HTTP_TIMEOUT=500
 
 # install kv_connectors if requested
 # Do not add +PTX here; see the main TORCH_CUDA_ARCH_LIST comment above.
-ARG torch_cuda_arch_list='7.5 8.0 8.6 8.9 9.0 10.0 11.0 12.0'
+ARG torch_cuda_arch_list='10.0 10.7 11.0 12.0'
 ENV TORCH_CUDA_ARCH_LIST=${torch_cuda_arch_list}
 RUN --mount=type=cache,target=/opt/uv/cache \
     --mount=type=bind,source=requirements,target=/tmp/vllm-requirements,ro \
@@ -1194,9 +1191,6 @@ RUN --mount=type=cache,target=/opt/uv/cache \
                 libcusolver-dev-${CUDA_VERSION_DASH}"; \
     if [ "$INSTALL_KV_CONNECTORS" = "true" ]; then \
         KV_REQUIREMENTS=/tmp/vllm-requirements/kv_connectors.txt; \
-        if [ "${CUDA_MAJOR}" = "12" ]; then \
-            KV_REQUIREMENTS=/tmp/vllm-requirements/kv_connectors_cu12.txt; \
-        fi; \
         # Preserve the stack used to compile vLLM when resolving optional dependencies. \
         uv pip freeze --system > /tmp/kv-installed.txt; \
         grep -E '^(torch|torchaudio|torchvision|triton|cuda-bindings|cuda-python|cuda-toolkit)==' \
@@ -1280,7 +1274,7 @@ RUN --mount=type=cache,target=/opt/uv/cache \
     set -eu; \
     if [ "${BUILD_NIXL}" = "true" ]; then \
         ls /tmp/nixl-dist/*.whl; \
-        uv pip uninstall --system nixl nixl-cu12 nixl-cu13; \
+        uv pip uninstall --system nixl nixl-cu13; \
         uv pip install --system --no-deps /tmp/nixl-dist/*.whl; \
         python3 -c "import glob, importlib.util as u, os, torch; \
             spec = u.find_spec('nixl_ep_cu' + os.environ['CUDA_VERSION'].split('.')[0]); \

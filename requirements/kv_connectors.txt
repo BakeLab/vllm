@@ -3,6 +3,6 @@ lmcache >= 0.3.9
 # images. 14.1.1 fixes the root cause, so only 14.1.0 is excluded.
 cupy-cuda13x != 14.1.0
 nixl == 1.5.0
-# CUDA 12 build. On the CUDA 13 image install-kv-connectors.sh swaps this for
-# the mooncake-transfer-engine-cuda13 variant of the same version.
+# The trim build uses CUDA 13; install-kv-connectors.sh selects the matching
+# mooncake-transfer-engine-cuda13 variant.
 mooncake-transfer-engine >= 0.3.12

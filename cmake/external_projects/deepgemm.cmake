@@ -89,7 +89,7 @@ if(EXISTS "${_deepgemm_runtime_header}")
 endif()
 
 # CUDA 13+ uses the family-specific SM12x arch.
-set(DEEPGEMM_SUPPORT_ARCHS "9.0a" "10.0f" "12.0f")
+set(DEEPGEMM_SUPPORT_ARCHS "10.0f" "12.0f")
 if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 13.4)
   list(APPEND DEEPGEMM_SUPPORT_ARCHS "10.7f")
 endif()

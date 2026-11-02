@@ -29,11 +29,8 @@ endif()
 FetchContent_MakeAvailable(deepselect)
 message(STATUS "DeepSelect is available at ${deepselect_SOURCE_DIR}")
 
-# DeepSelect kernels require CUDA 12.9+; 10.0f (family) covers SM100 and SM103.
-set(DEEPSELECT_SUPPORT_ARCHS)
-if(${CMAKE_CUDA_COMPILER_VERSION} VERSION_GREATER_EQUAL 12.9)
-    list(APPEND DEEPSELECT_SUPPORT_ARCHS "10.0f")
-endif()
+# DeepSelect kernels require SM100+; the build's CUDA minimum is 13.4.
+set(DEEPSELECT_SUPPORT_ARCHS "10.0f")
 
 cuda_archs_loose_intersection(DEEPSELECT_ARCHS "${DEEPSELECT_SUPPORT_ARCHS}" "${CUDA_ARCHS}")
 if(DEEPSELECT_ARCHS)

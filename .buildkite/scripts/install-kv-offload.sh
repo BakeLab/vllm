@@ -14,5 +14,5 @@ uv pip install --system \
 
 # Keep only the NIXL wheel matching the CI image's CUDA runtime.
 NIXL_VERSION=$(uv pip show --system nixl | sed -n 's/^Version: //p')
-uv pip uninstall --system nixl-cu12 nixl-cu13
+uv pip uninstall --system nixl-cu13
 uv pip install --system --no-deps "nixl-cu${CUDA_VERSION%%.*}==${NIXL_VERSION}"

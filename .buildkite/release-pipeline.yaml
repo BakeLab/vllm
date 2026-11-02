@@ -7,7 +7,7 @@
 env:
   # for CUDA >=13, sm_100+ targets have family specifiers (see CMakeLists.txt)
   # so targets like 10.3 and 12.1 are automatically supported with this list
-  CUDA_ARCH_X86: "7.5 8.0 8.6 8.9 9.0 10.0 12.0"
+  CUDA_ARCH_X86: "10.0 10.7 11.0 12.0"
   # aarch64-only targets: Orin (8.7), Thor (11.0, CUDA 13+)
   CUDA_ARCH_AARCH64: "8.0 8.7 8.9 9.0 10.0 11.0 12.0"
 
