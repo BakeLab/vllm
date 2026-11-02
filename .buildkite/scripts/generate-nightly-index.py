@@ -28,7 +28,7 @@ def normalize_package_name(name: str) -> str:
 
 
 if not sys.version_info >= (3, 12):
-    raise RuntimeError("This script requires Python 3.12 or higher.")
+    raise RuntimeError("This script requires Python 3.15 or higher.")
 
 INDEX_HTML_TEMPLATE = """<!DOCTYPE html>
 <html>
@@ -267,7 +267,7 @@ def generate_index_and_metadata(
             break
 
     # Apply ROCm variant to all wheels without a variant. Dependencies with their
-    # own ROCm local version (e.g. TheRock's torch-2.12.0+rocm10.0.0) belong to
+    # own ROCm local version (e.g. TheRock's torch-2.11.0+rocm10.1.0) belong to
     # the same variant rather than one of their own.
     if rocm_variant:
         for file in parsed_files:

@@ -589,8 +589,9 @@ class precompiled_wheel_utils:
 
     @staticmethod
     def rocm_version_to_variant(rocm_version: str) -> str:
-        """Convert a ROCm version string to a wheel variant from its major and
-        minor version, e.g. 7.2.3 -> rocm72, 10.0.0 -> rocm100.
+        """Convert a ROCm version string to its major/minor wheel variant.
+
+        The supported stack is ROCm 10.1 and newer.
         """
         return "rocm" + "".join(rocm_version.split(".")[:2])
 
@@ -607,6 +608,11 @@ class precompiled_wheel_utils:
                 pass
         if not rocm_version:
             return None
+        version_match = re.match(r"^(\d+)\.(\d+)", rocm_version)
+        if version_match is None or tuple(map(int, version_match.groups())) < (10, 1):
+            raise RuntimeError(
+                f"ROCm {rocm_version} is unsupported; vLLM requires ROCm 10.1 or newer."
+            )
         variant = precompiled_wheel_utils.rocm_version_to_variant(rocm_version)
         print(f"Detected ROCm {rocm_version}, using variant {variant}")
         return variant

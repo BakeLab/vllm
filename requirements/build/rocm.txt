@@ -4,8 +4,8 @@
 
 --extra-index-url https://repo.amd.com/rocm/whl-multi-arch/
 torch>=2.15.0.dev0
-torchaudio==2.11.0+rocm7.14.0
-triton==3.7.1+git0263a6a6
+torchaudio==2.11.0+rocm10.1.0a20260822
+triton==3.8.0+git4cff872c.rocm10.1.0a20260822
 cmake>=3.26.1,<4
 packaging>=26.2
 setuptools>=78.1.1,<80.0.0

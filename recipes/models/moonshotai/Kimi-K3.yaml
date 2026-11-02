@@ -161,9 +161,9 @@ variants:
     description: "Quantization-aware-trained MXFP4 weights with MXFP8 activations; footprint is estimated until the checkpoint is published."
     hardware_overrides:
       # The MI355X path needs vllm-project/vllm#53940 (SiTUv2 a4w4 MoE routing)
-      # and #55966. Track the rolling ROCm 10.0 nightly.
+      # and #55966. Track the rolling ROCm 10.1 nightly.
       mi355x:
-        docker_image: "vllm/vllm-openai-rocm:nightly-rocm100"
+        docker_image: "vllm/vllm-openai-rocm:nightly-rocm101"
   nvfp4:
     precision: nvfp4
     vram_minimum_gb: 1650
@@ -710,7 +710,7 @@ guide: |
   - **vLLM:** Use the vllm/vllm-openai:kimi-k3 docker
   - **CUDA:** The kimi-k3 image ships as a CUDA 13 (cu130) build only — there is no -cu129 tag, and the K3-enabled wheels are not on the cu129 nightly index. The host needs an r580+ NVIDIA driver; on a CUDA 12.9 (r575) host, upgrade the driver or build vLLM from the K3 branch against cu129 PyTorch yourself.
   - **Hardware:** At least 8x GB300. Multi-node for real production traffic.
-  - **ROCm:** At least 8x MI355X/MI350X. On MI355X the command builder uses the ROCm 10.0 nightly image `vllm/vllm-openai-rocm:nightly-rocm100`; the day-0 `vllm/vllm-openai-rocm:kimi-k3` image predates the DSpark and MoE fixes that path needs (see [AMD MI355X: InferenceX AgentX alignment](#amd-mi355x-inferencex-agentx-alignment)).
+  - **ROCm:** At least 8x MI355X/MI350X. On MI355X the command builder uses the ROCm 10.1 nightly image `vllm/vllm-openai-rocm:nightly-rocm101`; the day-0 `vllm/vllm-openai-rocm:kimi-k3` image predates the DSpark and MoE fixes that path needs (see [AMD MI355X: InferenceX AgentX alignment](#amd-mi355x-inferencex-agentx-alignment)).
 
   ## Client Usage
 
