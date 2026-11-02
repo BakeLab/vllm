@@ -13,6 +13,9 @@
     "INSTALL_RUBIN_PRERELEASE": {
       "default": "false"
     },
+    "FLASHINFER_GIT_REF": {
+      "default": "ba21cd7da3d2ae02ffde3037d775c4cf2b7bb272"
+    },
     "NCCL_VERSION": {
       "default": "2.30.7"
     },

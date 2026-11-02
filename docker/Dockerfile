@@ -28,6 +28,7 @@ ARG UBUNTU_VERSION=24.04
 ARG INSTALL_RUBIN_PRERELEASE=false
 ARG TRITON_INSTALL_FROM_SOURCE_REPO=
 ARG TRITON_INSTALL_FROM_SOURCE_REVISION=
+ARG FLASHINFER_GIT_REF=ba21cd7da3d2ae02ffde3037d775c4cf2b7bb272
 # DeepEPv2 requires NCCL >= 2.30.4 (GIN backend).
 # Pinned to keep the DeepEP build and runtime NCCL versions compatible.
 ARG NCCL_VERSION=2.30.7
@@ -110,6 +111,7 @@ ARG SCCACHE_ENDPOINT
 ARG SCCACHE_BUCKET_NAME=vllm-build-sccache
 ARG SCCACHE_REGION_NAME=us-west-2
 ARG SCCACHE_S3_NO_CREDENTIALS=0
+ARG FLASHINFER_GIT_REF
 
 # Environment for uv
 # Declared BEFORE the installer + `uv venv` invocations below so the uv
@@ -212,6 +214,7 @@ ARG PYTORCH_NIGHTLY
 COPY requirements/common.txt requirements/common.txt
 COPY requirements/cuda.txt requirements/cuda.txt
 COPY tools/use_existing_torch.py tools/use_existing_torch.py
+COPY tools/flashinfer-build.sh tools/flashinfer-build.sh
 COPY pyproject.toml pyproject.toml
 RUN --mount=type=cache,target=/opt/uv/cache \
     --mount=type=bind,source=requirements,target=/tmp/vllm-requirements,ro \
@@ -250,6 +253,14 @@ RUN --mount=type=cache,target=/opt/uv/cache \
         uv pip install --python /opt/venv/bin/python3 -r requirements/cuda.txt \
         --extra-index-url ${PYTORCH_CUDA_INDEX_BASE_URL}/cu$(echo $CUDA_VERSION | cut -d. -f1,2 | tr -d '.'); \
     fi
+
+# Build FlashInfer from the BakeLab trim fork. The recursive checkout is
+# required to package its CUTLASS, CCCL, and spdlog submodules.
+RUN --mount=type=cache,target=/opt/uv/cache \
+    BUILD_AOT=false FLASHINFER_GIT_REF=${FLASHINFER_GIT_REF} \
+        CUDA_VERSION=${CUDA_VERSION} bash tools/flashinfer-build.sh \
+    && uv pip install --python /opt/venv/bin/python3 \
+        /workspace/flashinfer-dist/*.whl
 
 # Track PyTorch lib versions used during build and match in downstream instances.
 # We do this for both nightly and release so we can strip dependencies/*.txt as needed.
@@ -891,6 +902,7 @@ ENV VLLM_ENABLE_CUDA_COMPATIBILITY=0
 ARG PYTORCH_CUDA_INDEX_BASE_URL
 COPY requirements/common.txt /tmp/common.txt
 COPY requirements/cuda.txt /tmp/requirements-cuda.txt
+COPY --from=base /workspace/flashinfer-dist /tmp/flashinfer-dist
 ARG PYTORCH_NIGHTLY
 RUN --mount=type=cache,target=/opt/uv/cache \
     --mount=type=bind,source=requirements,target=/tmp/vllm-requirements,ro \
@@ -919,6 +931,9 @@ RUN --mount=type=cache,target=/opt/uv/cache \
             --extra-index-url ${PYTORCH_CUDA_INDEX_BASE_URL}/cu$(echo $CUDA_VERSION | cut -d. -f1,2 | tr -d '.'); \
     fi && \
     rm /tmp/requirements-cuda.txt /tmp/common.txt
+
+RUN uv pip install --system /tmp/flashinfer-dist/*.whl \
+    && rm -rf /tmp/flashinfer-dist
 
 # Install FlashInfer's precompiled kernels for all GPU architectures (the default).
 # `vllm download-kernels` wraps this command but vLLM is only installed in later

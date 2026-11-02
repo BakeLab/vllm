@@ -28,6 +28,11 @@ The `vllm-runtime-base` stage explicitly installs the current Ubuntu
 certificate removals when the image is rebuilt. This complements the Python
 `certifi` bundle used by other HTTP clients.
 
+The `base` stage builds FlashInfer from BakeLab's `trim` branch at the pinned
+commit `ba21cd7d`, including its Git submodules. `vllm-runtime-base` installs
+the same wheel, so both build and runtime images use the fork rather than the
+PyPI release.
+
 The `extensions-build` stage can also produce an optional source-built Triton
 wheel. `vllm-openai-base` installs that wheel after its other Python
 dependencies so dependency resolution cannot restore an older Triton version.
