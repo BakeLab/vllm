@@ -22,7 +22,7 @@ endif()
 FetchContent_MakeAvailable(flashkda)
 message(STATUS "FlashKDA is available at ${flashkda_SOURCE_DIR}")
 
-set(FLASH_KDA_SUPPORT_ARCHS "9.0a" "10.0f" "12.0f")
+set(FLASH_KDA_SUPPORT_ARCHS "10.0f" "12.0f")
 
 cuda_archs_loose_intersection(
   FLASH_KDA_ARCHS "${FLASH_KDA_SUPPORT_ARCHS}" "${CUDA_ARCHS}")
