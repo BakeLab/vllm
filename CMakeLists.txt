@@ -39,17 +39,19 @@ message(STATUS "Target device: ${VLLM_TARGET_DEVICE}")
 
 include(CheckCXXCompilerFlag)
 set(_vllm_x86_baseline_default "")
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(AMD64|x86_64)$" AND
-   NOT CMAKE_CROSSCOMPILING)
-  cmake_host_system_information(
-      RESULT _vllm_processor_description QUERY PROCESSOR_DESCRIPTION)
-  if(_vllm_processor_description MATCHES "(^| )AMD( |$)")
-    set(_vllm_x86_baseline_default "znver4")
-  endif()
-  unset(_vllm_processor_description)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(AMD64|x86_64)$")
+  # Package targets follow the selected CPU channel, not the build worker.
+  set(_vllm_x86_baseline_default "x86-64-v3")
 endif()
 set(VLLM_X86_BASELINE "${_vllm_x86_baseline_default}" CACHE STRING
     "-march baseline for x86 builds")
+set_property(CACHE VLLM_X86_BASELINE PROPERTY STRINGS
+    "x86-64-v3" "znver4" "znver5")
+if(NOT VLLM_X86_BASELINE STREQUAL "" AND
+   NOT VLLM_X86_BASELINE MATCHES "^(x86-64-v3|znver4|znver5)$")
+  message(FATAL_ERROR
+      "VLLM_X86_BASELINE must be x86-64-v3, znver4, znver5, or empty")
+endif()
 if(VLLM_X86_BASELINE)
   check_cxx_compiler_flag(
       "-march=${VLLM_X86_BASELINE}" VLLM_COMPILER_SUPPORTS_X86_BASELINE)
