@@ -464,12 +464,18 @@ The build uses the NIXL version pinned in `requirements/kv_connectors.txt` and
 replaces the NIXL packages installed from the KV-connector requirements.
 
 For `FINAL_BASE_IMAGE`, use the public, multi-arch
-`nvidia/cuda:13.4.1-base-ubuntu24.04` image. Set `NCCL_VERSION` to 2.32.3 or
-newer, the first NCCL release with Rubin (SM107) support.
+`nvidia/cuda:13.5.0-base-ubuntu24.04` image. Set `CUDA_VERSION=13.5` so the
+runtime installs the matching CUDA libraries and SM107-capable `ptxas`. Set
+`NCCL_VERSION` to 2.32.3 or newer, the first NCCL release with Rubin (SM107)
+support.
 For `BUILD_BASE_IMAGE`, use:
 
 - `pytorch/manylinux2_28-builder:cuda13.4` for x86_64 CPUs.
 - `pytorch/manylinuxaarch64-builder:cuda13.4` for ARM64/AArch64 CPUs.
+
+Keep the build image and prerelease PyTorch wheels on CUDA 13.4: PyTorch does
+not publish CUDA 13.5 builder images or cu135 wheels yet. The final runtime
+image uses CUDA 13.5.
 
 ??? console "ARM64/AArch64 build command"
 
@@ -478,16 +484,16 @@ For `BUILD_BASE_IMAGE`, use:
       --file docker/Dockerfile \
       --target vllm-openai \
       --platform "linux/arm64" \
-      --tag "vllm/vllm-rubin-openai:prerelease-cu134-public-arm64" \
+      --tag "vllm/vllm-rubin-openai:prerelease-cu135-public-arm64" \
       --build-arg max_jobs="$(nproc)" \
       --build-arg nvcc_threads=2 \
       --build-arg RUN_WHEEL_CHECK=false \
       --build-arg INSTALL_RUBIN_PRERELEASE=true \
       --build-arg TRITON_INSTALL_FROM_SOURCE_REPO=https://github.com/triton-lang/triton.git \
       --build-arg TRITON_INSTALL_FROM_SOURCE_REVISION=3f6e41132b5edf639bfb872ad73d4688765e08b8 \
-      --build-arg CUDA_VERSION=13.4 \
+      --build-arg CUDA_VERSION=13.5 \
       --build-arg BUILD_BASE_IMAGE="pytorch/manylinuxaarch64-builder:cuda13.4" \
-      --build-arg FINAL_BASE_IMAGE="nvidia/cuda:13.4.1-base-ubuntu24.04" \
+      --build-arg FINAL_BASE_IMAGE="nvidia/cuda:13.5.0-base-ubuntu24.04" \
       --build-arg NCCL_VERSION=2.32.3 \
       .
     ```
@@ -499,16 +505,16 @@ For `BUILD_BASE_IMAGE`, use:
       --file docker/Dockerfile \
       --target vllm-openai \
       --platform "linux/amd64" \
-      --tag "vllm/vllm-rubin-openai:prerelease-cu134-public-amd64" \
+      --tag "vllm/vllm-rubin-openai:prerelease-cu135-public-amd64" \
       --build-arg max_jobs="$(nproc)" \
       --build-arg nvcc_threads=2 \
       --build-arg RUN_WHEEL_CHECK=false \
       --build-arg INSTALL_RUBIN_PRERELEASE=true \
       --build-arg TRITON_INSTALL_FROM_SOURCE_REPO=https://github.com/triton-lang/triton.git \
       --build-arg TRITON_INSTALL_FROM_SOURCE_REVISION=3f6e41132b5edf639bfb872ad73d4688765e08b8 \
-      --build-arg CUDA_VERSION=13.4 \
+      --build-arg CUDA_VERSION=13.5 \
       --build-arg BUILD_BASE_IMAGE="pytorch/manylinux2_28-builder:cuda13.4" \
-      --build-arg FINAL_BASE_IMAGE="nvidia/cuda:13.4.1-base-ubuntu24.04" \
+      --build-arg FINAL_BASE_IMAGE="nvidia/cuda:13.5.0-base-ubuntu24.04" \
       --build-arg NCCL_VERSION=2.32.3 \
       .
     ```
