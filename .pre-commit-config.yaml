@@ -6,6 +6,12 @@ default_stages:
   - manual # Run in CI
 exclude: 'vllm/third_party/.*|vllm/models/kimi_k3/nvidia/ops/third_party/.*|vllm/models/kimi_k3/amd/ops/third_party/.*'
 repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+  - id: check-yaml
+    args: [--allow-multiple-documents]
+    files: ^\.buildkite/.*\.ya?ml$
 - repo: https://github.com/astral-sh/ruff-pre-commit
   rev: v0.14.0
   hooks:
