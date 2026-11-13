@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
-"""Weight-transfer metrics scraped from a real two-API-server deployment."""
+"""Weight-transfer metrics exposed by the Rust API frontend."""
 
 import requests
 import torch
@@ -31,7 +31,7 @@ def scrape(url: str) -> dict[tuple[str, str], float]:
     }
 
 
-def test_weight_sync_metrics_aggregate_across_api_servers(tmp_path):
+def test_weight_sync_metrics_are_reported(tmp_path):
     args = [
         "--load-format",
         "dummy",
@@ -41,8 +41,6 @@ def test_weight_sync_metrics_aggregate_across_api_servers(tmp_path):
         "512",
         "--gpu-memory-utilization",
         "0.5",
-        "--api-server-count",
-        "2",
         "--weight-transfer-config",
         '{"backend": "ipc"}',
     ]

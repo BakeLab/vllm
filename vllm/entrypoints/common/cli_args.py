@@ -557,9 +557,7 @@ def validate_parsed_serve_args(args: argparse.Namespace):
 
 
 def create_parser_for_docs() -> FlexibleArgumentParser:
-    parser_for_docs = FlexibleArgumentParser(
-        prog="-m vllm.entrypoints.launchers.api_server.entry"
-    )
+    parser_for_docs = FlexibleArgumentParser(prog="vllm serve")
     return make_arg_parser(parser_for_docs)
 
 
