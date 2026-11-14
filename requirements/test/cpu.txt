@@ -1154,7 +1154,7 @@ torchvision==0.29.0+cpu
     #   open-clip-torch
     #   segmentation-models-pytorch
     #   timm
-tornado==6.5.10
+tornado==6.6.1
     # via jupyter-client
 tqdm==4.67.3
     # via
