@@ -11,12 +11,15 @@
 set -euo pipefail
 
 if [ "$#" -eq 0 ]; then
-  # Derive the matrix from `requires-python = ">=3.X,<3.Y"` in pyproject.toml.
+  # Use the minimum supported Python when no upper bound is declared.
   pyproject="$(dirname "$0")/../pyproject.toml"
   spec=$(grep -E '^requires-python' "$pyproject" \
-         | grep -oE '>=3\.[0-9]+,<3\.[0-9]+')
+         | grep -oE '>=3\.[0-9]+(,<3\.[0-9]+)?')
   lo=${spec#>=3.}; lo=${lo%%,*}
-  hi=${spec##*<3.}
+  hi=$((lo + 1))
+  if [[ "$spec" == *,* ]]; then
+    hi=${spec##*<3.}
+  fi
   readarray -t versions < <(seq "$lo" $((hi - 1)) | sed 's/^/3./')
   set -- "${versions[@]}"
 fi
