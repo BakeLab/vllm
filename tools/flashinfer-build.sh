@@ -49,8 +49,8 @@ if [[ "${BUILD_AOT}" == "true" ]]; then
 fi
 
 pushd flashinfer
-    # Make sure the wheel is built for the correct CUDA version
-    export UV_TORCH_BACKEND=cu$(echo "$CUDA_VERSION" | cut -d. -f1,2 | tr -d '.')
+    # Reuse the caller's installed torch and package indexes.
+    unset UV_TORCH_BACKEND
 
     if [[ "${BUILD_AOT}" == "true" ]]; then
         export TORCH_CUDA_ARCH_LIST="${FI_TORCH_CUDA_ARCH_LIST}"
