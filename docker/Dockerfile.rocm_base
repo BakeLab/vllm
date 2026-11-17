@@ -8,8 +8,8 @@ ARG TRITON_VERSION=3.8.0+git4cff872c.rocm10.1.0a20260822
 ARG TRITON_REPO="https://github.com/ROCm/triton.git"
 ARG FA_BRANCH="0e60e394"
 ARG FA_REPO="https://github.com/Dao-AILab/flash-attention.git"
-ARG AITER_BRANCH="v0.1.26"
-ARG AITER_REPO="https://github.com/ROCm/aiter.git"
+ARG AITER_BRANCH="fe95ed13fd8cbf682a80e896a4a2203a31c56276"
+ARG AITER_REPO="https://github.com/BakeLab/aiter.git"
 ARG MORI_BRANCH="v1.2.3.post1"
 ARG MORI_REPO="https://github.com/ROCm/mori.git"
 ARG ROCM_SYSTEMS_REPO="https://github.com/ROCm/rocm-systems.git"
@@ -240,7 +240,9 @@ FROM base AS build_aiter
 ARG AITER_BRANCH
 ARG AITER_REPO
 ARG USE_SCCACHE
-RUN git clone --recursive --branch ${AITER_BRANCH} ${AITER_REPO}
+RUN git clone "${AITER_REPO}" aiter \
+    && cd aiter \
+    && git checkout --detach "${AITER_BRANCH}"
 RUN cd aiter \
     && git submodule update --init --recursive \
     && pip install -r requirements.txt
