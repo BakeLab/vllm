@@ -292,7 +292,7 @@ You can find more information about vLLM's wheels in
 
     ```bash
     python3 -m pip uninstall -y aiter
-    git clone --recursive https://github.com/ROCm/aiter.git
+    git clone https://github.com/BakeLab/aiter.git
     cd aiter
     git checkout $AITER_BRANCH_OR_COMMIT
     git submodule sync; git submodule update --init --recursive
@@ -302,7 +302,7 @@ You can find more information about vLLM's wheels in
 
     !!! note
         - You will need to config the `$AITER_BRANCH_OR_COMMIT` for your purpose.
-        - The validated `$AITER_BRANCH_OR_COMMIT` can be found in the [docker/Dockerfile.rocm_base](https://github.com/vllm-project/vllm/blob/main/docker/Dockerfile.rocm_base).
+        - BakeLab pins `$AITER_BRANCH_OR_COMMIT` in [docker/Dockerfile.rocm_base](https://github.com/BakeLab/vllm/blob/trim/docker/Dockerfile.rocm_base). The build checks out that commit before initializing submodules.
 
 4. Optionally, if you want to use MORI for EP or PD disaggregation, you can install [MORI](https://github.com/ROCm/mori) using the following steps:
 
