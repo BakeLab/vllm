@@ -28,7 +28,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
 
-      - name: Build current commit using the existing test image
+      - name: Build current commit with Arch and GCC 16
         run: |
           mkdir -p cuda-ci-results
           git rev-parse HEAD > cuda-ci-results/vllm.sha
@@ -37,13 +37,10 @@ jobs:
           nvidia-smi
           cuda_arch_list=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader | sort -u | paste -sd ' ' -)
           [[ "$cuda_arch_list" =~ ^[0-9]+\.[0-9]+(\ [0-9]+\.[0-9]+)*$ ]]
-          docker buildx build --load --file docker/Dockerfile --target test \
+          docker buildx build --load --file docker/Dockerfile.cuda-ci --target test \
             --build-arg CUDA_VERSION=13.4.1 \
-            --build-arg BUILD_BASE_IMAGE=pytorch/manylinux2_28-builder:cuda13.4@sha256:3e1044020327d2783e2729accadacea14791313f2ba2548671f73e7d58ef8fba \
-            --build-arg FINAL_BASE_IMAGE=nvidia/cuda:13.4.1-base-ubuntu24.04@sha256:3eb2d952d9cff2d7a4e42a1cedc19cfa610a7f72c3b8428811731dcea5a175fd \
             --build-arg "torch_cuda_arch_list=$cuda_arch_list" \
             --build-arg max_jobs=4 --build-arg nvcc_threads=2 \
-            --build-arg PYTORCH_NIGHTLY=1 --build-arg VLLM_USE_PRECOMPILED=0 \
             --tag "vllm-cuda-ci:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" .
 
       - name: Run existing CUDA kernel tests
@@ -53,9 +50,8 @@ jobs:
             --gpus all --shm-size=8g --workdir /vllm-workspace \
             --volume "$GITHUB_WORKSPACE/cuda-ci-results:/ci-results" \
             "vllm-cuda-ci:${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" bash -euc '
-              uv venv --system-site-packages .venv
-              .venv/bin/python -c "import torch; torch.cuda.init(); x = torch.ones(16, device=\"cuda\"); torch.testing.assert_close(x + x, torch.full_like(x, 2)); torch.cuda.synchronize()"
-              .venv/bin/python -m pytest -v \
+              python -c "import torch; torch.cuda.init(); x = torch.ones(16, device=\"cuda\"); torch.testing.assert_close(x + x, torch.full_like(x, 2)); torch.cuda.synchronize()"
+              python -m pytest -v \
                 tests/kernels/core/test_activation.py \
                 tests/kernels/core/test_layernorm.py \
                 tests/kernels/core/test_rotary_embedding.py \

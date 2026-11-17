@@ -1,0 +1,53 @@
+# syntax=docker/dockerfile:1
+# Reuse the pinned CUDA toolkit, but compile and run against Arch's toolchain.
+ARG CUDA_TOOLKIT_IMAGE=pytorch/manylinux2_28-builder:cuda13.4@sha256:3e1044020327d2783e2729accadacea14791313f2ba2548671f73e7d58ef8fba
+FROM ${CUDA_TOOLKIT_IMAGE} AS cuda-toolkit
+
+FROM archlinux:base AS toolchain
+RUN pacman -Syu --noconfirm --needed base-devel gcc cmake ninja ccache git curl \
+        uv rustup elfutils rdma-core numactl openssl
+COPY --from=cuda-toolkit /usr/local/cuda/ /opt/cuda/
+ENV CC=/usr/bin/gcc CXX=/usr/bin/g++ CUDAHOSTCXX=/usr/bin/g++ \
+    CUDA_HOME=/opt/cuda CUDACXX=/opt/cuda/bin/nvcc \
+    CMAKE_ARGS="-DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++" \
+    PATH=/opt/venv/bin:/opt/cuda/bin:/root/.cargo/bin:$PATH \
+    LD_LIBRARY_PATH=/opt/cuda/lib64:/usr/local/nvidia/lib64 \
+    NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+    UV_HTTP_TIMEOUT=500 UV_INDEX_STRATEGY=unsafe-best-match UV_LINK_MODE=copy \
+    VIRTUAL_ENV=/opt/venv
+COPY tools/ci/check-cuda-toolchain.sh /tmp/check-cuda-toolchain.sh
+RUN bash /tmp/check-cuda-toolchain.sh
+RUN uv venv --seed --python 3.14 /opt/venv
+
+FROM toolchain AS test
+ARG CUDA_VERSION=13.4.1
+ARG torch_cuda_arch_list
+ARG max_jobs=4
+ARG nvcc_threads=2
+ENV TORCH_CUDA_ARCH_LIST=${torch_cuda_arch_list} MAX_JOBS=${max_jobs} \
+    NVCC_THREADS=${nvcc_threads} VLLM_USE_PRECOMPILED=0 \
+    VLLM_DOCKER_BUILD_CONTEXT=1 VLLM_GPU_SYNC_CHECK=error \
+    HF_HUB_DOWNLOAD_TIMEOUT=60 HF_XET_HIGH_PERFORMANCE=1
+WORKDIR /vllm-workspace
+COPY . .
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install torch torchaudio torchvision --pre \
+        --index-url https://download.pytorch.org/whl/nightly/cu134 \
+    && python tools/use_existing_torch.py --prefix \
+    && uv pip freeze | grep -E '^(torch|torchaudio|torchvision)==' > /tmp/torch-constraints.txt \
+    && uv pip install -c /tmp/torch-constraints.txt \
+        -r requirements/build/cuda.txt -r requirements/build/rust.txt -r requirements/cuda.txt \
+    && BUILD_AOT=false bash tools/flashinfer-build.sh \
+    && uv pip install flashinfer-dist/*.whl
+RUN --mount=type=cache,target=/root/.cargo/registry \
+    --mount=type=cache,target=/root/.cargo/git \
+    bash tools/build_rust.sh
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=cache,target=/root/.cache/ccache \
+    export DEEPGEMM_PYTHON_INTERPRETERS=$(bash tools/setup_deepgemm_pythons.sh) \
+    && uv build --no-build-isolation --wheel --out-dir dist \
+    && uv pip install -c /tmp/torch-constraints.txt dist/*.whl \
+    && uv pip install -c /tmp/torch-constraints.txt -r requirements/test/cuda.in \
+    && uv pip install -e tests/vllm_test_utils \
+    && cp -a vllm/v1 "$(python -c 'import sysconfig; print(sysconfig.get_path("platlib"))')/vllm/" \
+    && mkdir -p src && mv vllm src/vllm
