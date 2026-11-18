@@ -4,12 +4,12 @@ ARG CUDA_TOOLKIT_IMAGE=pytorch/manylinux2_28-builder:cuda13.4@sha256:3e104402032
 FROM ${CUDA_TOOLKIT_IMAGE} AS cuda-toolkit
 
 FROM archlinux:base AS toolchain
-RUN pacman -Syu --noconfirm --needed base-devel gcc cmake ninja ccache git curl \
+RUN pacman -Syu --noconfirm --needed base-devel clang cmake ninja ccache git curl \
         uv rustup elfutils rdma-core numactl openssl
 COPY --from=cuda-toolkit /usr/local/cuda/ /opt/cuda/
-ENV CC=/usr/bin/gcc CXX=/usr/bin/g++ CUDAHOSTCXX=/usr/bin/g++ \
+ENV CC=/usr/bin/clang CXX=/usr/bin/clang++ CUDAHOSTCXX=/usr/bin/clang++ \
     CUDA_HOME=/opt/cuda CUDACXX=/opt/cuda/bin/nvcc \
-    CMAKE_ARGS="-DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++" \
+    CMAKE_ARGS="-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/clang++" \
     PATH=/opt/venv/bin:/opt/cuda/bin:/root/.cargo/bin:$PATH \
     LD_LIBRARY_PATH=/opt/cuda/lib64:/usr/local/nvidia/lib64 \
     NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility \
