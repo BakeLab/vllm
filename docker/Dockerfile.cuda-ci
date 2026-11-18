@@ -1,15 +1,11 @@
 # syntax=docker/dockerfile:1
-# Reuse the pinned CUDA toolkit, but compile and run against Arch's toolchain.
-ARG CUDA_TOOLKIT_IMAGE=pytorch/manylinux2_28-builder:cuda13.4@sha256:3e1044020327d2783e2729accadacea14791313f2ba2548671f73e7d58ef8fba
-FROM ${CUDA_TOOLKIT_IMAGE} AS cuda-toolkit
-
 FROM archlinux:base AS toolchain
-RUN pacman -Syu --noconfirm --needed base-devel clang cmake ninja ccache git curl \
+ARG CUDA_VERSION=13.5
+RUN pacman -Syu --noconfirm --needed base-devel clang cuda cmake ninja ccache git curl \
         uv rustup elfutils rdma-core numactl openssl
-COPY --from=cuda-toolkit /usr/local/cuda/ /opt/cuda/
-ENV CC=/usr/bin/clang CXX=/usr/bin/clang++ CUDAHOSTCXX=/usr/bin/clang++ \
+ENV CC=/usr/bin/clang CXX=/usr/bin/clang++ CUDAHOSTCXX=/usr/bin/g++ \
     CUDA_HOME=/opt/cuda CUDACXX=/opt/cuda/bin/nvcc \
-    CMAKE_ARGS="-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/clang++" \
+    CMAKE_ARGS="-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++" \
     PATH=/opt/venv/bin:/opt/cuda/bin:/root/.cargo/bin:$PATH \
     LD_LIBRARY_PATH=/opt/cuda/lib64:/usr/local/nvidia/lib64 \
     NVIDIA_VISIBLE_DEVICES=all NVIDIA_DRIVER_CAPABILITIES=compute,utility \
@@ -20,7 +16,6 @@ RUN bash /tmp/check-cuda-toolchain.sh
 RUN uv venv --seed --python 3.14 /opt/venv
 
 FROM toolchain AS test
-ARG CUDA_VERSION=13.4.1
 ARG torch_cuda_arch_list
 ARG max_jobs=4
 ARG nvcc_threads=2
@@ -32,7 +27,7 @@ WORKDIR /vllm-workspace
 COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install torch torchaudio torchvision --pre \
-        --index-url https://download.pytorch.org/whl/nightly/cu134 \
+        --index-url "https://download.pytorch.org/whl/nightly/cu$(echo "$CUDA_VERSION" | tr -d '.')" \
     && python tools/use_existing_torch.py --prefix \
     && uv pip freeze | grep -E '^(torch|torchaudio|torchvision)==' > /tmp/torch-constraints.txt \
     && uv pip install -c /tmp/torch-constraints.txt \

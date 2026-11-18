@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-[[ "$("$CC" -dumpversion)" == 16 ]]
-[[ "$("$CXX" -dumpversion)" == 16 ]]
 "$CXX" --version
-"$CUDACXX" --version
+nvcc_version=$("$CUDACXX" --version)
+printf '%s\n' "$nvcc_version"
+if [[ "$nvcc_version" != *"release ${CUDA_VERSION},"* ]]; then
+    echo "Expected nvcc release ${CUDA_VERSION}" >&2
+    exit 1
+fi
 
 smoke_dir=$(mktemp -d)
 trap 'rm -rf "$smoke_dir"' EXIT
