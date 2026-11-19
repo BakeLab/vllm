@@ -143,6 +143,15 @@ endif()
 #
 find_package(Torch REQUIRED)
 
+# Torch selects Clang's ABI flag using the C++ compiler, but nvcc may use
+# GCC as its host compiler even when Clang compiles the C++ sources.
+if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA" AND
+   CMAKE_CUDA_HOST_COMPILER_ID STREQUAL "GNU")
+  list(REMOVE_ITEM CUDA_NVCC_FLAGS "-Xcompiler=-fclang-abi-compat=17")
+  string(REGEX REPLACE "(^| )-Xcompiler=-fclang-abi-compat=17( |$)" "\\1\\2"
+    CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
+endif()
+
 # PyTorch's CMake package exposes CUDAToolkit_FOUND; older cached builds may
 # also define CUDA_FOUND via FindCUDA. Keep the legacy vLLM checks working on
 # clean configurations that have no FindCUDA cache entries.
